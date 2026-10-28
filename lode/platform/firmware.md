@@ -3,6 +3,11 @@
 - Release **`rev-c-1250k`** (published 2026-10-28). Assets: `mw-fw-rtos-merged.bin` (flash at 0x0)
   and `mw_fw_rtos_esp32c3-rev-c-1250k.tar.xz`.
 
+Flashed with `make esp-flash` ([hardware.md](hardware.md)). esptool writes it in ~3 s at ~2.5 Mbit/s.
+After a reset, the USB-Serial/JTAG console (`/dev/cu.usbmodem*`, 115200) shows only the ROM boot
+banner and `entry 0x403cc710`, with no app log. So the USB console can't tell whether the app
+is healthy; the 68k `mw_detect` is the real check.
+
 ## Partition table (`partitions.csv`)
 | name | offset | size | notes |
 |---|---|---|---|
