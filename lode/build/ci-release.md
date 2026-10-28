@@ -40,9 +40,16 @@ flowchart LR
 attribution), excluded from MIT by `relay/testdata/NOTICE.md`. `src/airports.c` is from OurAirports (public domain).
 Never commit LAN hostnames or IPs; docs use `relay-host.example.lan` / `192.168.1.x` placeholders.
 
+## CHANGELOG.md (mitchellh / HashiCorp style)
+The top section is always `## X.Y.Z (Unreleased)`. Every user-visible change adds a bullet there, in
+the same commit as the change, under one of these headings: `BACKWARDS INCOMPATIBILITIES:`,
+`FEATURES:`, `IMPROVEMENTS:` or `BUG FIXES:`. Bullets look like `  * component: what changed [GH-N]`.
+Lode-only and CI-internal changes don't get entries. The release job **fails** if the changelog has no
+`## <tag without v> (` section, and uses that section's body as the GitHub release notes.
+
 ## Cutting a release
-```sh
-git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
-```
+1. Rename `## X.Y.Z (Unreleased)` to `## X.Y.Z (Month D, YYYY)` and add a fresh `## X.Y.(Z+1) (Unreleased)` above it.
+2. Commit, then `git tag -a vX.Y.Z -m vX.Y.Z && git push origin main vX.Y.Z`.
+Released: **v0.1.0** (2026-10-28).
 
 Related: [container-build.md](container-build.md), [../relay/relay.md](../relay/relay.md).

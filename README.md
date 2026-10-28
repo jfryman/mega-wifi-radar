@@ -55,6 +55,7 @@ See [docs/usage.md](docs/usage.md) for controls and settings.
 | [docs/usage.md](docs/usage.md) | Boot, setup screen, controls, themes, what's on screen |
 | [docs/relay.md](docs/relay.md) | Running and configuring the relay; its HTTP API |
 | [docs/building.md](docs/building.md) | Building the ROM and relay from source, emulator builds, CI |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [lode/](lode/lode-map.md) | Design notes in depth: frame format, renderer, timing budget, lessons learned |
 
 ## Release files

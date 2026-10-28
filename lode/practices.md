@@ -7,6 +7,8 @@
   Use Podman/Docker for toolchains that aren't packaged natively on both.
 - The relay is Go (stdlib only). It builds natively on both OSes (`go test ./...`, `go run .` in `relay/`) or as its own container (`make relay-run`); it doesn't use the SGDK image.
 - Develop rendering in emulators against the **fake source**. Test networking only on the real cart.
+- Every user-visible change adds a bullet under `## X.Y.Z (Unreleased)` in `CHANGELOG.md`, in the same commit
+  (format: [build/ci-release.md](build/ci-release.md)).
 
 ## Hard rules for 68k code
 - No floats. Use `fix16`/`fix32` and lookup tables. Do geographic projection off-console.
