@@ -11,6 +11,11 @@
 - No floats. Use `fix16`/`fix32` and lookup tables. Do geographic projection off-console.
 - Never touch the VDP from the user task (`mw_process()` context).
 - Never call a blocking `mw_*` function in the radar loop. Blocking calls belong to start-up/setup screens only.
+- State shared between the supervisor and SGDK's user task is a data race the compiler can't see.
+  With LTO, loops in either task need `__asm__ volatile ("" ::: "memory")` or `volatile` accesses,
+  or gcc hoists the loads (see [net/net-layer.md](net/net-layer.md)).
+- Soft reset (`main(FALSE)`) keeps RAM and doesn't reload initialised data. Test every hardware path
+  from a **cold** power-on, and reset statics at the top of `main` when it matters.
 - Respect the sprite budget: 80 total, 20 per scanline.
 - ROM size ≤ 4 MiB unless there is a reason to go bigger (emulators and tools assume 4 MiB).
 

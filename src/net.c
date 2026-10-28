@@ -27,10 +27,17 @@ static bool str_eq_n(const char *a, const char *b, u16 n)
 static volatile bool mw_up;
 
 /* Runs in SGDK's user task during VBlank waits. Never touch the VDP here.
- * Idles until mw_init() has returned: lsd/comm state isn't valid before that. */
+ * Idles until mw_init() has returned: lsd/comm state isn't valid before that.
+ *
+ * The memory barrier is required. With LTO, mw_process() is inlined here and
+ * gcc hoists the loads of SGDK's (non-volatile) activeCommType and lsd state
+ * out of the infinite loop. This task starts before mw_init(), so it cached a
+ * NULL driver forever and never serviced the UART. That only showed on cold
+ * boots: a soft reset keeps RAM, so the stale pointer happened to be valid. */
 static void user_tsk(void)
 {
     while (TRUE) {
+        __asm__ volatile ("" ::: "memory");
         if (mw_up) mw_process();
     }
 }

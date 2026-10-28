@@ -34,28 +34,25 @@ sequenceDiagram
   while the chip is still booting. On Rev.C ~RTS drives GPIO9, the boot strap, so the ESP32 boots
   into **download mode**: `mw_detect` fails, and the module, which had booted normally at power-on, "goes off".
   SGDK's own `sample/megawifi/basic` uses the wrong order.
-- **Detect = up to 3 attempts**, each a full `net_reset()` + `mw_detect` (`DETECT_ATTEMPTS` in
-  `main.c`; the screen shows `attempt n/3`).
-- **Open issue: detection fails on a cold power-on (3/3 attempts) but works after a console soft
-  reset.** Since three full ESP32 resets and fresh driver state don't help, a slow first boot and a
-  wedged 68k receiver are ruled out. The cause is something a cold power-on leaves behind that a
-  soft reset (console ~RESET → Q1 → UART MR) clears, or that time clears. Suspects: the UART's 20 MHz
-  oscillator starting slowly or wrongly from cold (TL16C550D + R18 Rp), or the UART not leaving MR
-  cleanly at power-up. **The bring-up ROM passes every test on a cold boot (crystal 20.0 MHz,
-  VERSION OK)**, so the hardware and firmware are fine and the difference is in the SGDK path.
-  - Soft reset → `_reset_entry`: RAM isn't cleared and initialised data isn't reloaded, so statics
-    keep their last values. Cold → `_start_entry` zeroes everything.
-  - Correlation: on a soft reset our `mw_up` is still TRUE, so `mw_process()` runs during
-    `mw_init`'s reset waits. Cold boot and `net_reset()` retries run them with it FALSE, and fail.
-  - Measured (2026-10-28): cold `init 62f det 600f LSR 60 MSR 31/32` on every attempt, versus soft
-    `init 63f det 0f LSR 60 MSR 32`. The reset waits run in full and CTS is asserted (the ESP32's
-    UART is up) in both, but on a cold boot **no byte ever comes back**. So it isn't the reset
-    timing and it isn't flow control.
-  - Next discriminator: `net_raw_version_probe()` sends a raw LSD VERSION frame after each failed
-    attempt and prints the reply in hex (` raw n: ..`). A reply means SGDK's lsd/mw state is at fault;
-    silence means the UART or the ESP32 state.
-  - `net_diag` (frames in `mw_init`/`mw_detect`, LSR, MSR) prints one line per attempt, and the
-    top-right shows `hard`/`soft reset`.
+- **`user_tsk` needs a compiler memory barrier in its loop.** With `-flto -O3`, `mw_process()` is
+  inlined into the infinite loop, and gcc hoists loads of SGDK's non-volatile globals
+  (`activeCommType`, the lsd `d.rx.stat`) to task entry. Because the task starts before `mw_init()`,
+  it cached a NULL driver and never serviced the UART: replies sat in the RX FIFO and every
+  `mw_detect` timed out. That only showed on **cold boots**. A soft reset doesn't clear RAM, so the
+  stale pointer from the last run happened to be valid. Verify with
+  `m68k-elf-objdump -d out/release/rom.out` that `activeCommType` is loaded *inside* the loop.
+  ```c
+  while (TRUE) {
+      __asm__ volatile ("" ::: "memory");   /* re-read SGDK state every pass */
+      if (mw_up) mw_process();
+  }
+  ```
+  How it was found (2026-10-28): the bring-up ROM passed cold; `net_diag` showed init 62f, detect
+  600f, LSR 60, CTS set; a raw LSD VERSION frame got a valid 15-byte reply on the same cold boot,
+  so the fault was in the ROM's software path; the disassembly then showed the hoisted loads.
+- Detect still makes up to 3 attempts (`DETECT_ATTEMPTS`), each a full `net_reset()` + `mw_detect`,
+  printing `net_diag` per attempt and a raw-probe line (`net_raw_version_probe()`) after a failure.
+  These are spike diagnostics; trim them once the radar's start-up screen exists.
 - Soft reset keeps statics: anything that must start fresh is set at the top of `main` (e.g. `line = 1`).
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
