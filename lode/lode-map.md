@@ -14,7 +14,8 @@
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/
-  - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware, draft compact frame
+  - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
+  - [frame-format.md](architecture/frame-format.md) - v1 binary frame: header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - steps and open decisions
 - tmp/ - git-ignored scratch

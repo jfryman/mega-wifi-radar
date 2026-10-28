@@ -11,8 +11,8 @@ The rendering layer is built against a fake in-ROM data source so it can be deve
 
 Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44` patched for
 Rev.C); see [build/container-build.md](build/container-build.md). The current ROM is a network
-spike (detect → join → HTTP GET → print). The data path and frame format are still open; see
-[plans/roadmap.md](plans/roadmap.md).
+spike (detect → join → HTTP GET → print). The data path is a relay (option A) serving the agreed v1 compact frame
+([architecture/frame-format.md](architecture/frame-format.md)); see [plans/roadmap.md](plans/roadmap.md).
 
 ```mermaid
 flowchart LR

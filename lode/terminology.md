@@ -11,7 +11,10 @@
 - mw-fw-rtos - the ESP32 firmware; the owner's fork has the `rev-c-1250k` release.
 - wflash - the MegaWiFi bootloader; the stock build doesn't fit Rev.C clocks.
 - User task - SGDK's cooperative task (`TSK_userSet`) that runs `mw_process()`; it must never touch the VDP.
-- Compact frame - the big-endian binary aircraft snapshot the console consumes (format TBD).
+- Compact frame - the big-endian binary aircraft snapshot the console consumes (`"AR"` v1, `src/arframe.h`).
+- Record - one 24-byte aircraft entry in a frame (v2 adds the type → 28).
+- 1/32 nm - frame position unit (~58 m); x east, y north of home.
+- Stale - position older than 15 s (flagged); older than 60 s means dropped by the relay.
 - Digester - whatever turns ADS-B JSON into compact frames (relay = option A, firmware = option B).
 - Fake source - canned compact frames in ROM, used in emulators.
 - Blip - an aircraft's current-position marker on the scope.
