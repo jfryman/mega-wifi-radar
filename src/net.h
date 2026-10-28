@@ -35,22 +35,7 @@ struct net_http_result {
 
 /* mw_init + the user task that runs mw_process(). Call once, first. */
 void net_init(void);
-/* Reset the ESP32 and the driver state again (for detect retries). */
-void net_reset(void);
-
-/* Bring-up diagnostics for the last net_init/net_reset + net_detect. */
-struct net_diag {
-    u16 init_frames;     /* VBlanks spent in mw_init (reset waits ~62 if they ran) */
-    u16 detect_frames;   /* VBlanks spent in mw_detect */
-    u8 lsr;              /* 16C550 LSR after detect (0x60 idle; 0x02 OE, 0x08 FE, 0x01 data) */
-    u8 msr;              /* 16C550 MSR after detect (0x10 = CTS: ESP32 ready to receive) */
-};
-extern struct net_diag net_diag;
-
-/* Bypass SGDK's LSD/mw layers: send a raw LSD MW_CMD_VERSION frame on the
- * 16C550 and collect whatever comes back within ~0.5 s (busy-waits, so the
- * user task can't steal RX bytes). Returns the number of bytes stored. */
-u16 net_raw_version_probe(u8 *out, u16 max);
+/* mw_detect: up to 5 VERSION requests, 2 s each. */
 enum net_err net_detect(struct net_module_info *info);
 /* If ssid != NULL and slot 0 doesn't already hold it, store ssid/pass with DHCP
  * in slot 0, make it the default and save. Writes ESP flash only on change. */

@@ -6,7 +6,6 @@ the non-blocking path (async API or `mw_send`/`mw_recv`) is still to be designed
 ```c
 net_init();                                   /* mw_init(cmd_buf, MW_BUFLEN) + TSK_userSet(user_tsk) */
 net_detect(&mod);                             /* mw_detect -> fw major.minor + variant (5 tries x 2 s) */
-net_reset();                                  /* mw_init again: ESP32 reset + fresh lsd/comm state */
 net_ensure_ap(ssid, pass);                    /* slot 0, DHCP, default, mw_cfg_save; no-op if unchanged */
 net_join(ip);                                 /* mw_ap_assoc(def slot) + wait 30 s + mw_ip_current */
 net_http_get(url, chunk_cb, ctx, &res);       /* url/method/open(0)/finish, then recv chunks on MW_HTTP_CH */
@@ -47,12 +46,11 @@ sequenceDiagram
       if (mw_up) mw_process();
   }
   ```
-  How it was found (2026-10-28): the bring-up ROM passed cold; `net_diag` showed init 62f, detect
-  600f, LSR 60, CTS set; a raw LSD VERSION frame got a valid 15-byte reply on the same cold boot,
-  so the fault was in the ROM's software path; the disassembly then showed the hoisted loads.
-- Detect still makes up to 3 attempts (`DETECT_ATTEMPTS`), each a full `net_reset()` + `mw_detect`,
-  printing `net_diag` per attempt and a raw-probe line (`net_raw_version_probe()`) after a failure.
-  These are spike diagnostics; trim them once the radar's start-up screen exists.
+  Debugging playbook for "module not found": (1) bring-up ROM on a cold boot (hardware/firmware);
+  (2) time `mw_init`/`mw_detect` in frames and read LSR/MSR (reset waits about 62 frames; CTS = MSR bit 0x10);
+  (3) send a raw LSD VERSION frame `7E 00 04 00 01 00 00 7E` straight to the 16C550 and dump the
+  reply. A good reply is `7E 00 0B 00 00 00 07 01 05 01 …`. If the raw frame works and SGDK's path
+  doesn't, check the disassembly.
 - Soft reset keeps statics: anything that must start fresh is set at the top of `main` (e.g. `line = 1`).
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
@@ -64,7 +62,7 @@ sequenceDiagram
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.
 
 ## Spike ROM (src/main.c)
-Detect (≤ 3 attempts) → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
+Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
 → prints the status, length, chunk count, frames, and the first ~15 lines of the body. Then a spinner
 proves the main loop is alive.
 

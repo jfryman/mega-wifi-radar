@@ -5,7 +5,6 @@
 #include "net.h"
 
 #define COLS        40
-#define DETECT_ATTEMPTS 3   /* each: ESP32 reset + mw_detect (5 x 2 s) */
 #define BODY_TOP    12
 #define BODY_ROWS   (27 - BODY_TOP)
 
@@ -48,18 +47,6 @@ static void show_chunk(const u8 *data, u16 len, void *ctx)
     }
 }
 
-/* After a failed detect: does a raw VERSION frame get an answer? */
-static void show_raw_probe(char *buf)
-{
-    u8 rx[16];
-    u16 n = net_raw_version_probe(rx, sizeof(rx));
-    u16 pos = sprintf(buf, " raw %u:", n);
-
-    for (u16 i = 0; i < n && i < 10; i++)
-        pos += sprintf(buf + pos, " %02X", rx[i]);
-    say(buf);
-}
-
 int main(bool hard)
 {
     struct net_module_info mod;
@@ -68,27 +55,14 @@ int main(bool hard)
     u8 ip[4];
     char buf[COLS + 1];
 
+    (void)hard;
     line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
-    sprintf(buf, "%s reset", hard ? "hard" : "soft");
-    VDP_drawText(buf, COLS - 12, 0);
     PAL_setColor(PAL1 * 16 + 15, RGB24_TO_VDPCOLOR(0xFF4040));
     say("mega_wifi_radar net spike (Rev.C)");
 
+    say("Detecting module...");
     net_init();
-    enum net_err e = NET_ERR_NO_MODULE;
-    for (u16 attempt = 1; attempt <= DETECT_ATTEMPTS; attempt++) {
-        if (attempt > 1) net_reset();
-        sprintf(buf, "Detect %u/%u...", attempt, DETECT_ATTEMPTS);
-        VDP_drawText(buf, 0, line);
-        e = net_detect(&mod);
-        sprintf(buf, "%u/%u %s init %uf det %uf LSR %02X MSR %02X", attempt, DETECT_ATTEMPTS,
-                e == NET_OK ? "ok " : "bad", net_diag.init_frames, net_diag.detect_frames,
-                net_diag.lsr, net_diag.msr);
-        say(buf);
-        if (e == NET_OK) break;
-        show_raw_probe(buf);
-    }
-    if (e != NET_OK) fail("MegaWiFi module not found");
+    if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);
 
@@ -100,7 +74,7 @@ int main(bool hard)
 
     sprintf(buf, "GET %.36s", devcfg_http_url);
     say(buf);
-    e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
+    enum net_err e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
     sprintf(buf, "HTTP %d len %lu", res.status, res.content_len);
     say(buf);
     if (e != NET_OK) fail(e == NET_ERR_RECV ? "Body receive failed" : "HTTP request failed");

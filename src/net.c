@@ -1,7 +1,4 @@
 #include "net.h"
-#include "ext/mw/16c550.h"
-
-struct net_diag net_diag;
 
 /* Command buffer shared with the MegaWiFi driver; also reused for HTTP body
  * chunks, which is safe because body reception is the only call in flight. */
@@ -49,55 +46,18 @@ void net_init(void)
      * set. Without the 1 s wait, RTS (-> ESP32 GPIO9 strap) goes active while
      * the chip is still booting, so it boots into download mode and never answers. */
     TSK_userSet(user_tsk);
-    u32 t0 = vtimer;
     mw_init(cmd_buf, MW_BUFLEN);
-    net_diag.init_frames = vtimer - t0;
-    mw_up = TRUE;
-}
-
-void net_reset(void)
-{
-    /* mw_init() again = full ESP32 reset + fresh lsd/comm state, which also
-     * drops a 68k receiver wedged mid-"frame" by boot-time line garbage. */
-    mw_up = FALSE;
-    u32 t0 = vtimer;
-    mw_init(cmd_buf, MW_BUFLEN);
-    net_diag.init_frames = vtimer - t0;
     mw_up = TRUE;
 }
 
 enum net_err net_detect(struct net_module_info *info)
 {
     char *variant = NULL;
-    u32 t0 = vtimer;
-    enum mw_err err = mw_detect(&info->major, &info->minor, &variant);
 
-    net_diag.detect_frames = vtimer - t0;
-    net_diag.lsr = UART_LSR;
-    net_diag.msr = UART_MSR;
-    if (err != MW_ERR_NONE)
+    if (mw_detect(&info->major, &info->minor, &variant) != MW_ERR_NONE)
         return NET_ERR_NO_MODULE;
     info->variant = variant ? variant : "?";
     return NET_OK;
-}
-
-u16 net_raw_version_probe(u8 *out, u16 max)
-{
-    static const u8 frame[] = { 0x7E, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x7E };
-    u16 n = 0, i;
-    u32 t0;
-
-    while (UART_LSR & 0x01) (void)UART_RHR;              /* drop stale RX */
-    for (i = 0; i < sizeof(frame); i++) {
-        t0 = vtimer;
-        while (!(UART_LSR & 0x20))                       /* THR empty (auto-CTS gates TX) */
-            if (vtimer - t0 > 30) return 0;
-        UART_THR = frame[i];
-    }
-    t0 = vtimer;
-    while (vtimer - t0 < 30 && n < max)
-        if (UART_LSR & 0x01) out[n++] = UART_RHR;
-    return n;
 }
 
 enum net_err net_ensure_ap(const char *ssid, const char *pass)

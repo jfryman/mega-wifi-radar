@@ -13,7 +13,9 @@ flowchart TD
 
 ## Status
 - Step 1 is done: image + patches + guard.
-- Step 2 spike ROM is written (`src/main.c`, [../net/net-layer.md](../net/net-layer.md)) and still needs a real-cart test.
+- Step 2 network spike works on the real cart from a cold boot: detect → join (DHCP) → plain-HTTP
+  GET of `http://example.com/` → body on screen ([../net/net-layer.md](../net/net-layer.md)).
+- Next: step 3, agreeing the frame format and screen layout, then the relay prototype (2b).
 
 ## Open decisions
 - [x] SGDK pin: master `9a78a44` ([../build/container-build.md](../build/container-build.md)).
