@@ -26,7 +26,7 @@
 - nm - nautical mile; frames use 1/32 nm.
 - Home point - the scope centre (airport ICAO + lat/lon in 1e-4 deg + range nm). Dev default KBNA.
 - KBNA - Nashville International, the dev home point (36.1245, -86.6782, 599 ft).
-- Config screen - planned start-up screen for Wi-Fi and home-airport selection; dev builds skip it via `dev_config.h`.
+- Config screen - the setup screen (`setup.c`): theme, range, tags, airport, Wi-Fi, relay; opens on START or when boot can't connect.
 - Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
 - H40 - the 320×224 VDP display mode.
 - Trim - the finished size of a printed piece after cutting (`print/dims.toml`).

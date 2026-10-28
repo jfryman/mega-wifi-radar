@@ -34,9 +34,8 @@ Ordering, units, `GND` and stale flags match the relay's output.
   `relay_url` is empty, and in AUTO after `RELAY_RETRIES` (3) consecutive failed polls, so a moved relay is found
   again (each rediscovery blocks ≤ ~3 s; the V-Int radar keeps sweeping). `feed_relay_host()` is the URL without
   `http://`, for display. The fake feed stubs all three.
-- **Blocking.** `feed_fetch` runs a whole HTTP request (`net_http_get`) and freezes the main loop for
-  ~0.3 s. Fine for the spike; the radar loop needs a non-blocking variant so the sweep never stalls
-  (roadmap open decision).
+- **Blocking.** `feed_fetch` runs a whole HTTP request (`net_http_get`) and blocks the main loop for
+  ~0.3 s. That's fine: the radar renders in the V-Int, so the sweep never stalls during a poll.
 - The returned frame lives in `frame_buf` and is **valid until the next `feed_fetch()`**. Consumers that
   keep data across polls (trails) copy what they need.
 - Records are read **in place**. `frame_buf` is `u16[]`, so `ar_hdr` and every `ar_rec` (16 + 24·i)

@@ -18,7 +18,7 @@ struct settings {
     u8 tag_mode;
     char icao[5];               /* home airport */
     s32 lat_e4, lon_e4;         /* home point, 1e-4 deg */
-    char relay[RELAY_LEN + 1];  /* relay base URL, "" = none */
+    char relay[RELAY_LEN + 1];  /* relay base URL, "" = AUTO (found over mDNS) */
 };
 
 extern struct settings settings;

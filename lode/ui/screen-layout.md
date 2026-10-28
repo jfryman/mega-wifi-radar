@@ -59,11 +59,19 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
   | D-pad | pan (scroll planes A and B, offset sprites) |
   | START | settings |
 
+```mermaid
+flowchart TB
+  SP[Sprites: blips, selection box, emergency marker] --> A
+  A[Plane A: data tags + ring/compass labels] --> B
+  B[Plane B: scope disc, sweep, trail dots]
+  W[Window: side panel, fixed, doesn't pan]
+```
+
 ## Themes (config option)
 A theme is data: four palettes plus a few flags. Switching one reloads the palettes and toggles features,
 with no change to the layer layout.
 
-| | **Classic** (default, built first) | **STARS** (later) |
+| | **Classic** (default) | **STARS** |
 |---|---|---|
 | Look | green phosphor on black | black background, white/cyan tags, blue rings |
 | Sweep | thin line + afterglow | none (targets just update each scan) |

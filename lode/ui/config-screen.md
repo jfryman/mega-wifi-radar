@@ -27,4 +27,13 @@ flowchart TD
   J -- no --> S[splash_stop, setup_run wifi_first, splash_start HOLD] --> J
   R -- START --> S2[setup_run] --> R
 ```
+```c
+struct settings {               /* src/settings.h; saved as "MWR1" + struct + checksum */
+    u8 theme, range_idx, tag_mode;
+    char icao[5];
+    s32 lat_e4, lon_e4;
+    char relay[RELAY_LEN + 1];  /* "" = AUTO (mDNS) */
+};
+```
+
 Related: [radar-renderer.md](radar-renderer.md), [../net/net-layer.md](../net/net-layer.md).

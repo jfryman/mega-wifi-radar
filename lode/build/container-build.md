@@ -59,7 +59,7 @@ docker run --rm --user $(id -u):$(id -g) -v <mw-cart>/bringup-rom:/w -w /w \
     $(scripts/md --image) make PREFIX=m68k-elf-
 scripts/flashkit write-rom <mw-cart>/bringup-rom/mw-revc-bringup.bin
 ```
-Use it whenever the spike ROM can't detect the module: it separates hardware/firmware from SGDK.
+Use it whenever the radar ROM can't detect the module: it separates hardware/firmware from SGDK.
 
 ## Emulator workflow (no cart needed)
 `make sim` builds `out/sim.bin` with `-DFAKE_FEED` (16 recorded KBNA frames from `res/fake/kbna_seq.bin`,

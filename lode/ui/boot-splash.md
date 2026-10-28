@@ -1,6 +1,6 @@
 # Boot splash: 787 departure driven by the real boot (`src/splash.c`)
 
-The boot text screen is replaced by a dawn airport scene. Our **MEGA WIFI RADAR** wordmark sits in the
+The boot is a dawn airport scene. Our **MEGA WIFI RADAR** wordmark sits in the
 centre with a Sega-style shine, a control tower stands on the left, and a **787** taxis right, holds
 short, and takes off behind the logo. Each ATC call is a real boot step, so the animation shows what
 boot is actually doing. No Sega marks are used (see [../practices.md](../practices.md)).

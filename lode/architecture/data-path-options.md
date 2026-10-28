@@ -28,4 +28,10 @@ Owner's lean: **start with A** (relay), and keep B possible. Path A is what's be
 Agreed v1: [frame-format.md](frame-format.md) (16-byte header + 24-byte records, 1/32 nm,
 nearest-first, cap 96). It's identical for A and B.
 
+Either digester answers the same request, so the console doesn't care which one is in use:
+```sh
+curl -s 'http://<relay>:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96' | xxd | head -2
+# 00000000: 4152 0118 0018 ...   "AR" v1, count, rec_size 24, ...
+```
+
 Related: [../data/adsb-sources.md](../data/adsb-sources.md), [../plans/roadmap.md](../plans/roadmap.md).

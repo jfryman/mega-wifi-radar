@@ -31,7 +31,7 @@ flowchart LR
   boots into setup when no Wi-Fi works or no relay is set.
 - **Version:** `make` writes `#define APP_VERSION "<git describe --tags --always --dirty>"` to the git-ignored
   `src/version.h` (only rewritten when it changes). It's included only by `devcfg.c` (always rebuilt), and the
-  boot screen shows `app_version` at column 17. `VERSION=` overrides it; the checkout needs `fetch-depth: 0`.
+  boot splash status line shows `app_version` (cart builds only; the emulator build omits it). `VERSION=` overrides it; the checkout needs `fetch-depth: 0`.
 - **Release assets:** `mega-wifi-radar-<v>.bin`, `-emu.bin`, `-label.pdf`, `-cover.pdf`, `-manual.pdf`,
   `-manual-booklet-letter.pdf`, `-manual-booklet-a4.pdf`, and `SHA256SUMS` covering all of them.
 - Order matters: `make sim` wipes `out/release` and `out/rom.bin`, so CI runs it **before** `make release`.
@@ -54,5 +54,11 @@ Lode-only and CI-internal changes don't get entries. The release job **fails** i
 1. Rename `## X.Y.Z (Unreleased)` to `## X.Y.Z (Month D, YYYY)` and add a fresh `## X.Y.(Z+1) (Unreleased)` above it.
 2. Commit, then `git tag -a vX.Y.Z -m vX.Y.Z && git push origin main vX.Y.Z`.
 Released: **v0.1.0** (2026-10-28).
+
+```sh
+# cut a release (after dating the CHANGELOG section)
+git tag -a v0.1.3 -m v0.1.3 && git push origin main v0.1.3
+gh run watch $(gh run list --branch v0.1.3 -L1 --json databaseId -q '.[0].databaseId')
+```
 
 Related: [container-build.md](container-build.md), [../relay/relay.md](../relay/relay.md).

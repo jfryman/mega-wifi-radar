@@ -77,6 +77,12 @@ Typed URLs still work: the console's DHCP lease gives it the router's DNS and lw
 **FQDN**, because lwIP ignores the DHCP search domain. The firmware has no mDNS resolver, so `.local` *host names* don't
 resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `MegaWiFi-1-5`.
 
+```sh
+scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=1 path=/v1/frame
+cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
+```
+
 ## Terms of use
 adsb.fi open data: personal non-commercial use, at most 1 req/s, attribution required. The relay sends
 `User-Agent: mega_wifi_radar-relay`, and `source = 1` makes the console show "Data: adsb.fi".

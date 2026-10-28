@@ -13,7 +13,7 @@
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
-  - [feed.md](net/feed.md) - feed_fetch() interface, relay implementation, spike screen
+  - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
 - relay/
   - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery
 - ui/
@@ -31,5 +31,5 @@
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [frame-format.md](architecture/frame-format.md) - v1 binary frame: header, record, flags, transport, versioning
 - plans/
-  - [roadmap.md](plans/roadmap.md) - steps and open decisions
+  - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
 - tmp/ - git-ignored scratch

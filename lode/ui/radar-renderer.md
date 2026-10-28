@@ -52,4 +52,14 @@ flowchart LR
 - Profile with V-counter deltas per stage (`RADAR_DEBUG`: panel rows 15-18 + `L<late> A<avg>`).
   `getSubTick()` and wrap-around maxima mislead when the handler spans a frame.
 
+```c
+static void radar_vint(void)    /* SYS_setVIntCallback; main never touches the VDP */
+{
+    if (!GET_VDP_STATUS(VDP_VBLANK_FLAG)) { scope_advance(); return; }   /* late: sweep only */
+    scope_upload();                                     /* dirty tiles + glow palette */
+    DMA_doDma(DMA_VRAM, spr, VDP_SPRITE_TABLE, spr_n * 4, 2);
+    /* ... then CPU work: sweep step, crossings, trails, <= 2 tag redraws, sprites, panel rows */
+}
+```
+
 Related: [sweep.md](sweep.md), [screen-layout.md](screen-layout.md), [config-screen.md](config-screen.md).

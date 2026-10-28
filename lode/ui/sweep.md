@@ -50,4 +50,12 @@ CPU-copies dirty tiles to VRAM at the start of V-Blank (≤ 48 per frame).
 - The STARS theme sets `sweep = false`: no drawing, and plane B shows only rings.
 - RAM: 18 KB of the ~47 KB the heap has free after SGDK (measured `.data+.bss` = 5.4 KB, stack 2.5 KB).
 
+```c
+/* scope.c: one sweep step's pixels, as per-tile segments of byte offsets into the RAM tiles */
+static void paint(u8 step, u8 v, bool retire);   /* draw: OR nibble v; retire: AND it back to 0 */
+/* scope_advance(): two steps every other frame; retire the tail end first, its slot is reused */
+paint((t - TAIL) & 0xFF, C_BG, TRUE);
+paint(t & 0xFF, C_GLOW0 + (t / GLOW_Q) % GLOW_SLOTS, FALSE);
+```
+
 Related: [screen-layout.md](screen-layout.md).

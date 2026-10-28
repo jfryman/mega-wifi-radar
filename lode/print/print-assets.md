@@ -57,6 +57,12 @@ flowchart LR
 `scripts/print [all|label|cover|manual|watch <piece>]` writes `out/print/<piece>.pdf` (marks), `-trim.pdf`,
 `-N.png` (150 dpi), and `manual-booklet-{us-letter,a4}.pdf`. The Typst root is the repo (`json("/relay/...")`).
 
+```sh
+make print                     # scripts/print: all pieces -> out/print/
+scripts/print watch manual     # live rebuild while editing (marks off)
+make print-shots               # recapture print/shots/*.png from the emulator build
+```
+
 ## Typst lessons
 - `place()` with no alignment sits at the current *flow* position. Use `place(top + left, ...)` for absolute placement.
 - Closures capture by value: an overlap test over a list that grows in the loop must be rebuilt each iteration.
