@@ -1,9 +1,12 @@
 /* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
+
+#ifndef FAKE_FEED
 #include "devcfg.h"
 #include "fmt.h"
 #include "net.h"
+#include "settings.h"
 
 /* Word-aligned: the 68000 faults on odd-address word/long reads, and records
  * are read in place through struct pointers. */
@@ -36,7 +39,7 @@ static bool build_url(char *url, u16 size)
     /* longest: base (<= 64) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=250&max=96" */
     if (strlen(devcfg_relay_url) > size - 64) return FALSE;
     sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", devcfg_relay_url,
-            lat, lon, devcfg_range_nm, AR_MAX_RECS);
+            lat, lon, settings_range_nm(), AR_MAX_RECS);
     return TRUE;
 }
 
@@ -70,20 +73,4 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     return FEED_OK;
 }
 
-const struct ar_rec *feed_rec(const struct ar_hdr *hdr, u16 i)
-{
-    return (const struct ar_rec *)((const u8 *)hdr + AR_HDR_SIZE + i * hdr->rec_size);
-}
-
-const char *feed_err_str(enum feed_err e)
-{
-    switch (e) {
-    case FEED_OK:         return "ok";
-    case FEED_ERR_CONFIG: return "no DEV_RELAY_URL";
-    case FEED_ERR_HTTP:   return "HTTP failed";
-    case FEED_ERR_RECV:   return "receive failed";
-    case FEED_ERR_SIZE:   return "frame too big";
-    case FEED_ERR_FORMAT: return "bad frame";
-    }
-    return "?";
-}
+#endif

@@ -1,41 +1,65 @@
-/* Network spike: detect module -> join AP -> poll the relay every 5 s ->
- * list the nearest aircraft. Proves Rev.C UART, Wi-Fi, HTTP and the v1 frame
- * end to end on hardware. */
+/* mega_wifi_radar: ATC radar scope on MegaWiFi Rev.C.
+ * Boot (text screen): detect module, join Wi-Fi. Then the radar renderer runs
+ * in the V-Int (radar.c) while this loop polls the feed once per sweep and
+ * handles the pad. After radar_start() this file must not touch the VDP. */
 #include <genesis.h>
 #include "devcfg.h"
 #include "feed.h"
 #include "fmt.h"
+#include "geo.h"
 #include "net.h"
+#include "radar.h"
+#include "settings.h"
+#include "theme.h"
+#include "traffic.h"
 
-#define COLS        40
-#define POLL_FRAMES 300     /* ~5 s at 60 Hz, about one sweep */
-#define STATUS_ROW  7
-#define HDR_ROW     8
-#define LIST_TOP    10
-#define LIST_ROWS   (27 - LIST_TOP)
-#define ATTR_ROW    27
+#define HOLD_FRAMES     40      /* C held this long cycles the tag mode */
+#define STALE_SECS      15      /* panel shows STALE after this without data */
 
 static u16 line = 1;
 
 static void say(const char *s)
 {
     VDP_clearTextLine(line);
-    VDP_drawText(s, 0, line++);
+    VDP_drawText(s, 1, line++);
 }
 
-static void put_row(u16 row, u16 pal, const char *s)
-{
-    VDP_setTextPalette(pal);
-    VDP_clearTextLine(row);
-    VDP_drawText(s, 0, row);
-    VDP_setTextPalette(PAL0);
-}
-
+#ifndef FAKE_FEED
 static void fail(const char *s)
 {
-    put_row(line++, PAL1, s);
+    VDP_setTextPalette(PAL3);
+    say(s);
     while (TRUE) SYS_doVBlankProcess();
 }
+
+static void boot_network(void)
+{
+    struct net_module_info mod;
+    char buf[41];
+    u8 ip[4];
+
+    if (!devcfg_relay_url) fail("Set DEV_RELAY_URL in src/dev_config.h");
+    say("Detecting MegaWiFi...");
+    net_init();
+    if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
+    sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
+    say(buf);
+    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) fail("Saving AP config failed");
+    say("Joining Wi-Fi...");
+    if (net_join(ip) != NET_OK) fail("Association / DHCP failed");
+    sprintf(buf, "IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+    say(buf);
+}
+#endif
+
+/* ------------------------------------------------------------ side panel */
+
+enum {
+    ROW_HOME = 1, ROW_RANGE, ROW_TIME, ROW_COUNT, ROW_NET,
+    ROW_SEP1, ROW_SEL, ROW_SEL_ALT, ROW_SEL_GS, ROW_SEL_TRK, ROW_SEL_SQK, ROW_SEL_POS,
+    ROW_SEP2, ROW_HELP1 = 15, ROW_HELP2, ROW_HELP3, ROW_HELP4, ROW_HELP5,
+    ROW_THEME = 21, ROW_TAGS, ROW_DATA1 = 25, ROW_DATA2,
+};
 
 static const char *source_name(u8 src)
 {
@@ -47,90 +71,211 @@ static const char *source_name(u8 src)
     return "?";
 }
 
-/* "SWA2468  019 172   7.6 ES": callsign, alt (hundreds of ft / GND), gs kt,
- * distance nm, then E = emergency, S = stale. */
-static void show_rec(u16 row, const struct ar_rec *r)
+static void panel_static(void)
 {
-    char buf[COLS + 1], alt[4], cs[9];
-    s32 x = r->x, y = r->y;
-    u16 d10 = ((u32)isqrt32(x * x + y * y) * 10) >> 5;     /* 1/32 nm -> 0.1 nm */
+    static const char *const tags[TAGS_MODES] = { "TAGS ALL", "TAGS SEL", "TAGS OFF" };
+    char buf[16];
 
-    memcpy(cs, r->cs, 8);
-    cs[8] = 0;
-    if (r->flags & AR_F_GROUND) strcpy(alt, "GND");
-    else if (r->flags & AR_F_ALT_UNK) strcpy(alt, "---");
-    else sprintf(alt, "%03d", (r->alt < 0 ? 0 : r->alt) >> 2);
-    sprintf(buf, "%s %s %3u %3u.%u %c%c", cs, alt,
-            (r->flags & AR_F_GS_UNK) ? 0 : r->gs * 2, d10 / 10, d10 % 10,
-            (r->flags & AR_F_EMERG) ? 'E' : ' ', (r->flags & AR_F_STALE) ? 'S' : ' ');
-    put_row(row, (r->flags & AR_F_EMERG) ? PAL1 : PAL0, buf);
+    radar_panel(ROW_HOME, devcfg_home_icao);
+    sprintf(buf, "RNG %3uNM", settings_range_nm());
+    radar_panel(ROW_RANGE, buf);
+    radar_panel(ROW_SEP1, "-----------");
+    radar_panel(ROW_SEP2, "-----------");
+    radar_panel(ROW_HELP1, "A/B  ZOOM");
+    radar_panel(ROW_HELP2, "C    SELECT");
+    radar_panel(ROW_HELP3, "HOLD C TAGS");
+    radar_panel(ROW_HELP4, "PAD  PAN");
+    radar_panel(ROW_HELP5, "STRT THEME");
+    radar_panel(ROW_THEME, themes[settings.theme].name);
+    radar_panel(ROW_TAGS, tags[settings.tag_mode]);
+    radar_panel(ROW_DATA1, "Data:");
 }
 
-static void poll_once(u16 n)
+static void panel_selection(void)
+{
+    s16 sel = radar_selected();
+    char buf[16];
+
+    if (sel < 0 || !tracks[sel].used || !tracks[sel].shown) {
+        radar_panel(ROW_SEL, "NO SELECT");
+        for (u16 r = ROW_SEL_ALT; r <= ROW_SEL_POS; r++) radar_panel(r, "");
+        return;
+    }
+    struct ar_rec r = tracks[sel].cur;
+    s32 x = r.x, y = r.y;
+    u16 d10 = ((u32)isqrt32(x * x + y * y) * 10) >> 5;
+    u16 brg = ((u16)geo_angle(r.x, r.y) * 45 + 16) >> 5;     /* steps -> degrees */
+
+    memcpy(buf, r.cs, 8);
+    buf[8] = 0;
+    radar_panel(ROW_SEL, buf);
+    if (r.flags & AR_F_GROUND) strcpy(buf, "ALT GND");
+    else if (r.flags & AR_F_ALT_UNK) strcpy(buf, "ALT ---");
+    else sprintf(buf, "ALT %03d %c", (r.alt < 0 ? 0 : r.alt) >> 2,
+                 r.vrate > 2 ? '^' : r.vrate < -2 ? 'v' : ' ');
+    radar_panel(ROW_SEL_ALT, buf);
+    sprintf(buf, "GS  %3u", r.gs * 2);
+    radar_panel(ROW_SEL_GS, buf);
+    sprintf(buf, "TRK %03u", ((u16)r.track * 45 + 16) >> 5);
+    radar_panel(ROW_SEL_TRK, buf);
+    if (r.squawk == AR_SQUAWK_NONE) strcpy(buf, "SQK ----");
+    else sprintf(buf, "SQK %04X", r.squawk);
+    radar_panel(ROW_SEL_SQK, buf);
+    sprintf(buf, "%u.%uNM %03u", d10 / 10, d10 % 10, brg);
+    radar_panel(ROW_SEL_POS, buf);
+}
+
+/* ------------------------------------------------------------ input */
+
+static u16 dist_of(s16 i)
+{
+    s32 x = tracks[i].cur.x, y = tracks[i].cur.y;
+    return isqrt32(x * x + y * y);
+}
+
+/* Next shown aircraft by distance after the current selection (wraps). */
+static void select_next(void)
+{
+    s16 cur = radar_selected(), best = -1, first = -1;
+    u16 cd = cur >= 0 && tracks[cur].used ? dist_of(cur) : 0;
+    u16 bd = 0xFFFF, fd = 0xFFFF;
+
+    for (s16 i = 0; i < TR_MAX; i++) {
+        if (!tracks[i].used || !tracks[i].shown || tracks[i].drop) continue;
+        u16 d = dist_of(i);
+        if (d < fd) { fd = d; first = i; }
+        if ((cur < 0 || d > cd || (d == cd && i > cur)) && d < bd) { bd = d; best = i; }
+    }
+    radar_select(best >= 0 ? best : first);
+    if (settings.tag_mode == TAGS_SELECTED) radar_retag();
+    panel_selection();
+}
+
+static void handle_input(void)
+{
+    static u16 prev;
+    static u16 c_held;
+    u16 j = radar_joy(), pressed = j & ~prev;
+
+    prev = j;
+    if (pressed & (BUTTON_A | BUTTON_B)) {
+        s16 r = settings.range_idx + ((pressed & BUTTON_A) ? -1 : 1);
+        if (r >= 0 && r < RANGE_COUNT) {
+            char buf[16];
+            settings.range_idx = r;
+            sprintf(buf, "RNG %3uNM", settings_range_nm());
+            radar_panel(ROW_RANGE, buf);
+            radar_rescale();
+        }
+    }
+    if (j & BUTTON_C) {
+        if (++c_held == HOLD_FRAMES) {
+            settings.tag_mode = (settings.tag_mode + 1) % TAGS_MODES;
+            radar_retag();
+            panel_static();
+        }
+    } else {
+        if (c_held && c_held < HOLD_FRAMES) select_next();
+        c_held = 0;
+    }
+    if (pressed & BUTTON_START) {
+        settings.theme = (settings.theme + 1) % THEME_COUNT;
+        radar_retheme();
+        panel_static();
+    }
+    s16 dx = (j & BUTTON_RIGHT) ? 2 : (j & BUTTON_LEFT) ? -2 : 0;
+    s16 dy = (j & BUTTON_DOWN) ? 2 : (j & BUTTON_UP) ? -2 : 0;
+    if (dx || dy) radar_pan(dx, dy);
+}
+
+/* ------------------------------------------------------------ poll */
+
+static u32 snap_time, snap_vtimer, last_ok_vtimer;
+static bool have_snap;
+
+static void poll(void)
 {
     const struct ar_hdr *h;
     struct feed_stats st;
-    char buf[COLS + 1];
+    char buf[16];
     enum feed_err e = feed_fetch(&h, &st);
 
-    if (e != FEED_OK) {
-        sprintf(buf, "#%u %s (HTTP %d, %uB)", n, feed_err_str(e), st.http_status, st.bytes);
-        put_row(STATUS_ROW, PAL1, buf);
-        return;
+    if (e == FEED_OK) {
+        traffic_ingest(h);
+        snap_time = h->time;
+        snap_vtimer = last_ok_vtimer = vtimer;
+        have_snap = TRUE;
+        sprintf(buf, "%2u AC", traffic_count());
+        radar_panel(ROW_COUNT, buf);
+        radar_panel(ROW_NET, (h->hflags & AR_H_UPSTREAM_ERR) ? "UPSTRM ERR" : "NET OK");
+        radar_panel(ROW_DATA2, source_name(h->source));
+        panel_selection();
+    } else {
+        radar_panel(ROW_NET, feed_err_str(e));
     }
-    sprintf(buf, "#%u HTTP %d %uB %uch %uf", n, st.http_status, st.bytes, st.chunks, st.frames);
-    put_row(STATUS_ROW, PAL0, buf);
-    sprintf(buf, "AR v%u %u ac seq %u %s%s", h->ver, h->count, h->seq,
-            (h->hflags & AR_H_TRUNCATED) ? "TRUNC " : "",
-            (h->hflags & AR_H_UPSTREAM_ERR) ? "UPSTREAM ERR" : "");
-    put_row(HDR_ROW, PAL0, buf);
-    for (u16 i = 0; i < LIST_ROWS; i++) {
-        if (i < h->count) show_rec(LIST_TOP + i, feed_rec(h, i));
-        else VDP_clearTextLine(LIST_TOP + i);
+}
+
+static void clock_tick(void)
+{
+    char buf[16];
+
+    if (!have_snap) return;
+    u32 now = snap_time + (vtimer - snap_vtimer) / 60;
+    u32 sod = now % 86400UL;
+    sprintf(buf, "%02lu:%02lu:%02luZ", sod / 3600, (sod / 60) % 60, sod % 60);
+    radar_panel(ROW_TIME, buf);
+#ifdef RADAR_DEBUG
+    sprintf(buf, "L%u A%lu", late_frames, vint_lines_sum / 60);
+    late_frames = main_beat = vint_lines_max = 0;
+    vint_lines_sum = 0;
+    radar_panel(23, buf);
+    for (u16 i = 0; i < 8; i += 2) {
+        sprintf(buf, "%u:%lu %u:%lu", i, prof_sum[i] / 60, i + 1, prof_sum[i + 1] / 60);
+        prof_sum[i] = prof_sum[i + 1] = 0;
+        radar_panel(15 + i / 2, buf);
     }
-    sprintf(buf, "Data: %s", source_name(h->source));
-    put_row(ATTR_ROW, PAL0, buf);
+#endif
+    u32 age = (vtimer - last_ok_vtimer) / 60;
+    if (age > STALE_SECS) {
+        sprintf(buf, "STALE %lus", age);
+        radar_panel(ROW_NET, buf);
+    }
 }
 
 int main(bool hard)
 {
-    struct net_module_info mod;
-    u8 ip[4];
-    char buf[COLS + 1], lat[12], lon[12];
-
     (void)hard;
     line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
-    PAL_setColor(PAL1 * 16 + 15, RGB24_TO_VDPCOLOR(0xFF4040));
-    say("mega_wifi_radar relay spike (Rev.C)");
-    fmt_deg_e4(lat, devcfg_home_lat_e4);
-    fmt_deg_e4(lon, devcfg_home_lon_e4);
-    sprintf(buf, "Home %s %s %s %unm", devcfg_home_icao, lat, lon, devcfg_range_nm);
-    say(buf);
-    if (!devcfg_relay_url) fail("Set DEV_RELAY_URL in src/dev_config.h");
+    settings_init();
+    VDP_drawText("mega_wifi_radar", 1, line++);
+#ifndef FAKE_FEED
+    boot_network();
+#else
+    say("FAKE FEED (emulator build)");
+#endif
 
-    say("Detecting module...");
-    net_init();
-    if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
-    sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
-    say(buf);
+    radar_init();
+    panel_static();
+    panel_selection();
+    radar_panel(ROW_NET, "WAIT DATA");
+    radar_start();
+    /* ---- from here on: no VDP access in this file ---- */
 
-    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) fail("Saving AP config failed");
-    say("Joining AP...");
-    if (net_join(ip) != NET_OK) fail("Association / DHCP failed");
-    sprintf(buf, "IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
-    say(buf);
-    put_row(LIST_TOP - 1, PAL0, "CALLSIGN ALT  GS  DIST");
-
-    static const char spin[] = "|/-\\";
-    for (u16 n = 1;; n++) {
-        poll_once(n);
-        /* Waiting here lets the user task run mw_process(); the spinner shows
-         * the main loop is alive between (blocking) polls. */
-        for (u16 f = 0; f < POLL_FRAMES; f++) {
-            buf[0] = spin[(f >> 3) & 3];
-            buf[1] = 0;
-            VDP_drawText(buf, COLS - 1, 0);
-            SYS_doVBlankProcess();
+    u16 rot = radar_rotations();
+    u32 frame = vtimer, sec = vtimer;
+    poll();
+    while (TRUE) {
+        while (vtimer == frame) {}
+        frame = vtimer;
+        main_beat++;
+        handle_input();
+        if (radar_rotations() != rot) {
+            rot = radar_rotations();
+            poll();
+        }
+        if (vtimer - sec >= 60) {
+            sec = vtimer;
+            clock_tick();
         }
     }
     return 0;

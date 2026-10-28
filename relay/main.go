@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -150,12 +151,19 @@ func main() {
 	upstream := flag.String("upstream", "https://opendata.adsb.fi", "adsb.fi-compatible base URL")
 	interval := flag.Duration("min-interval", time.Second, "minimum time between upstream requests")
 	convertIn := flag.String("convert", "", "convert an upstream JSON file to a frame and exit")
+	pack := flag.String("pack", "", "pack the upstream JSON files given as arguments into a fake-feed file and exit")
 	out := flag.String("o", "frame.bin", "output file for -convert")
 	lat := flag.Float64("lat", 36.1245, "home latitude for -convert")
 	lon := flag.Float64("lon", -86.6782, "home longitude for -convert")
 	rng := flag.Int("range", 25, "range in nm for -convert")
 	flag.Parse()
 
+	if *pack != "" {
+		if err := packFiles(*pack, flag.Args(), *lat, *lon, *rng); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if *convertIn != "" {
 		if err := convertFile(*convertIn, *out, *lat, *lon, *rng); err != nil {
 			log.Fatal(err)
@@ -170,17 +178,51 @@ func main() {
 	log.Fatal(http.ListenAndServe(*listen, mux))
 }
 
-func convertFile(in, out string, lat, lon float64, rangeNM int) error {
+func loadFrame(in string, lat, lon float64, rangeNM int, seq uint16) ([]byte, int, error) {
 	data, err := os.ReadFile(in)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 	var up upstreamResp
 	if err := json.Unmarshal(data, &up); err != nil {
-		return fmt.Errorf("%s: %w", in, err)
+		return nil, 0, fmt.Errorf("%s: %w", in, err)
 	}
-	f := buildFrame(&up, lat, lon, rangeNM, maxRecs, 1)
-	body := f.encode()
-	log.Printf("%s -> %s: %d aircraft, %d bytes", in, out, len(f.recs), len(body))
+	f := buildFrame(&up, lat, lon, rangeNM, maxRecs, seq)
+	return f.encode(), len(f.recs), nil
+}
+
+func convertFile(in, out string, lat, lon float64, rangeNM int) error {
+	body, n, err := loadFrame(in, lat, lon, rangeNM, 1)
+	if err != nil {
+		return err
+	}
+	log.Printf("%s -> %s: %d aircraft, %d bytes", in, out, n, len(body))
 	return os.WriteFile(out, body, 0o644)
+}
+
+// packFiles writes the fake-feed pack the ROM embeds (src/feed_fake.c):
+// "FK", u16 count, count x u32 offsets from the start of the file, then the frames
+// (each padded to an even length so every frame stays word-aligned).
+func packFiles(out string, ins []string, lat, lon float64, rangeNM int) error {
+	if len(ins) == 0 {
+		return fmt.Errorf("-pack needs input JSON files")
+	}
+	hdr := 4 + 4*len(ins)
+	buf := make([]byte, hdr)
+	copy(buf, "FK")
+	binary.BigEndian.PutUint16(buf[2:], uint16(len(ins)))
+	for i, in := range ins {
+		body, n, err := loadFrame(in, lat, lon, rangeNM, uint16(i+1))
+		if err != nil {
+			return err
+		}
+		binary.BigEndian.PutUint32(buf[4+4*i:], uint32(len(buf)))
+		buf = append(buf, body...)
+		if len(buf)%2 == 1 {
+			buf = append(buf, 0)
+		}
+		log.Printf("%s: %d aircraft, %d bytes", in, n, len(body))
+	}
+	log.Printf("%s: %d frames, %d bytes", out, len(ins), len(buf))
+	return os.WriteFile(out, buf, 0o644)
 }

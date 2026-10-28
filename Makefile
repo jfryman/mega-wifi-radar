@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash relay-image relay-run relay-start relay-stop
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop
 
 all: release
 
@@ -19,6 +19,19 @@ debug:
 
 clean:
 	$(MD) $(SGDKMK) clean
+
+# Emulator build: fake feed (no MegaWiFi), out/sim.bin. Objects are wiped
+# before and after so flags never mix with the cart build.
+sim:
+	rm -rf out/release
+	$(MD) $(SGDKMK) release EXTRA_FLAGS=-DFAKE_FEED
+	cp out/rom.bin out/sim.bin
+	rm -rf out/release out/rom.bin
+
+SNAP ?= 3,8,15
+# Headless MAME run of out/sim.bin; PNG snapshots land in out/snap/.
+sim-run: sim
+	scripts/sim out/sim.bin $(SNAP)
 
 image:
 	$(MD) --image

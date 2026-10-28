@@ -1,0 +1,19 @@
+#!/bin/sh
+# Run a ROM headless in MAME (inside the mw-cart bring-up image, which has MAME)
+# and save PNG snapshots.  scripts/sim out/sim.bin 3,8,15
+# SIM_PRESS="9:P1 A,12:P1 Start" presses pad buttons at emulated seconds.
+set -eu
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+IMG=${SIM_IMAGE:-mw-bringup-rom:fedora42}
+ROM=${1:-out/sim.bin}
+OUT="$ROOT/out/snap"
+rm -rf "$OUT" && mkdir -p "$OUT"
+"$CTR" run --rm --user "$(id -u):$(id -g)" -v "$ROOT:/w" -w /w -e HOME=/tmp \
+    -e SIM_SNAP_AT="${2:-3,8,15}" -e SIM_PRESS="${SIM_PRESS:-}" \
+    -e SDL_VIDEODRIVER=dummy -e SDL_AUDIODRIVER=dummy "$IMG" \
+    mame genesis -cart "/w/$ROM" -noautosave -video none -sound none -nothrottle \
+        -skip_gameinfo -state_directory /tmp/sta -cfg_directory /tmp/cfg -nvram_directory /tmp/cfg \
+        -snapshot_directory /w/out/snap -autoboot_script /w/sim/snap.lua 2>&1 \
+    | grep -vE "osd_subst_env|^$" || true
+ls "$OUT"/genesis/ 2>/dev/null
