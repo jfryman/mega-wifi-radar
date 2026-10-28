@@ -36,7 +36,7 @@ sequenceDiagram
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.
 
 ## Spike ROM (src/main.c)
-Detect → `net_ensure_ap(DEV_WIFI_SSID…)` → join → GET `DEV_HTTP_URL` (default `http://example.com/`)
+Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
 → prints the status, length, chunk count, frames, and the first ~15 lines of the body. Then a spinner
 proves the main loop is alive.
 
