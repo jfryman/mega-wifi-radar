@@ -20,9 +20,15 @@ if (feed_fetch(&h, &st) == FEED_OK)
     for (u16 i = 0; i < h->count; i++) use(feed_rec(h, i));   /* nearest first */
 ```
 
+## Measured on the cart (KBNA, 2026-10-28)
+22–24 aircraft → 544–592 B in **1 chunk**. A whole `feed_fetch` blocks for **17–21 frames (~0.3 s)**
+(URL/method/open/finish round trips + relay + upstream). The relay's `seq` advances once per poll.
+Ordering, units, `GND` and stale flags match the relay's output.
+
 ## Contracts
-- **Blocking.** `feed_fetch` runs a whole HTTP request (`net_http_get`). It's fine for the spike's
-  5 s poll; the radar loop will need a non-blocking variant (see the roadmap's open decision).
+- **Blocking.** `feed_fetch` runs a whole HTTP request (`net_http_get`) and freezes the main loop for
+  ~0.3 s. Fine for the spike; the radar loop needs a non-blocking variant so the sweep never stalls
+  (roadmap open decision).
 - The returned frame lives in `frame_buf` and is **valid until the next `feed_fetch()`**. Consumers that
   keep data across polls (trails) copy what they need.
 - Records are read **in place**. `frame_buf` is `u16[]`, so `ar_hdr` and every `ar_rec` (16 + 24·i)

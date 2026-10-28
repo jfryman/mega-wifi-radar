@@ -18,8 +18,8 @@ flowchart TD
 - Frame format v1 is agreed; `src/arframe.h` mirrors it with layout asserts.
 - Relay prototype (2b) works: `relay/` (Go, stdlib only, tests cover every conversion rule and the
   HTTP contract) serves live KBNA frames at `http://relay-host.example.lan:8080/v1/frame`.
-- Spike ROM polls the relay through `feed_fetch()` ([../net/feed.md](../net/feed.md)) and lists the nearest
-  aircraft. Built; still to run on the cart.
+- **End to end works on the cart:** the spike polls the relay through `feed_fetch()`
+  ([../net/feed.md](../net/feed.md)) every ~5 s and lists the nearest aircraft around KBNA (verified 2026-10-28).
 - Next: the screen layout (3) and the fake feed for emulators.
 
 ## Planned: start-up config screen
@@ -34,9 +34,11 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
 - [x] SGDK pin: master `9a78a44` ([../build/container-build.md](../build/container-build.md)).
 - [x] Toolchain: container image (Podman/Docker), patches applied in-image.
 - [ ] Radar-loop networking: async API (`MODULE_MEGAWIFI_ASYNC`) vs a hand state machine on `mw_send`/`mw_recv`.
+      Needed: a blocking poll stalls the main loop 17–21 frames.
 - [ ] Data path A vs B ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [x] Frame format v1 ([../architecture/frame-format.md](../architecture/frame-format.md)).
 - [x] Transport: HTTP GET `/v1/frame`, once per sweep, with Content-Length.
 - [x] Relay in Go, run on the dev Mac for now; the console finds it by its DHCP-registered FQDN.
-- [ ] Screen layout and the sweep technique.
+- [ ] Screen layout and the sweep technique. Constraint measured on the owner's TV: overscan crops the
+      bottom text row and the right edge, so keep text/labels ≥ 8 px inside the 320×224 frame.
 - [ ] Settings record format in ESP32 user flash, and the airport table contents.
