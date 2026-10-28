@@ -1,0 +1,23 @@
+# Terminology
+
+- MegaWiFi - doragasu's Wi-Fi cart design and API; an ESP module bridged to the 68k over a UART.
+- Rev.C - the owner's board revision (jfryman/mw-cart): 20 MHz UART clock, 1.25 Mbaud, 8 MiB flat flash.
+- 16C550 - TI TL16C550D UART at `$A130C1` (odd bytes, register n at `+2n`).
+- LSD - the framing protocol over the UART (STX/ETX, channel nibble, 12-bit length); 4 channels.
+- Channel 0 - LSD control channel used by `mw_*` commands.
+- MW_HTTP_CH - LSD channel 3 (`LSD_MAX_CH - 1`) that carries HTTP bodies.
+- Socket channels - LSD channels 1–2, usable by `mw_tcp_connect` / `mw_udp_set`.
+- MSS frame - one LSD payload of at most 1460 bytes.
+- mw-fw-rtos - the ESP32 firmware; the owner's fork has the `rev-c-1250k` release.
+- wflash - the MegaWiFi bootloader; the stock build doesn't fit Rev.C clocks.
+- User task - SGDK's cooperative task (`TSK_userSet`) that runs `mw_process()`; it must never touch the VDP.
+- Compact frame - the big-endian binary aircraft snapshot the console consumes (format TBD).
+- Digester - whatever turns ADS-B JSON into compact frames (relay = option A, firmware = option B).
+- Fake source - canned compact frames in ROM, used in emulators.
+- Blip - an aircraft's current-position marker on the scope.
+- Trail - the last N positions of an aircraft, drawn behind the blip.
+- Data tag - the text block next to a blip (callsign / altitude / ground speed).
+- Sweep - the rotating radar line, planned as palette cycling over pre-drawn wedges.
+- nm - nautical mile; 1/16 nm is the candidate fixed-point position unit.
+- Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
+- H40 - the 320×224 VDP display mode.

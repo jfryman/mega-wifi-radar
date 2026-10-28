@@ -1,0 +1,16 @@
+# Lode map
+
+- [summary.md](summary.md) - project snapshot
+- [terminology.md](terminology.md) - domain terms
+- [practices.md](practices.md) - workflow and 68k hard rules
+- platform/
+  - [hardware.md](platform/hardware.md) - console + Rev.C cart facts, flashing
+  - [sgdk-megawifi.md](platform/sgdk-megawifi.md) - SGDK v2.11 vs master, Rev.C patch, program skeleton
+  - [firmware.md](platform/firmware.md) - mw-fw-rtos rev-c-1250k, HTTPS cert behaviour
+- data/
+  - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
+- architecture/
+  - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware, draft compact frame
+- plans/
+  - [roadmap.md](plans/roadmap.md) - steps and open decisions
+- tmp/ - git-ignored scratch
