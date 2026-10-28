@@ -1,0 +1,6 @@
+/* Dev-only overrides. Copy to src/dev_config.h (git-ignored) and edit.
+ * With no SSID defined, the ROM joins whatever AP config the module has saved. */
+#define DEV_WIFI_SSID "my-network"
+#define DEV_WIFI_PASS "my-password"
+/* Plain HTTP only until the firmware attaches the CA bundle (lode/platform/firmware.md). */
+#define DEV_HTTP_URL  "http://example.com/"

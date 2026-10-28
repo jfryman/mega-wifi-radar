@@ -1,0 +1,22 @@
+diff --git a/inc/ext/mw/16c550.h b/inc/ext/mw/16c550.h
+index 221fbe9..15e94b8 100644
+--- a/inc/ext/mw/16c550.h
++++ b/inc/ext/mw/16c550.h
+@@ -16,12 +16,12 @@
+ /// 16C550 UART base address
+ #define UART_BASE		0xA130C1
+ 
+-/// Clock applied to 16C550 chip. Currently using 24 MHz crystal
+-#define UART_CLK		24000000LU
++/// Clock applied to 16C550 chip. MegaWiFi Rev.C uses a 20 MHz crystal (stock: 24 MHz)
++#define UART_CLK		20000000LU
+ 
+-/// Desired baud rate. Maximum achievable baudrate with 24  MHz crystal
+-/// is 24000000/16 = 1.5 Mbps
+-#define UART_BR			1500000LU
++/// Desired baud rate. Rev.C runs at 20000000/16 = 1.25 Mbps (divisor 1),
++/// matching mw-fw-rtos release rev-c-1250k (stock: 1.5 Mbps)
++#define UART_BR			1250000LU
+ //#define UART_BR			500000LU
+ //#define UART_BR			750000LU
+ //#define UART_BR			115200

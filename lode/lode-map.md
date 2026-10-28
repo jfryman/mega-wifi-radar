@@ -7,6 +7,10 @@
   - [hardware.md](platform/hardware.md) - console + Rev.C cart facts, flashing
   - [sgdk-megawifi.md](platform/sgdk-megawifi.md) - SGDK v2.11 vs master, Rev.C patch, program skeleton
   - [firmware.md](platform/firmware.md) - mw-fw-rtos rev-c-1250k, HTTPS cert behaviour
+- build/
+  - [container-build.md](build/container-build.md) - image, pins, hash-tagging, Rev.C guard, make targets
+- net/
+  - [net-layer.md](net/net-layer.md) - blocking net helpers, spike ROM, ROM header
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/

@@ -12,7 +12,8 @@ Verified by reading source on 2026-10-28.
 | API | v1.5 | v1.5 |
 | UART defaults | 24 MHz / 1.5 M | 24 MHz / 1.5 M, plus `UART_BUFLEN 1460` |
 
-**Pin: TBD** (see the roadmap). With master, the default `CROSS` implementation also requires
+**Pinned: master `9a78a44143a867cd8c5053b95cd061a21f0b73c2`**, chosen for the cart's implementation option and the async API.
+The pin and patches live in [../build/container-build.md](../build/container-build.md). With master, the default `CROSS` implementation also requires
 `MODULE_SERIAL`, so forgetting to set `MW_CART` gives a build error rather than silently broken code.
 
 ## Required patch (both versions)
@@ -24,7 +25,8 @@ Verified by reading source on 2026-10-28.
 #define MODULE_MEGAWIFI 1
 #define MEGAWIFI_IMPLEMENTATION MEGAWIFI_IMPLEMENTATION_MW_CART   /* master only */
 ```
-Then rebuild `libmd.a`.
+The patches live in `sgdk/patches/` and the image applies them and rebuilds `libmd.a` automatically.
+`MODULE_MEGAWIFI_ASYNC` stays `0` for now. Turning it on overrides `mw_process()` (`MW_PROCESS_OVERRIDE`), so it needs its own patch and a decision first.
 
 ## Channels and limits
 `LSD_MAX_CH = 4`: ch0 control, ch1–2 sockets, ch3 = `MW_HTTP_CH`. `MW_MAX_SOCK = 3` counts the

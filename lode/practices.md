@@ -1,6 +1,7 @@
 # Practices
 
 ## Workflow
+- Git: commit at checkpoints (a working step, a settled decision, a lode refresh). Never commit `src/dev_config.h` (it holds Wi-Fi credentials).
 - Explore and design first, then implement. Record each decision in the lode before writing code.
 - Every script and build step must run on **macOS and Arch Linux (Omarchy)**, never Windows-only.
   Use Podman/Docker for toolchains that aren't packaged natively on both.
@@ -26,5 +27,7 @@ The UART clock and baud rate are compiled into `libmd.a`. Editing our own source
 flowchart LR
   P[patch 16c550.h + config.h] --> L[rebuild libmd.a] --> R[build ROM] --> F[flashkit-md write-rom]
 ```
+
+The container build enforces this; see [build/container-build.md](build/container-build.md).
 
 Related: [platform/sgdk-megawifi.md](platform/sgdk-megawifi.md), [platform/hardware.md](platform/hardware.md).

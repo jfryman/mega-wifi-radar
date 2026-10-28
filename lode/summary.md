@@ -9,8 +9,10 @@ data tags (callsign, altitude, ground speed). It runs on the owner's **MegaWiFi 
 a firmware extension (option B); see [architecture/data-path-options.md](architecture/data-path-options.md).
 The rendering layer is built against a fake in-ROM data source so it can be developed in emulators.
 
-**Status (2026-10-28):** design phase. No code exists yet. SGDK pin and data path are under
-discussion; see [plans/roadmap.md](plans/roadmap.md).
+Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44` patched for
+Rev.C); see [build/container-build.md](build/container-build.md). The current ROM is a network
+spike (detect → join → HTTP GET → print). The data path and frame format are still open; see
+[plans/roadmap.md](plans/roadmap.md).
 
 ```mermaid
 flowchart LR

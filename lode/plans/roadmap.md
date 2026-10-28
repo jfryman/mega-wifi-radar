@@ -11,12 +11,15 @@ flowchart TD
   S6 --> S7[Network setup screen, settings in ESP flash]
 ```
 
+## Status
+- Step 1 is done: image + patches + guard.
+- Step 2 spike ROM is written (`src/main.c`, [../net/net-layer.md](../net/net-layer.md)) and still needs a real-cart test.
+
 ## Open decisions
-- [ ] SGDK pin: v2.11 tag vs master commit (see [../platform/sgdk-megawifi.md](../platform/sgdk-megawifi.md)).
-- [ ] How to deliver the toolchain on macOS + Arch: container image vs native install.
-- [ ] Patch mechanism: patch script over a pinned checkout vs vendored submodule fork.
+- [x] SGDK pin: master `9a78a44` ([../build/container-build.md](../build/container-build.md)).
+- [x] Toolchain: container image (Podman/Docker), patches applied in-image.
+- [ ] Radar-loop networking: async API (`MODULE_MEGAWIFI_ASYNC`) vs a hand state machine on `mw_send`/`mw_recv`.
 - [ ] Data path A vs B ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Compact frame field ranges (altitude above FL255? ground speed resolution?).
 - [ ] Transport for the frame: HTTP GET via `MW_HTTP_CH` vs raw TCP socket.
 - [ ] Screen layout and the sweep technique.
-- [ ] Git repository: not initialised yet.

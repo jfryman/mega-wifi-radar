@@ -1,0 +1,33 @@
+#!/bin/sh
+# Run a command inside the mega_wifi_radar build image (macOS + Linux, Podman or Docker).
+#   scripts/md make -f /sgdk/makefile.gen release
+#   scripts/md --image        # just make sure the image exists
+# The image tag is a hash of everything that defines it, so editing docker/, sgdk/patches/
+# or src/rev_c_guard.c always triggers a rebuild: a stale, unpatched SGDK can't be used.
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+[ -n "$CTR" ] || { echo "md: need podman or docker on PATH" >&2; exit 1; }
+
+if command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else SHA="shasum -a 256"; fi
+HASH=$(cd "$ROOT" && find docker sgdk src/rev_c_guard.c -type f | LC_ALL=C sort \
+       | xargs cat | $SHA | cut -c1-12)
+IMAGE="mwradar-sgdk:$HASH"
+
+if ! "$CTR" image inspect "$IMAGE" >/dev/null 2>&1; then
+    echo "md: building $IMAGE (first build compiles gcc; ~15-30 min)" >&2
+    "$CTR" build -t "$IMAGE" -f "$ROOT/docker/Dockerfile" "$ROOT"
+fi
+[ "${1:-}" = "--image" ] && { echo "$IMAGE"; exit 0; }
+
+# Keep output files owned by the host user.
+case "$(basename "$CTR")" in
+    podman) USEROPT="--userns=keep-id" ;;
+    *)      USEROPT="--user $(id -u):$(id -g)" ;;
+esac
+
+TTY=""; [ -t 0 ] && [ -t 1 ] && TTY="-t"
+# shellcheck disable=SC2086
+exec "$CTR" run --rm -i $TTY $USEROPT -e HOME=/tmp \
+    -v "$ROOT:/work" -w /work "$IMAGE" "$@"
