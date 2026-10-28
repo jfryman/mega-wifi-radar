@@ -20,7 +20,10 @@ flowchart TD
   HTTP contract) serves live KBNA frames at `http://relay-host.example.lan:8080/v1/frame`.
 - **End to end works on the cart:** the spike polls the relay through `feed_fetch()`
   ([../net/feed.md](../net/feed.md)) every ~5 s and lists the nearest aircraft around KBNA (verified 2026-10-28).
-- Next: the renderer against a fake feed in an emulator: `tools/scopegen` → scope + sweep, then blips/trails/tags/panel.
+- **Radar built** ([../ui/radar-renderer.md](../ui/radar-renderer.md)): sweep, blips, trails, tags, panel,
+  zoom/select/pan, Classic + STARS themes, setup screen with Wi-Fi/airport/relay + flash persistence
+  ([../ui/config-screen.md](../ui/config-screen.md)). Verified in MAME (`make sim-run`); flashed to the cart 2026-10-28,
+  on-hardware check pending.
 
 ## Planned: start-up config screen
 Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it
@@ -33,8 +36,7 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
 ## Open decisions
 - [x] SGDK pin: master `9a78a44` ([../build/container-build.md](../build/container-build.md)).
 - [x] Toolchain: container image (Podman/Docker), patches applied in-image.
-- [ ] Radar-loop networking: async API (`MODULE_MEGAWIFI_ASYNC`) vs a hand state machine on `mw_send`/`mw_recv`.
-      Needed: a blocking poll stalls the main loop 17–21 frames.
+- [x] Radar-loop networking: neither. The renderer runs in the V-Int, so blocking polls in main never stall the sweep.
 - [ ] Data path A vs B ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [x] Frame format v1 ([../architecture/frame-format.md](../architecture/frame-format.md)).
 - [x] Transport: HTTP GET `/v1/frame`, once per sweep, with Content-Length.
@@ -42,4 +44,4 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
 - [x] Screen layout ([../ui/screen-layout.md](../ui/screen-layout.md)): scope r=104 + side panel, ≥ 8 px overscan
       margin, ranges 5/10/25/50/100 with 5 rings, trails = 5 positions, themes Classic (first) + STARS (later).
 - [x] Sweep: thin line with palette afterglow ([../ui/sweep.md](../ui/sweep.md)).
-- [ ] Settings record format in ESP32 user flash, and the airport table contents.
+- [x] Settings record (`MWR1`, user_data sector 0) and airport table (OurAirports large + scheduled).

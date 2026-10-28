@@ -60,6 +60,13 @@ scripts/flashkit write-rom <mw-cart>/bringup-rom/mw-revc-bringup.bin
 ```
 Use it whenever the spike ROM can't detect the module: it separates hardware/firmware from SGDK.
 
+## Emulator workflow (no cart needed)
+`make sim` builds `out/sim.bin` with `-DFAKE_FEED` (16 recorded KBNA frames from `res/fake/kbna_seq.bin`,
+made by `relay -pack`). `make sim-run SNAP=6,12` runs it headless in MAME (the mw-cart bring-up image,
+`mw-bringup-rom:fedora42`) and writes PNGs to `out/snap/genesis/`. `SIM_PRESS="9:P1 C,13:P1 Start"`
+presses buttons (MAME field names: `P1 A/B/C`, `P1 Start`, `P1 Up`...). Generated data:
+`cd tools && go run ./scopegen -o ../res/scope` and `go run ./airportgen -o ../src/airports.c`.
+
 ## Updating the SGDK pin
 1. Change `SGDK_COMMIT`.
 2. In a checkout at the new SHA, re-make both edits and `git diff > sgdk/patches/000N-*.patch`.

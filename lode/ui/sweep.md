@@ -6,7 +6,7 @@ Each pixel is written once when the sweep reaches it and once when the tail move
 ## Geometry and budget (computed for a radius-104 disc)
 | Item | Value |
 |---|---|
-| Angle resolution | **256 steps** per revolution (1.41°), one step per frame |
+| Angle resolution | **256 steps** per revolution (1.41°), painted **two steps every other frame** (halves tile uploads) |
 | Rotation | 256 frames = **4.27 s** NTSC (5.12 s PAL); an ASR-9 turns in 4.8 s |
 | Disc tiles | **568** of the 26×26 block → RAM copy **18,176 B** |
 | Disc pixels | 33,992 → per-step pixel lists **~68 KB ROM** |
@@ -33,10 +33,13 @@ flowchart LR
   The fading tail behind it gives the afterglow.
 
 ## Data (generated offline, committed)
-`tools/scopegen` (Go, like the relay) writes the following into `res/`:
+`tools/scopegen` (Go) writes the following into `res/scope/` (embedded via `res/resources.res`, BIN):
 - `scope_tiles`: the 568 base tiles (background + rings/ticks in index 1)
 - `scope_map`: the 26×26 tilemap (disc tiles → 568 unique indices; outside the disc → blank tile)
-- `sweep_idx[257]` (u16 offsets) + `sweep_px[]` (u16 = `tile << 6 | pixel`), the per-step pixel lists, excluding ring pixels
+- `sweep_idx[257]` (word offsets) + `sweep_px[]`: per step `nseg`, then per tile segment
+  `tile, n_even, n_odd, even byte offsets, odd byte offsets` (offset = tile*32 + px/2 into the RAM copy),
+  excluding ring pixels. Drawing ORs nibbles known to be 0; retiring ANDs them; tiles with trail dots take
+  a slow path (`trail_cnt`). Measured ~45 scanlines per frame.
 The ROM copies `scope_tiles` to RAM once and DMAs it to VRAM. After that it only changes nibbles in RAM and DMAs dirty tiles.
 
 ## Invariants

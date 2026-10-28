@@ -471,6 +471,12 @@ void radar_start(void)
     SYS_setVIntCallback(radar_vint);
 }
 
+void radar_stop(void)
+{
+    SYS_setVIntCallback(NULL);
+    VDP_setAutoInc(2);
+}
+
 void radar_panel(u16 row, const char *text)
 {
     if (row >= PANEL_ROWS) return;

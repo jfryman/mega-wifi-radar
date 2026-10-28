@@ -9,6 +9,7 @@
 #include "geo.h"
 #include "net.h"
 #include "radar.h"
+#include "setup.h"
 #include "settings.h"
 #include "theme.h"
 #include "traffic.h"
@@ -32,21 +33,34 @@ static void fail(const char *s)
     while (TRUE) SYS_doVBlankProcess();
 }
 
+/* Detect the module, load saved settings, join Wi-Fi. Falls back to the setup
+ * screen when there's no working network or no relay configured. */
 static void boot_network(void)
 {
     struct net_module_info mod;
     char buf[41];
     u8 ip[4];
 
-    if (!devcfg_relay_url) fail("Set DEV_RELAY_URL in src/dev_config.h");
     say("Detecting MegaWiFi...");
     net_init();
     if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);
-    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) fail("Saving AP config failed");
-    say("Joining Wi-Fi...");
-    if (net_join(ip) != NET_OK) fail("Association / DHCP failed");
+    say(settings_load() ? "Settings loaded" : "Default settings");
+    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) say("Saving dev AP config failed");
+    bool setup = JOY_readJoypad(JOY_1) & BUTTON_START;      /* hold START at boot: setup */
+    for (;;) {
+        if (!setup) {
+            say("Joining Wi-Fi...");
+            if (net_join(ip) == NET_OK && settings.relay[0]) break;
+            say(settings.relay[0] ? "Wi-Fi failed: setup" : "No relay set: setup");
+            for (u16 f = 0; f < 60; f++) SYS_doVBlankProcess();
+        }
+        setup_run(TRUE);
+        setup = FALSE;
+        VDP_clearPlane(BG_A, TRUE);
+        line = 1;
+    }
     sprintf(buf, "IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
     say(buf);
 }
@@ -76,7 +90,7 @@ static void panel_static(void)
     static const char *const tags[TAGS_MODES] = { "TAGS ALL", "TAGS SEL", "TAGS OFF" };
     char buf[16];
 
-    radar_panel(ROW_HOME, devcfg_home_icao);
+    radar_panel(ROW_HOME, settings.icao);
     sprintf(buf, "RNG %3uNM", settings_range_nm());
     radar_panel(ROW_RANGE, buf);
     radar_panel(ROW_SEP1, "-----------");
@@ -85,7 +99,7 @@ static void panel_static(void)
     radar_panel(ROW_HELP2, "C    SELECT");
     radar_panel(ROW_HELP3, "HOLD C TAGS");
     radar_panel(ROW_HELP4, "PAD  PAN");
-    radar_panel(ROW_HELP5, "STRT THEME");
+    radar_panel(ROW_HELP5, "STRT SETUP");
     radar_panel(ROW_THEME, themes[settings.theme].name);
     radar_panel(ROW_TAGS, tags[settings.tag_mode]);
     radar_panel(ROW_DATA1, "Data:");
@@ -151,6 +165,8 @@ static void select_next(void)
     panel_selection();
 }
 
+static bool want_setup;
+
 static void handle_input(void)
 {
     static u16 prev;
@@ -178,11 +194,7 @@ static void handle_input(void)
         if (c_held && c_held < HOLD_FRAMES) select_next();
         c_held = 0;
     }
-    if (pressed & BUTTON_START) {
-        settings.theme = (settings.theme + 1) % THEME_COUNT;
-        radar_retheme();
-        panel_static();
-    }
+    if (pressed & BUTTON_START) want_setup = TRUE;
     s16 dx = (j & BUTTON_RIGHT) ? 2 : (j & BUTTON_LEFT) ? -2 : 0;
     s16 dy = (j & BUTTON_DOWN) ? 2 : (j & BUTTON_UP) ? -2 : 0;
     if (dx || dy) radar_pan(dx, dy);
@@ -242,6 +254,15 @@ static void clock_tick(void)
     }
 }
 
+static void radar_up(void)
+{
+    radar_init();
+    panel_static();
+    panel_selection();
+    radar_panel(ROW_NET, have_snap ? "NET OK" : "WAIT DATA");
+    radar_start();
+}
+
 int main(bool hard)
 {
     (void)hard;
@@ -254,12 +275,8 @@ int main(bool hard)
     say("FAKE FEED (emulator build)");
 #endif
 
-    radar_init();
-    panel_static();
-    panel_selection();
-    radar_panel(ROW_NET, "WAIT DATA");
-    radar_start();
-    /* ---- from here on: no VDP access in this file ---- */
+    radar_up();
+    /* ---- from here on: no VDP access in this file (except around setup) ---- */
 
     u16 rot = radar_rotations();
     u32 frame = vtimer, sec = vtimer;
@@ -269,6 +286,14 @@ int main(bool hard)
         frame = vtimer;
         main_beat++;
         handle_input();
+        if (want_setup) {
+            want_setup = FALSE;
+            radar_stop();
+            setup_run(FALSE);
+            radar_up();
+            poll();                 /* refill the (cleared) track table now */
+            rot = radar_rotations();
+        }
         if (radar_rotations() != rot) {
             rot = radar_rotations();
             poll();

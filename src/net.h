@@ -43,6 +43,19 @@ enum net_err net_detect(struct net_module_info *info);
 enum net_err net_ensure_ap(const char *ssid, const char *pass);
 /* Join the default AP slot and wait for an IP. ip_out gets 4 bytes. */
 enum net_err net_join(u8 ip_out[4]);
+#define NET_SSID_LEN 32
+struct net_ap {
+    char ssid[NET_SSID_LEN + 1];
+    s8 rssi;
+    u8 open;                    /* no password needed */
+};
+/* Scan for APs (blocking, a few seconds). Returns the number stored, or -1. */
+s16 net_scan(struct net_ap *aps, u16 max);
+/* Store ssid/pass in slot 0 (DHCP, default, saved), rejoin, wait for an IP. */
+enum net_err net_connect(const char *ssid, const char *pass, u8 ip_out[4]);
+/* SSID of the default slot into out (NET_SSID_LEN + 1), "" if none. */
+void net_current_ssid(char *out);
+
 enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
                           struct net_http_result *res);
 

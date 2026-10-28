@@ -2,3 +2,4 @@ lode/tmp/
 out/
 .tools/
 src/dev_config.h
+res/resources.h

@@ -10,8 +10,9 @@ a firmware extension (option B); see [architecture/data-path-options.md](archite
 The rendering layer is built against a fake in-ROM data source so it can be developed in emulators.
 
 Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44` patched for
-Rev.C); see [build/container-build.md](build/container-build.md). The current ROM is a network
-spike (detect → join → HTTP GET → print). The data path is a relay (option A) serving the agreed v1 compact frame
+Rev.C); see [build/container-build.md](build/container-build.md). The ROM is the full radar:
+a V-Int renderer (thin-line sweep, blips, trails, tags, side panel, Classic/STARS themes) fed once per sweep
+from the relay, plus a setup screen (Wi-Fi, home airport, relay, saved to ESP32 flash). The data path is a relay (option A) serving the agreed v1 compact frame
 ([architecture/frame-format.md](architecture/frame-format.md)); see [plans/roadmap.md](plans/roadmap.md).
 
 ```mermaid

@@ -85,6 +85,50 @@ enum net_err net_ensure_ap(const char *ssid, const char *pass)
     return NET_OK;
 }
 
+s16 net_scan(struct net_ap *aps, u16 max)
+{
+    char *data;
+    u8 count;
+    s16 len = mw_ap_scan(MW_PHY_11BGN, &data, &count);
+    struct mw_ap_data ap;
+    s16 pos = 0;
+    u16 n = 0;
+
+    if (len <= 0) return -1;
+    /* data lives in the command buffer: copy out before the next mw_ call */
+    while (n < max && (pos = mw_ap_fill_next(data, pos, &ap, len)) > 0) {
+        u16 l = ap.ssid_len > NET_SSID_LEN ? NET_SSID_LEN : ap.ssid_len;
+        if (!l) continue;                       /* hidden network */
+        memcpy(aps[n].ssid, ap.ssid, l);
+        aps[n].ssid[l] = 0;
+        aps[n].rssi = ap.rssi;
+        aps[n].open = ap.auth == MW_SEC_OPEN;
+        n++;
+    }
+    return n;
+}
+
+void net_current_ssid(char *out)
+{
+    char *ssid, *pass;
+    enum mw_phy_type phy;
+    s16 slot = mw_def_ap_cfg_get();
+
+    out[0] = 0;
+    if (slot < 0) slot = AP_SLOT;
+    if (mw_ap_cfg_get(slot, &ssid, &pass, &phy) != MW_ERR_NONE) return;
+    for (u16 i = 0; i < NET_SSID_LEN && ssid[i]; i++) { out[i] = ssid[i]; out[i + 1] = 0; }
+}
+
+enum net_err net_connect(const char *ssid, const char *pass, u8 ip_out[4])
+{
+    enum net_err e;
+
+    mw_ap_disassoc();
+    if ((e = net_ensure_ap(ssid, pass)) != NET_OK) return e;
+    return net_join(ip_out);
+}
+
 enum net_err net_join(u8 ip_out[4])
 {
     s16 slot = mw_def_ap_cfg_get();

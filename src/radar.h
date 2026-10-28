@@ -15,6 +15,8 @@
 void radar_init(void);
 /* Install the V-Int renderer. From here on the main loop must not touch the VDP. */
 void radar_start(void);
+/* Remove it (setup screen); radar_init() + radar_start() to come back. */
+void radar_stop(void);
 
 /* ---- main loop -> renderer (safe to call any time after radar_init) ---- */
 void radar_panel(u16 row, const char *text);    /* set a side-panel row */

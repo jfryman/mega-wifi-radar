@@ -33,12 +33,11 @@ static bool build_url(char *url, u16 size)
 {
     char lat[12], lon[12];
 
-    if (!devcfg_relay_url) return FALSE;
-    fmt_deg_e4(lat, devcfg_home_lat_e4);
-    fmt_deg_e4(lon, devcfg_home_lon_e4);
-    /* longest: base (<= 64) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=250&max=96" */
-    if (strlen(devcfg_relay_url) > size - 64) return FALSE;
-    sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", devcfg_relay_url,
+    if (!settings.relay[0]) return FALSE;
+    fmt_deg_e4(lat, settings.lat_e4);
+    fmt_deg_e4(lon, settings.lon_e4);
+    /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96" (<= 56) */
+    sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", settings.relay,
             lat, lon, settings_range_nm(), AR_MAX_RECS);
     return TRUE;
 }
@@ -52,7 +51,7 @@ static bool valid(const struct ar_hdr *h, u16 len)
 
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
 {
-    static char url[128];
+    static char url[RELAY_LEN + 64];
     struct net_http_result res;
     struct collect c = { 0, FALSE };
     enum net_err e;
