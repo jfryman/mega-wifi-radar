@@ -22,9 +22,9 @@ can't join / no relay is set. Runs with the renderer stopped (SGDK's normal VBla
 
 ```mermaid
 flowchart TD
-  B[boot] --> D[detect] --> L[settings_load] --> J{join + relay set?}
-  J -- yes --> R[radar]
-  J -- no --> S[setup_run wifi_first] --> J
+  B[boot, splash GATE] --> D[detect] --> L[settings_load] --> J{join + relay set?}
+  J -- yes --> R[splash TAKEOFF, then radar]
+  J -- no --> S[splash_stop, setup_run wifi_first, splash_start HOLD] --> J
   R -- START --> S2[setup_run] --> R
 ```
 Related: [radar-renderer.md](radar-renderer.md), [../net/net-layer.md](../net/net-layer.md).

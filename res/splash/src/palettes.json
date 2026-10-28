@@ -1,0 +1,93 @@
+{
+ "_comment": "Boot splash palettes: Genesis colours as [r, g, b] levels 0..7 (VDP nibble = 2 * level). Index 0 is transparent; index 15 is the SGDK font colour, so each palette carries one text colour. Read by art.typ and tools/splashgen.",
+ "order": [
+  "bg",
+  "logo",
+  "plane",
+  "text"
+ ],
+ "bg": {
+  "_role": "PAL0: plane B scene; text 15 = white (pilot)",
+  "colors": [
+   [0, 0, 0],
+   [0, 0, 2],
+   [1, 1, 3],
+   [2, 1, 4],
+   [4, 2, 4],
+   [6, 3, 2],
+   [7, 5, 2],
+   [7, 6, 4],
+   [0, 1, 1],
+   [1, 2, 1],
+   [2, 2, 2],
+   [6, 1, 1],
+   [4, 4, 4],
+   [1, 1, 1],
+   [7, 6, 2],
+   [7, 7, 7]
+  ]
+ },
+ "logo": {
+  "_role": "PAL1: wordmark; 3..14 are the body's shine slots, spread once across it; text 15 = cyan (ATC)",
+  "colors": [
+   [0, 0, 0],
+   [0, 0, 2],
+   [7, 7, 7],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [1, 2, 6],
+   [2, 7, 7]
+  ]
+ },
+ "plane": {
+  "_role": "PAL2: the 787; text 15 = red (failures)",
+  "colors": [
+   [0, 0, 0],
+   [1, 1, 2],
+   [7, 7, 7],
+   [5, 5, 6],
+   [3, 3, 4],
+   [0, 1, 3],
+   [1, 2, 5],
+   [6, 1, 1],
+   [0, 0, 1],
+   [4, 4, 5],
+   [2, 2, 2],
+   [0, 0, 0],
+   [2, 2, 3],
+   [0, 0, 0],
+   [0, 0, 0],
+   [7, 2, 2]
+  ]
+ },
+ "text": {
+  "_role": "PAL3: status line; text 15 = grey",
+  "colors": [
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [0, 0, 0],
+   [4, 4, 5]
+  ]
+ }
+}

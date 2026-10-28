@@ -19,6 +19,7 @@
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
   - [radar-renderer.md](ui/radar-renderer.md) - V-Int renderer, shared state, measured costs, perf lessons
+  - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, layers, art pipeline, motion
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence, airports
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots

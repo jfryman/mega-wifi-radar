@@ -1,0 +1,17 @@
+#!/bin/sh
+# Regenerate the boot splash data: render res/splash/src/art.typ to PNGs (Typst, 72 ppi =
+# 1 px per pt), then tools/splashgen quantizes them into res/splash/*.bin + src/splash_data.h.
+# The outputs are committed; rerun only after editing the art or palettes.
+set -eu
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+IMAGE=ghcr.io/typst/typst:0.15.1@sha256:032e292249bcd378480cc7c142cfa324b63ef8aadeb88d7e7230320c4c9c422f
+case "$(basename "$CTR")" in
+    podman) USEROPT="--userns=keep-id" ;;
+    *)      USEROPT="--user $(id -u):$(id -g)" ;;
+esac
+mkdir -p "$ROOT/out/splash"
+# shellcheck disable=SC2086
+"$CTR" run --rm $USEROPT -v "$ROOT:/work" -w /work "$IMAGE" compile res/splash/src/art.typ \
+    "out/splash/splash-{p}.png" --root /work --font-path /work/print/fonts --ignore-system-fonts --ppi 72
+cd "$ROOT/tools" && go run ./splashgen -png ../out/splash -src ../res/splash/src -o ../res/splash -h ../src/splash_data.h

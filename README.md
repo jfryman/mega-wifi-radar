@@ -3,9 +3,10 @@
 A live, ATC-style radar scope for the **Sega Mega Drive / Genesis**, running on a
 **MegaWiFi Rev.C** Wi-Fi cartridge. It shows range rings, a rotating thin-line sweep with
 phosphor afterglow, and aircraft blips with history trails and data tags (callsign, altitude,
-ground speed). The traffic is real ADS-B traffic around an airport you choose.
+ground speed). The traffic is real ADS-B traffic around an airport you choose. It boots with a
+787 departure in which every ATC radio call is a real boot step.
 
-<p align="center"><img src="docs/img/radar-classic.png" width="640" alt="Classic theme: KBNA at 25 nm, 28 aircraft, UAL2414 selected"></p>
+<p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, UAL2414 selected"></p>
 
 ```mermaid
 flowchart LR

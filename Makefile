@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art
 
 all: release
 
@@ -73,3 +73,7 @@ print:
 # Recapture the manual's screenshots (print/shots.txt) from the emulator build in MAME.
 print-shots: sim
 	scripts/print-shots
+
+# Regenerate the boot splash data (res/splash/*.bin, src/splash_data.h) from res/splash/src/art.typ.
+splash-art:
+	scripts/splash-art

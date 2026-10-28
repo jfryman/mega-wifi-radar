@@ -1,5 +1,5 @@
 /* mega_wifi_radar: ATC radar scope on MegaWiFi Rev.C.
- * Boot (text screen): detect module, join Wi-Fi. Then the radar renderer runs
+ * Boot (splash.c, a 787 departure narrated by the boot steps): detect module, join Wi-Fi. Then the radar renderer runs
  * in the V-Int (radar.c) while this loop polls the feed once per sweep and
  * handles the pad. After radar_start() this file must not touch the VDP. */
 #include <genesis.h>
@@ -10,6 +10,7 @@
 #include "net.h"
 #include "radar.h"
 #include "setup.h"
+#include "splash.h"
 #include "settings.h"
 #include "theme.h"
 #include "traffic.h"
@@ -17,52 +18,62 @@
 #define HOLD_FRAMES     40      /* C held this long cycles the tag mode */
 #define STALE_SECS      15      /* panel shows STALE after this without data */
 
-static u16 line = 1;
-
-static void say(const char *s)
-{
-    VDP_clearTextLine(line);
-    VDP_drawText(s, 1, line++);
-}
-
 #ifndef FAKE_FEED
-static void fail(const char *s)
+static void wait_frames(u16 n)
 {
-    VDP_setTextPalette(PAL3);
-    say(s);
-    while (TRUE) SYS_doVBlankProcess();
+    u32 t = vtimer;
+    while (vtimer - t < n) {}
 }
 
-/* Detect the module, load saved settings, join Wi-Fi. Falls back to the setup
- * screen when there's no working network or no relay configured. */
+/* Detect the module, load saved settings, join Wi-Fi, narrated by the splash: each step is an
+ * ATC call (lode/ui/boot-splash.md). Falls back to the setup screen when there's no working
+ * network or no relay configured; the splash then resumes at the hold line. */
 static void boot_network(void)
 {
     struct net_module_info mod;
     char buf[41];
     u8 ip[4];
 
-    say("Detecting MegaWiFi...");
+    splash_start(SP_GATE);
     net_init();
-    if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
-    sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
-    say(buf);
-    say(settings_load() ? "Settings loaded" : "Default settings");
-    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) say("Saving dev AP config failed");
+    if (net_detect(&mod) != NET_OK) {
+        splash_phase(SP_NO_MODULE, "MEGAWIFI MODULE NOT FOUND");
+        while (TRUE) {}
+    }
+    bool loaded = settings_load();
+    sprintf(buf, "%s  FW %u.%u %s  %s", app_version, mod.major, mod.minor, mod.variant,
+            loaded ? "SETTINGS LOADED" : "DEFAULTS");
+    splash_status(buf);
+    net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass);
     bool setup = JOY_readJoypad(JOY_1) & BUTTON_START;      /* hold START at boot: setup */
+    splash_phase(SP_TAXI, NULL);
     for (;;) {
         if (!setup) {
-            say("Joining Wi-Fi...");
+            splash_phase(SP_HOLD, NULL);
             if (net_join(ip) == NET_OK && settings.relay[0]) break;
-            say(settings.relay[0] ? "Wi-Fi failed: setup" : "No relay set: setup");
-            for (u16 f = 0; f < 60; f++) SYS_doVBlankProcess();
+            splash_phase(SP_HOLD_POS, settings.relay[0] ? "WI-FI FAILED: OPENING SETUP" : "NO RELAY SET: OPENING SETUP");
+            wait_frames(120);
         }
+        splash_stop();
         setup_run(TRUE);
         setup = FALSE;
-        VDP_clearPlane(BG_A, TRUE);
-        line = 1;
+        splash_start(SP_HOLD);
     }
-    sprintf(buf, "IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
-    say(buf);
+    sprintf(buf, "%s  FW %u.%u  IP %u.%u.%u.%u", app_version, mod.major, mod.minor, ip[0], ip[1], ip[2], ip[3]);
+    splash_status(buf);
+    splash_phase(SP_TAKEOFF, NULL);
+    splash_finish();
+}
+#else
+/* Emulator build: the same departure, with fixed delays standing in for the network. */
+static void boot_network(void)
+{
+    splash_start(SP_GATE);
+    splash_status("EMULATOR BUILD  RECORDED FEED");     /* no version: shots go in the manual */
+    splash_phase(SP_TAXI, NULL);
+    splash_phase(SP_HOLD, NULL);
+    splash_phase(SP_TAKEOFF, NULL);
+    splash_finish();
 }
 #endif
 
@@ -266,15 +277,8 @@ static void radar_up(void)
 int main(bool hard)
 {
     (void)hard;
-    line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
     settings_init();
-    VDP_drawText("mega_wifi_radar", 1, line);
-    VDP_drawText(app_version, 17, line++);
-#ifndef FAKE_FEED
     boot_network();
-#else
-    say("FAKE FEED (emulator build)");
-#endif
 
     radar_up();
     /* ---- from here on: no VDP access in this file (except around setup) ---- */

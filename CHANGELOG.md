@@ -1,5 +1,12 @@
 ## 0.1.2 (Unreleased)
 
+FEATURES:
+
+  * **boot:** the text boot screen is now a departure scene. A 787 taxis out beside the control
+    tower, holds short and takes off behind the MEGA WIFI RADAR wordmark, which has a sweeping
+    shine. Each ATC radio call is a real boot step (module, settings, Wi-Fi, connected). Failures show
+    as *hold position* with the reason. START skips ahead.
+
 BUG FIXES:
 
   * **radar:** after zooming, the ring range labels no longer keep digits from the previous range
@@ -9,7 +16,8 @@ BUG FIXES:
 
 IMPROVEMENTS:
 
-  * **manual:** the Range Steps section shows the scope zoomed to 5 nm.
+  * **manual:** the Range Steps section shows the scope zoomed to 5 nm. Starting Up shows and
+    explains the departure.
 
 ## 0.1.1 (October 28, 2026)
 

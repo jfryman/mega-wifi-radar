@@ -52,6 +52,7 @@ flowchart LR
 | `relay-image`, `relay-run`, `relay-start`, `relay-stop` | The relay container |
 | `print` | Label, cover and manual PDFs in `out/print/` ([print.md](print.md)) |
 | `print-shots` | Recapture the manual's screenshots in MAME |
+| `splash-art` | Regenerate the boot splash data from `res/splash/src/art.typ` |
 | `clean` | |
 
 The boot screen shows the version from `git describe --tags --always --dirty`. `make` writes it to the
@@ -70,6 +71,7 @@ These are committed. Regenerate them only if you change the generator:
 ```sh
 cd tools && go run ./scopegen -o ../res/scope                 # scope tiles + sweep pixel lists
 cd tools && go run ./airportgen -o ../src/airports.c          # airport table (OurAirports)
+make splash-art                                               # boot splash: Typst art -> tiles (tools/splashgen)
 cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json
 ```
 

@@ -2,7 +2,7 @@
 
 = Reading the Scope
 
-#shot("radar", callouts: ((1, 85, 40), (2, 198, 54), (3, 199, 121), (4, 18, 76), (5, 314, 28), (6, 314, 80), (7, 314, 210)))
+#shot("radar", callouts: ((1, 160, 62), (2, 207, 37), (3, 199, 121), (4, 18, 76), (5, 314, 28), (6, 314, 80), (7, 314, 210)))
 #v(1mm)
 #key(1)[The sweep][turns once every 4.3 seconds, leaving a fading glow behind it. Each aircraft
   moves to its new position as the sweep passes over it, and dims until the next pass.]

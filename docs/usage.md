@@ -2,18 +2,30 @@
 
 ## Boot
 
+The boot is a departure: your flight, **MEGA 787**, waits at the gate beside the tower, and each
+real boot step is a radio call.
+
+| Radio call | What the cartridge is doing |
+|---|---|
+| *Ground, MEGA 787, at gate, radio check* | Looking for the MegaWiFi module |
+| *Taxi runway 9 via Alpha* | Module found, settings loaded: the 787 taxis out |
+| *Hold short runway 9* | Joining your Wi-Fi network |
+| *Cleared for takeoff* | Connected: it rolls, climbs out behind the logo, and the radar starts |
+| *Hold position* (red reason) | Wi-Fi failed or no relay set: setup opens, then the 787 resumes at the hold line |
+| *No reply: MegaWiFi module not found* (red) | The module didn't answer; the 787 stays at the gate |
+
+The tower uses the first word of your home airport's name (*Nashville Ground*). The bottom line shows
+the ROM version, the module firmware, and then the IP address. Press **START** to skip the waits and
+the takeoff. **Hold START while powering on** to go straight to setup.
+
 ```mermaid
 flowchart TD
   B[power on] --> D[detect MegaWiFi] --> L[load saved settings]
   L --> J{Wi-Fi joins<br/>and relay set?}
-  J -- yes --> R[radar]
+  J -- yes --> R[takeoff, then radar]
   J -- no --> S[setup screen] --> J
   R -- START --> S2[setup] --> R
 ```
-
-The boot screen shows the ROM version, the module firmware, `Settings loaded` (or
-`Default settings` on a first boot), and the IP address. **Hold START while powering on** to go
-straight to setup.
 
 ## Setup screen
 
