@@ -47,8 +47,15 @@ sequenceDiagram
     keep their last values. Cold → `_start_entry` zeroes everything.
   - Correlation: on a soft reset our `mw_up` is still TRUE, so `mw_process()` runs during
     `mw_init`'s reset waits. Cold boot and `net_reset()` retries run them with it FALSE, and fail.
-  - `net_diag` (frames in `mw_init`/`mw_detect`, LSR, MSR) prints after each attempt, and the
-    top-right shows `hard`/`soft reset`, so the next cold-vs-soft comparison is measured, not guessed.
+  - Measured (2026-10-28): cold `init 62f det 600f LSR 60 MSR 31/32` on every attempt, versus soft
+    `init 63f det 0f LSR 60 MSR 32`. The reset waits run in full and CTS is asserted (the ESP32's
+    UART is up) in both, but on a cold boot **no byte ever comes back**. So it isn't the reset
+    timing and it isn't flow control.
+  - Next discriminator: `net_raw_version_probe()` sends a raw LSD VERSION frame after each failed
+    attempt and prints the reply in hex (` raw n: ..`). A reply means SGDK's lsd/mw state is at fault;
+    silence means the UART or the ESP32 state.
+  - `net_diag` (frames in `mw_init`/`mw_detect`, LSR, MSR) prints one line per attempt, and the
+    top-right shows `hard`/`soft reset`.
 - Soft reset keeps statics: anything that must start fresh is set at the top of `main` (e.g. `line = 1`).
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only

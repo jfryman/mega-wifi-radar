@@ -48,6 +48,18 @@ static void show_chunk(const u8 *data, u16 len, void *ctx)
     }
 }
 
+/* After a failed detect: does a raw VERSION frame get an answer? */
+static void show_raw_probe(char *buf)
+{
+    u8 rx[16];
+    u16 n = net_raw_version_probe(rx, sizeof(rx));
+    u16 pos = sprintf(buf, " raw %u:", n);
+
+    for (u16 i = 0; i < n && i < 10; i++)
+        pos += sprintf(buf + pos, " %02X", rx[i]);
+    say(buf);
+}
+
 int main(bool hard)
 {
     struct net_module_info mod;
@@ -66,17 +78,16 @@ int main(bool hard)
     enum net_err e = NET_ERR_NO_MODULE;
     for (u16 attempt = 1; attempt <= DETECT_ATTEMPTS; attempt++) {
         if (attempt > 1) net_reset();
-        sprintf(buf, "Detecting module (attempt %u/%u)", attempt, DETECT_ATTEMPTS);
+        sprintf(buf, "Detect %u/%u...", attempt, DETECT_ATTEMPTS);
         VDP_drawText(buf, 0, line);
         e = net_detect(&mod);
-        line++;
-        sprintf(buf, " %s init %uf det %uf LSR %02X MSR %02X", e == NET_OK ? "ok " : "bad",
-                net_diag.init_frames, net_diag.detect_frames, net_diag.lsr, net_diag.msr);
+        sprintf(buf, "%u/%u %s init %uf det %uf LSR %02X MSR %02X", attempt, DETECT_ATTEMPTS,
+                e == NET_OK ? "ok " : "bad", net_diag.init_frames, net_diag.detect_frames,
+                net_diag.lsr, net_diag.msr);
         say(buf);
-        line--;
         if (e == NET_OK) break;
+        show_raw_probe(buf);
     }
-    line += 2;
     if (e != NET_OK) fail("MegaWiFi module not found");
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);

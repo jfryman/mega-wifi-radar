@@ -46,6 +46,11 @@ struct net_diag {
     u8 msr;              /* 16C550 MSR after detect (0x10 = CTS: ESP32 ready to receive) */
 };
 extern struct net_diag net_diag;
+
+/* Bypass SGDK's LSD/mw layers: send a raw LSD MW_CMD_VERSION frame on the
+ * 16C550 and collect whatever comes back within ~0.5 s (busy-waits, so the
+ * user task can't steal RX bytes). Returns the number of bytes stored. */
+u16 net_raw_version_probe(u8 *out, u16 max);
 enum net_err net_detect(struct net_module_info *info);
 /* If ssid != NULL and slot 0 doesn't already hold it, store ssid/pass with DHCP
  * in slot 0, make it the default and save. Writes ESP flash only on change. */

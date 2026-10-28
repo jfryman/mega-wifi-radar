@@ -74,6 +74,25 @@ enum net_err net_detect(struct net_module_info *info)
     return NET_OK;
 }
 
+u16 net_raw_version_probe(u8 *out, u16 max)
+{
+    static const u8 frame[] = { 0x7E, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x7E };
+    u16 n = 0, i;
+    u32 t0;
+
+    while (UART_LSR & 0x01) (void)UART_RHR;              /* drop stale RX */
+    for (i = 0; i < sizeof(frame); i++) {
+        t0 = vtimer;
+        while (!(UART_LSR & 0x20))                       /* THR empty (auto-CTS gates TX) */
+            if (vtimer - t0 > 30) return 0;
+        UART_THR = frame[i];
+    }
+    t0 = vtimer;
+    while (vtimer - t0 < 30 && n < max)
+        if (UART_LSR & 0x01) out[n++] = UART_RHR;
+    return n;
+}
+
 enum net_err net_ensure_ap(const char *ssid, const char *pass)
 {
     char *cur_ssid, *cur_pass;
