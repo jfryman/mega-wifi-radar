@@ -18,6 +18,14 @@ flowchart TD
 - Frame format v1 is agreed; `src/arframe.h` mirrors it with layout asserts.
 - Next: the relay prototype (2b) serving `/v1/frame`, and the screen layout (3).
 
+## Planned: start-up config screen
+Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it
+with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
+- **Wi-Fi:** `mw_ap_scan` + `mw_ap_fill_next` list, an on-screen keyboard for the password, then
+  `mw_ap_cfg_set` / `mw_ip_cfg_set` (DHCP) / `mw_def_ap_cfg` / `mw_cfg_save`.
+- **Home airport:** pick from an in-ROM airport table (ICAO, name, lat/lon e4) and set the range.
+  Saved in ESP32 `user_data` flash (`mw_flash_*`); the format is still to be designed.
+
 ## Open decisions
 - [x] SGDK pin: master `9a78a44` ([../build/container-build.md](../build/container-build.md)).
 - [x] Toolchain: container image (Podman/Docker), patches applied in-image.
@@ -27,3 +35,4 @@ flowchart TD
 - [x] Transport: HTTP GET `/v1/frame`, once per sweep, with Content-Length.
 - [ ] Relay implementation language and where it runs.
 - [ ] Screen layout and the sweep technique.
+- [ ] Settings record format in ESP32 user flash, and the airport table contents.

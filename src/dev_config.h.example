@@ -4,3 +4,8 @@
 #define DEV_WIFI_PASS "my-password"
 /* Plain HTTP only until the firmware attaches the CA bundle (lode/platform/firmware.md). */
 #define DEV_HTTP_URL  "http://example.com/"
+/* Home point (default KBNA). Degrees in 1e-4 units; set all three together. */
+/* #define DEV_HOME_ICAO    "KBNA" */
+/* #define DEV_HOME_LAT_E4  361245 */
+/* #define DEV_HOME_LON_E4  (-866782) */
+/* #define DEV_RANGE_NM     25 */

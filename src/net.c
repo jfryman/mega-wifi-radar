@@ -8,6 +8,9 @@ static u16 cmd_buf[MW_BUFLEN / 2];
 #define ASSOC_TOUT       MW_MS_TO_FRAMES(30000)
 #define HTTP_TOUT        MW_MS_TO_FRAMES(20000)
 #define RECV_TOUT        MW_MS_TO_FRAMES(10000)
+/* mw-fw-rtos (main/http.c) reports this length for a chunked response, then
+ * forwards the body and ends it with a zero-length frame on MW_HTTP_CH. */
+#define HTTP_LEN_CHUNKED 0x7FFFFFFFUL
 
 /* SGDK has no strncmp. True if a and b match up to n chars or a shared NUL. */
 static bool str_eq_n(const char *a, const char *b, u16 n)
@@ -114,13 +117,18 @@ enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
     res->status = mw_http_finish(&res->content_len, HTTP_TOUT);
     if (res->status < 100)
         return NET_ERR_HTTP;
+    res->chunked = res->content_len == HTTP_LEN_CHUNKED;
 
-    while (res->received < res->content_len) {
+    while (res->chunked || res->received < res->content_len) {
         ch = MW_HTTP_CH;
         len = MW_BUFLEN;
         if (mw_recv_sync(&ch, (char *)cmd_buf, &len, RECV_TOUT) != MW_ERR_NONE ||
                 ch != MW_HTTP_CH)
             return NET_ERR_RECV;
+        if (!len) {
+            if (res->chunked) break;     /* end-of-body marker */
+            continue;
+        }
         res->received += len;
         res->chunks++;
         if (cb) cb((const u8 *)cmd_buf, len, ctx);

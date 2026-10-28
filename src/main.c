@@ -16,6 +16,13 @@ static void say(const char *s)
     VDP_drawText(s, 0, line++);
 }
 
+/* "36.1245" / "-86.6782" from 1e-4 degree fixed point, no floats. */
+static void fmt_deg_e4(char *out, s32 v)
+{
+    u32 a = v < 0 ? -v : v;
+    sprintf(out, "%s%lu.%04lu", v < 0 ? "-" : "", a / 10000, a % 10000);
+}
+
 static void fail(const char *s)
 {
     VDP_setTextPalette(PAL1);
@@ -59,6 +66,13 @@ int main(bool hard)
     line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
     PAL_setColor(PAL1 * 16 + 15, RGB24_TO_VDPCOLOR(0xFF4040));
     say("mega_wifi_radar net spike (Rev.C)");
+    {
+        char lat[12], lon[12];
+        fmt_deg_e4(lat, devcfg_home_lat_e4);
+        fmt_deg_e4(lon, devcfg_home_lon_e4);
+        sprintf(buf, "Home %s %s %s %unm", devcfg_home_icao, lat, lon, devcfg_range_nm);
+        say(buf);
+    }
 
     say("Detecting module...");
     net_init();
@@ -75,7 +89,8 @@ int main(bool hard)
     sprintf(buf, "GET %.36s", devcfg_http_url);
     say(buf);
     enum net_err e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
-    sprintf(buf, "HTTP %d len %lu", res.status, res.content_len);
+    if (res.chunked) sprintf(buf, "HTTP %d len chunked", res.status);
+    else sprintf(buf, "HTTP %d len %lu", res.status, res.content_len);
     say(buf);
     if (e != NET_OK) fail(e == NET_ERR_RECV ? "Body receive failed" : "HTTP request failed");
     sprintf(buf, "%lu B in %u chunks, %u frames", res.received, res.chunks, res.frames);

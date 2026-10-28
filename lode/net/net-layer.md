@@ -57,7 +57,11 @@ sequenceDiagram
   valid inside the callback.
 - `net_ensure_ap` writes ESP flash only when the SSID, password or default slot differ, so it doesn't wear flash on every boot.
 - IP `0.0.0.0` in `mw_ip_cfg` means DHCP (firmware `megawifi.c`).
-- The body loop needs a real `Content-Length`, so the relay must send it (no chunked encoding).
+- Body length: with a `Content-Length`, the loop reads exactly that many bytes. On a chunked response
+  the firmware reports `INT32_MAX` (`HTTP_LEN_CHUNKED`) and ends the body with a **zero-length frame**
+  on `MW_HTTP_CH`, so the loop stops there (`res.chunked`). Without that, chunked bodies (example.com
+  sends 577 B chunked) hang until the 10 s receive timeout. The relay still always sends
+  `Content-Length`, so the console can check the frame size before parsing.
 - Timeouts: assoc 30 s, HTTP finish 20 s, per-chunk receive 10 s (`MW_MS_TO_FRAMES`).
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.
 
@@ -76,6 +80,11 @@ AP) and `devcfg_http_url`. The host `make` deletes `devcfg.o` before every build
 #include "dev_config.h"             /* at the last build, so creating it later wouldn't    */
 #endif                              /* trigger a rebuild. Hence the forced devcfg.o rebuild. */
 ```
+Home point: `devcfg_home_icao`, `devcfg_home_lat_e4`, `devcfg_home_lon_e4` (s32, 1e-4 deg) and
+`devcfg_range_nm` default to **KBNA, 36.1245, -86.6782, 25 nm** (OurAirports), overridable
+with `DEV_HOME_ICAO` / `_LAT_E4` / `_LON_E4` / `DEV_RANGE_NM`. These are the values the relay
+query (`lat=…&lon=…&range=…`) is built from. `main.c`'s `fmt_deg_e4()` prints them with no floats.
+
 Lesson: any `__has_include`d optional file must sit behind a forced-rebuild object like this.
 Wi-Fi credentials end up in `out/rom.bin`. `out/` is git-ignored; don't share dev ROMs.
 

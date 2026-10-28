@@ -27,7 +27,8 @@ typedef void (*net_chunk_cb)(const u8 *data, u16 len, void *ctx);
 
 struct net_http_result {
     s16 status;        /* HTTP status, or < 100 if the request didn't complete */
-    u32 content_len;
+    bool chunked;      /* no Content-Length: body ended by a zero-length frame */
+    u32 content_len;   /* meaningful only when !chunked */
     u32 received;
     u16 chunks;
     u16 frames;        /* VBlanks spent from mw_http_open to last byte */

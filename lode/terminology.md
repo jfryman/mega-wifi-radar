@@ -21,6 +21,9 @@
 - Trail - the last N positions of an aircraft, drawn behind the blip.
 - Data tag - the text block next to a blip (callsign / altitude / ground speed).
 - Sweep - the rotating radar line, planned as palette cycling over pre-drawn wedges.
-- nm - nautical mile; 1/16 nm is the candidate fixed-point position unit.
+- nm - nautical mile; frames use 1/32 nm.
+- Home point - the scope centre (airport ICAO + lat/lon in 1e-4 deg + range nm). Dev default KBNA.
+- KBNA - Nashville International, the dev home point (36.1245, -86.6782, 599 ft).
+- Config screen - planned start-up screen for Wi-Fi and home-airport selection; dev builds skip it via `dev_config.h`.
 - Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
 - H40 - the 320×224 VDP display mode.
