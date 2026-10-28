@@ -63,17 +63,19 @@ sequenceDiagram
   sends 577 B chunked) hang until the 10 s receive timeout. The relay still always sends
   `Content-Length`, so the console can check the frame size before parsing.
 - Timeouts: assoc 30 s, HTTP finish 20 s, per-chunk receive 10 s (`MW_MS_TO_FRAMES`).
+- Any failed request ends with `mw_http_cleanup()`. Otherwise the firmware's client stays in a busy
+  state (e.g. `FINISH_CONTENT_WAIT`) and refuses the next `mw_http_url_set`. After a successful request
+  it's back to `IDLE` and is reused as-is (firmware `main/http.c`).
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.
 
 ## Spike ROM (src/main.c)
-Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
-→ prints the status, length, chunk count, frames, and the first ~15 lines of the body. Then a spinner
-proves the main loop is alive.
+Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → poll the relay through the feed every ~5 s and
+list the nearest aircraft; see [feed.md](feed.md).
 
 ### Dev settings
 The git-ignored `src/dev_config.h` (template: `src/dev_config.h.example`) is included **only** by
 `src/devcfg.c`, which exposes `devcfg_wifi_ssid` / `devcfg_wifi_pass` (NULL = use the module's saved
-AP) and `devcfg_http_url`. The host `make` deletes `devcfg.o` before every build.
+AP) and `devcfg_relay_url` (relay base URL, NULL = not configured). The host `make` deletes `devcfg.o` before every build.
 
 ```c
 #if __has_include("dev_config.h")   /* SGDK's .d files never list a header that was absent */

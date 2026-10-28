@@ -6,7 +6,7 @@
 /* Dev-build settings from src/dev_config.h (see src/dev_config.h.example). */
 extern const char *const devcfg_wifi_ssid;   /* NULL: use the module's saved AP */
 extern const char *const devcfg_wifi_pass;
-extern const char *const devcfg_http_url;
+extern const char *const devcfg_relay_url;   /* NULL: not configured */
 
 /* Home point (the scope centre). Dev builds default to KBNA; the start-up
  * config screen will replace these with user settings saved in ESP32 flash.

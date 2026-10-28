@@ -30,8 +30,9 @@ const s32 devcfg_home_lat_e4 = DEV_HOME_LAT_E4;
 const s32 devcfg_home_lon_e4 = DEV_HOME_LON_E4;
 const u16 devcfg_range_nm = DEV_RANGE_NM;
 
-#ifdef DEV_HTTP_URL
-const char *const devcfg_http_url = DEV_HTTP_URL;
+/* Base URL of the relay (relay/), e.g. "http://host.example.lan:8080". */
+#ifdef DEV_RELAY_URL
+const char *const devcfg_relay_url = DEV_RELAY_URL;
 #else
-const char *const devcfg_http_url = "http://example.com/";
+const char *const devcfg_relay_url = NULL;
 #endif

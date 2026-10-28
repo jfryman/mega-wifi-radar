@@ -100,8 +100,8 @@ enum net_err net_join(u8 ip_out[4])
     return NET_OK;
 }
 
-enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
-                          struct net_http_result *res)
+static enum net_err http_get(const char *url, net_chunk_cb cb, void *ctx,
+                             struct net_http_result *res)
 {
     u32 start;
     u8 ch;
@@ -135,4 +135,16 @@ enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
     }
     res->frames = vtimer - start;
     return NET_OK;
+}
+
+enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
+                          struct net_http_result *res)
+{
+    enum net_err e = http_get(url, cb, ctx, res);
+
+    /* A request that fails mid-way leaves the firmware's client in a busy
+     * state where the next mw_http_url_set() is refused; cleanup frees it and
+     * the next request re-creates it. */
+    if (e != NET_OK) mw_http_cleanup();
+    return e;
 }

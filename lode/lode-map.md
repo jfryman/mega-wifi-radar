@@ -10,7 +10,8 @@
 - build/
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, Rev.C guard, make targets
 - net/
-  - [net-layer.md](net/net-layer.md) - blocking net helpers, spike ROM, ROM header
+  - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
+  - [feed.md](net/feed.md) - feed_fetch() interface, relay implementation, spike screen
 - relay/
   - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery
 - data/

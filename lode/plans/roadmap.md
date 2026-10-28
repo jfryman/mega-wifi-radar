@@ -18,7 +18,9 @@ flowchart TD
 - Frame format v1 is agreed; `src/arframe.h` mirrors it with layout asserts.
 - Relay prototype (2b) works: `relay/` (Go, stdlib only, tests cover every conversion rule and the
   HTTP contract) serves live KBNA frames at `http://relay-host.example.lan:8080/v1/frame`.
-- Next: the spike ROM fetches and decodes a relay frame, then the screen layout (3).
+- Spike ROM polls the relay through `feed_fetch()` ([../net/feed.md](../net/feed.md)) and lists the nearest
+  aircraft. Built; still to run on the cart.
+- Next: the screen layout (3) and the fake feed for emulators.
 
 ## Planned: start-up config screen
 Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it
