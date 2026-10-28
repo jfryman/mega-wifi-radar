@@ -11,6 +11,8 @@
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, Rev.C guard, make targets
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, spike ROM, ROM header
+- relay/
+  - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/

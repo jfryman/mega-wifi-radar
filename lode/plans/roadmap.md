@@ -16,7 +16,9 @@ flowchart TD
 - Step 2 network spike works on the real cart from a cold boot: detect → join (DHCP) → plain-HTTP
   GET of `http://example.com/` → body on screen ([../net/net-layer.md](../net/net-layer.md)).
 - Frame format v1 is agreed; `src/arframe.h` mirrors it with layout asserts.
-- Next: the relay prototype (2b) serving `/v1/frame`, and the screen layout (3).
+- Relay prototype (2b) works: `relay/` (Go, stdlib only, tests cover every conversion rule and the
+  HTTP contract) serves live KBNA frames at `http://relay-host.example.lan:8080/v1/frame`.
+- Next: the spike ROM fetches and decodes a relay frame, then the screen layout (3).
 
 ## Planned: start-up config screen
 Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it
@@ -33,6 +35,6 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
 - [ ] Data path A vs B ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [x] Frame format v1 ([../architecture/frame-format.md](../architecture/frame-format.md)).
 - [x] Transport: HTTP GET `/v1/frame`, once per sweep, with Content-Length.
-- [ ] Relay implementation language and where it runs.
+- [x] Relay in Go, run on the dev Mac for now; the console finds it by its DHCP-registered FQDN.
 - [ ] Screen layout and the sweep technique.
 - [ ] Settings record format in ESP32 user flash, and the airport table contents.
