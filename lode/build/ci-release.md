@@ -32,8 +32,8 @@ flowchart LR
   `src/version.h` (only rewritten when it changes). It's included only by `devcfg.c` (always rebuilt), and the
   boot screen shows `app_version` at column 17. `VERSION=` overrides it; the checkout needs `fetch-depth: 0`.
 - Order matters: `make sim` wipes `out/release` and `out/rom.bin`, so CI runs it **before** `make release`.
-- **GHCR visibility:** packages pushed by Actions to a personal account may start out private. If so,
-  flip them to public once in each package's settings, or anonymous pulls fail.
+- **GHCR visibility:** both packages are public; anonymous pulls work (checked with a token-less
+  `ghcr.io/token` request). The first CI run took ~11 min (it built gcc); runs that hit the cache skip that build.
 
 ## Third-party data in the repo
 `relay/testdata/*.json` and `res/fake/kbna_seq.bin` are adsb.fi snapshots (personal, non-commercial,
