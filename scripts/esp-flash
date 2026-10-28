@@ -1,0 +1,44 @@
+#!/bin/sh
+# Flash the MegaWiFi Rev.C ESP32-C3 with jfryman/mw-fw-rtos release rev-c-1250k.
+#   scripts/esp-flash            # auto-detect the cart's USB-C port
+#   PORT=/dev/ttyACM0 scripts/esp-flash
+# Overwrites the whole image from 0x0, including the module's saved Wi-Fi config.
+set -eu
+
+TAG=rev-c-1250k
+BIN=mw-fw-rtos-merged.bin
+SUM=edc001811dd87d8c82f5cc8f5db2d8063f5bd0a26f6630547dc9049fd04a0054
+ESPTOOL_VER=4.8.1
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+DIR="$ROOT/.tools/mw-fw-$TAG"
+
+if command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else SHA="shasum -a 256"; fi
+if [ ! -f "$DIR/$BIN" ] || ! (cd "$DIR" && echo "$SUM  $BIN" | $SHA -c - >/dev/null 2>&1); then
+    mkdir -p "$DIR"
+    echo "esp-flash: fetching $TAG/$BIN" >&2
+    curl -fsSL -o "$DIR/$BIN" "https://github.com/jfryman/mw-fw-rtos/releases/download/$TAG/$BIN"
+    (cd "$DIR" && echo "$SUM  $BIN" | $SHA -c - >/dev/null) \
+        || { echo "esp-flash: checksum mismatch for $BIN" >&2; rm -f "$DIR/$BIN"; exit 1; }
+fi
+
+if [ -z "${PORT:-}" ]; then
+    # ESP32-C3 native USB-Serial/JTAG. The FlashKit (usbserial/ttyUSB) is never a candidate.
+    PORTS=$(ls /dev/cu.usbmodem* /dev/ttyACM* 2>/dev/null || true)
+    N=$(printf '%s' "$PORTS" | grep -c . || true)
+    if [ "$N" -ne 1 ]; then
+        echo "esp-flash: expected one ESP32 port (/dev/cu.usbmodem* or /dev/ttyACM*), found $N." >&2
+        echo "  Plug the cart's USB-C into this machine with a data cable, or set PORT=..." >&2
+        exit 1
+    fi
+    PORT=$PORTS
+fi
+
+if command -v uvx >/dev/null 2>&1; then ESPTOOL="uvx --from esptool==$ESPTOOL_VER esptool.py"
+elif command -v pipx >/dev/null 2>&1; then ESPTOOL="pipx run --spec esptool==$ESPTOOL_VER esptool.py"
+elif command -v esptool.py >/dev/null 2>&1; then ESPTOOL="esptool.py"
+else echo "esp-flash: need uvx, pipx or esptool.py" >&2; exit 1
+fi
+
+echo "esp-flash: writing $TAG to $PORT" >&2
+# shellcheck disable=SC2086
+$ESPTOOL --chip esp32c3 -p "$PORT" write_flash 0x0 "$DIR/$BIN"

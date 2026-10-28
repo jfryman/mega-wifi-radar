@@ -28,9 +28,15 @@ flowchart LR
 
 ## Flashing
 ```sh
-esptool.py --chip esp32c3 -p /dev/cu.usbmodem* write_flash 0x0 mw-fw-rtos-merged.bin  # ESP32 (once)
-flashkit-md write-rom out/rom.bin                                                     # ROM (FlashKit ≥ v1.10.5)
+make esp-flash   # scripts/esp-flash: ESP32-C3 over the cart's USB-C (new/blank modules, fw updates)
+make flash       # scripts/flashkit: 68k ROM via FlashKit MD
 ```
+`scripts/esp-flash` downloads `mw-fw-rtos-merged.bin` from release `rev-c-1250k`, checks it
+(sha256 `edc00181…0054`), and runs pinned esptool 4.8.1 through `uvx` (or `pipx`, or `esptool.py`
+on PATH): `--chip esp32c3 write_flash 0x0`. It auto-picks the single `/dev/cu.usbmodem*` /
+`/dev/ttyACM*` port, or uses `PORT=...`. It never considers the FlashKit's `usbserial`/`ttyUSB` port.
+Flashing from 0x0 **erases the module's saved Wi-Fi config**; the ROM's `net_ensure_ap` writes it again on the next boot.
+A blank C3 still enumerates its USB-Serial/JTAG from ROM, so if no port shows up, suspect the cable (charge-only), the connection, or power.
 Device nodes: FlashKit = `/dev/cu.usbserial-*` / `/dev/ttyUSB*`; ESP32 = `/dev/cu.usbmodem*` / `/dev/ttyACM*`.
 
 Related: [sgdk-megawifi.md](sgdk-megawifi.md), [firmware.md](firmware.md).

@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash
+.PHONY: all release debug clean image flash esp-flash
 
 all: release
 
@@ -26,3 +26,7 @@ image:
 # FlashKit MD on the host: PATH's flashkit-md, else the pinned release in .tools/.
 flash: release
 	$(FLASHKIT) write-rom out/rom.bin
+
+# ESP32-C3 on the cart (USB-C): mw-fw-rtos rev-c-1250k. Erases saved Wi-Fi config.
+esp-flash:
+	scripts/esp-flash
