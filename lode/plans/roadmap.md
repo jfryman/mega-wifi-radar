@@ -20,7 +20,7 @@ flowchart TD
   HTTP contract) serves live KBNA frames at `http://relay-host.example.lan:8080/v1/frame`.
 - **End to end works on the cart:** the spike polls the relay through `feed_fetch()`
   ([../net/feed.md](../net/feed.md)) every ~5 s and lists the nearest aircraft around KBNA (verified 2026-10-28).
-- Next: the screen layout (3) and the fake feed for emulators.
+- Next: the renderer against a fake feed in an emulator: `tools/scopegen` → scope + sweep, then blips/trails/tags/panel.
 
 ## Planned: start-up config screen
 Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it
@@ -39,6 +39,7 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
 - [x] Frame format v1 ([../architecture/frame-format.md](../architecture/frame-format.md)).
 - [x] Transport: HTTP GET `/v1/frame`, once per sweep, with Content-Length.
 - [x] Relay in Go, run on the dev Mac for now; the console finds it by its DHCP-registered FQDN.
-- [ ] Screen layout and the sweep technique. Constraint measured on the owner's TV: overscan crops the
-      bottom text row and the right edge, so keep text/labels ≥ 8 px inside the 320×224 frame.
+- [x] Screen layout ([../ui/screen-layout.md](../ui/screen-layout.md)): scope r=104 + side panel, ≥ 8 px overscan
+      margin, ranges 5/10/25/50/100 with 5 rings, trails = 5 positions, themes Classic (first) + STARS (later).
+- [x] Sweep: thin line with palette afterglow ([../ui/sweep.md](../ui/sweep.md)).
 - [ ] Settings record format in ESP32 user flash, and the airport table contents.

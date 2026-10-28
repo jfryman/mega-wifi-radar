@@ -14,6 +14,9 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay implementation, spike screen
 - relay/
   - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery
+- ui/
+  - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
+  - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/
