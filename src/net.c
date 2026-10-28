@@ -21,16 +21,26 @@ static bool str_eq_n(const char *a, const char *b, u16 n)
     return TRUE;
 }
 
-/* Runs in SGDK's user task during VBlank waits. Never touch the VDP here. */
+static volatile bool mw_up;
+
+/* Runs in SGDK's user task during VBlank waits. Never touch the VDP here.
+ * Idles until mw_init() has returned: lsd/comm state isn't valid before that. */
 static void user_tsk(void)
 {
-    while (TRUE) mw_process();
+    while (TRUE) {
+        if (mw_up) mw_process();
+    }
 }
 
 void net_init(void)
 {
-    mw_init(cmd_buf, MW_BUFLEN);
+    /* The user task must exist BEFORE mw_init(): uart_start() times the ESP32
+     * reset with TSK_superPend(), which returns at once when no user task is
+     * set. Without the 1 s wait, RTS (-> ESP32 GPIO9 strap) goes active while
+     * the chip is still booting, so it boots into download mode and never answers. */
     TSK_userSet(user_tsk);
+    mw_init(cmd_buf, MW_BUFLEN);
+    mw_up = TRUE;
 }
 
 enum net_err net_detect(struct net_module_info *info)

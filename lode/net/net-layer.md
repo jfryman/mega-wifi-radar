@@ -27,6 +27,13 @@ sequenceDiagram
 ```
 
 ## Contracts
+- **`TSK_userSet(user_tsk)` must come before `mw_init()`.** SGDK's `uart_start()` times the ESP32
+  reset with `TSK_superPend()`, which returns *immediately* when no user task is set
+  (`tst.l task_pc; beq no_task` in `task.s`). Without the 30 ms + 1 s waits, RTS goes active
+  while the chip is still booting. On Rev.C ~RTS drives GPIO9, the boot strap, so the ESP32 boots
+  into **download mode**: `mw_detect` fails, and the module, which had booted normally at power-on, "goes off".
+  SGDK's own `sample/megawifi/basic` uses the wrong order.
+- `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
   valid inside the callback.
 - `net_ensure_ap` writes ESP flash only when the SSID, password or default slot differ, so it doesn't wear flash on every boot.

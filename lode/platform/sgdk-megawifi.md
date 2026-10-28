@@ -28,6 +28,14 @@ The pin and patches live in [../build/container-build.md](../build/container-bui
 The patches live in `sgdk/patches/` and the image applies them and rebuilds `libmd.a` automatically.
 `MODULE_MEGAWIFI_ASYNC` stays `0` for now. Turning it on overrides `mw_process()` (`MW_PROCESS_OVERRIDE`), so it needs its own patch and a decision first.
 
+## Rev.C reset/strap wiring (from jfryman/mw-cart bringup-rom/uart.h)
+| 16C550 MCR bit | SGDK name | Rev.C net | Effect when bit set |
+|---|---|---|---|
+| DTR (0x01) | `MW__RESET` | ~DTR → ESP32 EN | ESP held in reset |
+| RTS (0x02) | `MW__PRG` | ~RTS → ESP32 GPIO9 (strap + fw CTS) | GPIO9 low: **download mode** if set while EN rises |
+
+The firmware also uses GPIO9 as CTS and GPIO0 as RTS, with TX 21 and RX 20 on UART0 (`main/lsd.h`).
+
 ## Channels and limits
 `LSD_MAX_CH = 4`: ch0 control, ch1–2 sockets, ch3 = `MW_HTTP_CH`. `MW_MAX_SOCK = 3` counts the
 HTTP channel. Payload ≤ 1460 bytes per frame.
@@ -35,11 +43,13 @@ HTTP channel. Payload ≤ 1460 bytes per frame.
 ## Program skeleton
 ```c
 static u16 cmd_buf[MW_BUFLEN / 2];
-static void user_tsk(void) { while (1) mw_process(); }   /* never touch the VDP here */
+static volatile bool mw_up;
+static void user_tsk(void) { while (1) if (mw_up) mw_process(); }   /* never touch the VDP here */
 
 int main(bool hard) {
-    TSK_userSet(user_tsk);
+    TSK_userSet(user_tsk);          /* FIRST: mw_init's reset timing needs a user task */
     mw_init(cmd_buf, MW_BUFLEN);
+    mw_up = TRUE;
     /* blocking setup: mw_detect, mw_ap_assoc + mw_ap_assoc_wait, mw_ip_current ... */
     while (1) { /* radar loop: async mw_send/mw_recv only */ SYS_doVBlankProcess(); }
 }

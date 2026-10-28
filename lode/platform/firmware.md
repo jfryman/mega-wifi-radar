@@ -8,6 +8,11 @@ After a reset, the USB-Serial/JTAG console (`/dev/cu.usbmodem*`, 115200) shows o
 banner and `entry 0x403cc710`, with no app log. So the USB console can't tell whether the app
 is healthy; the 68k `mw_detect` is the real check.
 
+## Inactivity sleep
+`MwInit` starts a one-shot **30 s** timer (`MW_SLEEP_TIMER_MS`) that calls `esp_deep_sleep_start()`.
+Only `MW_CMD_VERSION` (that is, `mw_detect`) cancels it. A module that never hears from the 68k
+turns off by design. A 68k reset (EN via DTR) wakes it.
+
 ## Partition table (`partitions.csv`)
 | name | offset | size | notes |
 |---|---|---|---|
