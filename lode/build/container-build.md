@@ -50,6 +50,16 @@ git-ignored `.tools/`, checks it against the release's SHA256SUMS, and runs it. 
 forces the pinned copy even if one is on PATH. No .NET runtime is needed. The FlashKit
 auto-detects its port (`/dev/cu.usbserial-*` / `/dev/ttyUSB*`).
 
+## Bring-up diagnostic ROM (jfryman/mw-cart `bringup-rom/`)
+The SGDK-free hardware test ROM (UART regs, loopback, crystal frequency, ESP32 VERSION, echo
+stress) builds in our image. Its own container installs MAME, which we don't need:
+```sh
+docker run --rm --user $(id -u):$(id -g) -v <mw-cart>/bringup-rom:/w -w /w \
+    $(scripts/md --image) make PREFIX=m68k-elf-
+scripts/flashkit write-rom <mw-cart>/bringup-rom/mw-revc-bringup.bin
+```
+Use it whenever the spike ROM can't detect the module: it separates hardware/firmware from SGDK.
+
 ## Updating the SGDK pin
 1. Change `SGDK_COMMIT`.
 2. In a checkout at the new SHA, re-make both edits and `git diff > sgdk/patches/000N-*.patch`.

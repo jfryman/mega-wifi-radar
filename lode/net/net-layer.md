@@ -35,11 +35,14 @@ sequenceDiagram
   into **download mode**: `mw_detect` fails, and the module, which had booted normally at power-on, "goes off".
   SGDK's own `sample/megawifi/basic` uses the wrong order.
 - **Detect = up to 3 attempts**, each a full `net_reset()` + `mw_detect` (`DETECT_ATTEMPTS` in
-  `main.c`; the screen shows `attempt n/3`). Observed on the bench: right after `make esp-flash`
-  + `make flash`, the first cold boot failed detection and a console soft reset worked. Unconfirmed
-  hypothesis: the ESP32's 115200-baud boot output wedges SGDK's LSD receiver mid-"frame", so every
-  retry inside `mw_detect` times out. A one-off slow first boot (NVS format + RF calibration after
-  a reflash) is the alternative. Which attempt succeeds tells them apart.
+  `main.c`; the screen shows `attempt n/3`).
+- **Open issue: detection fails on a cold power-on (3/3 attempts) but works after a console soft
+  reset.** Since three full ESP32 resets and fresh driver state don't help, a slow first boot and a
+  wedged 68k receiver are ruled out. The cause is something a cold power-on leaves behind that a
+  soft reset (console ~RESET → Q1 → UART MR) clears, or that time clears. Suspects: the UART's 20 MHz
+  oscillator starting slowly or wrongly from cold (TL16C550D + R18 Rp), or the UART not leaving MR
+  cleanly at power-up. Being diagnosed with the bring-up ROM on a cold boot (tests 3/4/6/7); see
+  [../build/container-build.md](../build/container-build.md).
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
   valid inside the callback.
