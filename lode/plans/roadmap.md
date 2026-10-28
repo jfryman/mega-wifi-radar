@@ -47,8 +47,3 @@ with `src/dev_config.h` (Wi-Fi credentials, home point; default KBNA).
       margin, ranges 5/10/25/50/100 with 5 rings, trails = 5 positions, themes Classic (first) + STARS (later).
 - [x] Sweep: thin line with palette afterglow ([../ui/sweep.md](../ui/sweep.md)).
 - [x] Settings record (`MWR1`, user_data sector 0) and airport table (OurAirports large + scheduled).
-
-## Known issues (found in emulator screenshots, 2026-10-28)
-- [ ] After zooming in, the ring range labels keep stale digits from the previous range (5 nm shows `1 20 35 40 50`).
-  The label redraw doesn't clear the old, wider text.
-- [ ] STARS: a tag next to the compass `S` merged with it (`5017 120` for `CAP4105 017 120`). Check that label cells block tag placement in every theme.

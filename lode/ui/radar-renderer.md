@@ -25,7 +25,12 @@ flowchart LR
   also pushes a trail dot (incremental: add the newest, drop the oldest). One poll per rotation.
 - **Late-frame guard**: if the handler starts outside V-Blank (`GET_VDP_STATUS(VDP_VBLANK_FLAG)`),
   it only advances the sweep and returns. Otherwise active-display DMA (~18 B/line) keeps it late forever.
-- Ground traffic is untagged in ALL mode (select to see). Tags keep a 1-cell gap (`TAG_SPAN`).
+- Ground traffic is untagged in ALL mode (select to see). Tags keep a 1-cell gap (`TAG_SPAN`) on their right,
+  and `grid_free` also refuses a spot with a label cell directly to its left (a compass `S` next to `017` read as `5017`).
+- Ring labels + compass: `label_cells` is the only record of which plane-A cells hold label text.
+  `clear_labels()` erases those cells and their `grid` counts, and must run **before** anything zeroes
+  `label_cells` or `grid`. Rescale order: clear tags, `scope_clear_dots`, `clear_labels`, zero `grid`,
+  `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
 - `radar_stop()` (setup screen) removes the callback; come back with `radar_init()` + `radar_start()`
   (the track table is cleared and refilled by the next poll).
 

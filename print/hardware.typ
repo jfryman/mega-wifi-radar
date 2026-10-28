@@ -17,7 +17,7 @@
 // Draw `body` in a (uw x uh)-unit canvas scaled to width w; callouts: ((n, x, y), ...).
 #let canvas(w, uw, uh, callouts, body) = {
   let s = w / uw
-  box(width: w, height: uh * s, {
+  box(width: w, height: uh * s, clip: true, {
     body(s)
     for (n, x, y) in callouts {
       place(top + left, dx: x * s - 2.1mm, dy: y * s - 2.1mm, marker(n))

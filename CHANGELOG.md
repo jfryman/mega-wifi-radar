@@ -1,5 +1,16 @@
 ## 0.1.2 (Unreleased)
 
+BUG FIXES:
+
+  * **radar:** after zooming, the ring range labels no longer keep digits from the previous range
+    (5 nm used to read `1 20 35 40 50`).
+  * **radar:** data tags are no longer placed directly right of a ring or compass label, where the
+    two read as one (`S` + `017` looked like `5017`).
+
+IMPROVEMENTS:
+
+  * **manual:** the Range Steps section shows the scope zoomed to 5 nm.
+
 ## 0.1.1 (October 28, 2026)
 
 FEATURES:

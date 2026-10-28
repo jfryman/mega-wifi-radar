@@ -98,12 +98,16 @@ static void grid_mark(s16 x, s16 y, s16 w, s16 dv)
         if (x + i >= 0 && x + i < GRID_W && y >= 0 && y < GRID_H) grid[y][x + i] += dv;
 }
 
+/* A tag's span includes a gap column on its right. A label directly left of it would
+ * also read as part of the tag ("S" + "017" looks like "5017"), so check that cell too. */
 static bool grid_free(s16 x, s16 y)
 {
     if (x < 1 || y < 1 || x + TAG_W > 27 || y + 2 > 27) return FALSE;
-    for (s16 r = 0; r < 2; r++)
+    for (s16 r = 0; r < 2; r++) {
+        if (label_cells[y + r][x - 1]) return FALSE;
         for (s16 i = 0; i < TAG_SPAN && x + i < GRID_W; i++)
             if (grid[y + r][x + i]) return FALSE;
+    }
     return TRUE;
 }
 
@@ -198,13 +202,11 @@ static void put(VDPPlane plane, u16 pal, const char *s, s16 x, s16 y)
     VDP_drawTextEx(plane, s, TILE_ATTR(pal, TRUE, FALSE, FALSE), x, y, CPU);
 }
 
-static void draw_labels(void)
+/* Erase the drawn ring labels + compass and their grid occupancy. Must run before
+ * anything resets label_cells: it's the only record of which cells hold label text
+ * (a shorter new label would otherwise leave the old one's digits behind). */
+static void clear_labels(void)
 {
-    static const struct { s8 x, y; const char *s; } compass[] = {
-        { 13, 2, "N" }, { 13, 25, "S" }, { 2, 13, "W" }, { 25, 13, "E" },
-    };
-    u16 range = settings_range_nm();
-
     for (u16 y = 0; y < GRID_H; y++)
         for (u16 x = 0; x < GRID_W; x++)
             if (label_cells[y][x]) {
@@ -212,6 +214,16 @@ static void draw_labels(void)
                 grid[y][x] -= label_cells[y][x];
                 label_cells[y][x] = 0;
             }
+}
+
+static void draw_labels(void)
+{
+    static const struct { s8 x, y; const char *s; } compass[] = {
+        { 13, 2, "N" }, { 13, 25, "S" }, { 2, 13, "W" }, { 25, 13, "E" },
+    };
+    u16 range = settings_range_nm();
+
+    clear_labels();
     for (u16 i = 0; i < 4; i++) {
         put(BG_A, PAL_TEXT_LOW, compass[i].s, compass[i].x, compass[i].y);
         label_cells[(u8)compass[i].y][(u8)compass[i].x] = 1;
@@ -355,8 +367,8 @@ static void radar_vint(void)
             place(&tracks[i]);
         }
         scope_clear_dots();
+        clear_labels();
         memset(grid, 0, sizeof(grid));
-        memset(label_cells, 0, sizeof(label_cells));
         draw_labels();
     }
     if (req_retag) {
