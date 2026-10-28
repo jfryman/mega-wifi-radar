@@ -16,4 +16,7 @@ extern const s32 devcfg_home_lat_e4;
 extern const s32 devcfg_home_lon_e4;
 extern const u16 devcfg_range_nm;
 
+/* Build version (git describe), from the generated src/version.h. */
+extern const char *const app_version;
+
 #endif

@@ -7,13 +7,22 @@ SGDKMK  := make -f /sgdk/makefile.gen
 
 all: release
 
+# Version shown on the boot screen: git describe (tag, commits since, -dirty).
+# Written to the git-ignored src/version.h, included only by devcfg.c.
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
+.PHONY: version
+version:
+	@printf '#define APP_VERSION "%s"\n' "$(VERSION)" > src/version.h.tmp
+	@cmp -s src/version.h.tmp src/version.h 2>/dev/null && rm src/version.h.tmp || mv src/version.h.tmp src/version.h
+
 # devcfg.o is always rebuilt: it includes the optional src/dev_config.h, which
 # SGDK's dependency tracking can't see appear (see src/devcfg.c).
-release:
+release: version
 	rm -f out/release/src/devcfg.o
 	$(MD) $(SGDKMK) release
 
-debug:
+debug: version
 	rm -f out/debug/src/devcfg.o
 	$(MD) $(SGDKMK) debug
 
@@ -22,7 +31,7 @@ clean:
 
 # Emulator build: fake feed (no MegaWiFi), out/sim.bin. Objects are wiped
 # before and after so flags never mix with the cart build.
-sim:
+sim: version
 	rm -rf out/release
 	$(MD) $(SGDKMK) release EXTRA_FLAGS=-DFAKE_FEED
 	cp out/rom.bin out/sim.bin

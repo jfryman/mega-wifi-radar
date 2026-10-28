@@ -38,7 +38,8 @@ flowchart TD
 ```sh
 make            # = make release -> out/rom.bin
 make debug      # libmd_debug + symbols
-make image      # build/print the image tag only
+make image      # pull/build and print the image tag only
+make VERSION=v1.2.3   # override the boot-screen version (default: git describe)
 make flash      # scripts/flashkit write-rom out/rom.bin (host side)
 scripts/md sh   # shell inside the image (GDK=/sgdk)
 ```
@@ -71,5 +72,7 @@ presses buttons (MAME field names: `P1 A/B/C`, `P1 Start`, `P1 Up`...). Generate
 1. Change `SGDK_COMMIT`.
 2. In a checkout at the new SHA, re-make both edits and `git diff > sgdk/patches/000N-*.patch`.
 3. Run `make image`. The guard step must pass.
+
+CI and releases: [ci-release.md](ci-release.md).
 
 Related: [../platform/sgdk-megawifi.md](../platform/sgdk-megawifi.md), [../practices.md](../practices.md).

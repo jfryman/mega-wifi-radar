@@ -1,3 +1,3 @@
-module github.com/jfryman/mega_wifi_radar/relay
+module github.com/jfryman/mega-wifi-radar/relay
 
 go 1.22

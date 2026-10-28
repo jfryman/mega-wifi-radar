@@ -1,0 +1,134 @@
+# Builds the cart + emulator ROMs and the relay image; publishes a release on v* tags.
+# The SGDK build image is cached in GHCR under the same content hash scripts/md uses.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SDK_IMAGE: ghcr.io/${{ github.repository_owner }}/mega-wifi-radar-sgdk
+  RELAY_IMAGE: ghcr.io/${{ github.repository_owner }}/mega-wifi-radar-relay
+  PUSH: ${{ github.event_name != 'pull_request' }}
+  CTR: docker
+
+jobs:
+  rom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # git describe needs tags
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get build image (pull, else build and push)
+        run: |
+          LOCAL=$(scripts/md --name)
+          REMOTE="$SDK_IMAGE:${LOCAL#*:}"
+          if docker pull "$REMOTE"; then
+            docker tag "$REMOTE" "$LOCAL"
+          else
+            docker build -t "$LOCAL" -f docker/Dockerfile \
+              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" .
+            if [ "$PUSH" = true ]; then
+              docker tag "$LOCAL" "$REMOTE" && docker push "$REMOTE"
+            fi
+          fi
+
+      - name: Build ROMs
+        run: |
+          test ! -e src/dev_config.h
+          make sim
+          make release
+          V=$(git describe --tags --always)
+          mkdir dist
+          cp out/rom.bin "dist/mega-wifi-radar-$V.bin"
+          cp out/sim.bin "dist/mega-wifi-radar-$V-emu.bin"
+          (cd dist && sha256sum *.bin > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roms
+          path: dist/
+          if-no-files-found: error
+
+  relay:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: relay/go.mod
+          cache: false
+
+      - name: Vet and test
+        run: |
+          (cd relay && go vet ./... && go test ./...)
+          (cd tools && go vet ./...)
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.RELAY_IMAGE }}
+          tags: |
+            type=edge,branch=main
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=ref,event=pr
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: relay
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [rom, relay]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: roms
+          path: dist
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" --generate-notes

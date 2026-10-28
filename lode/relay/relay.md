@@ -30,10 +30,11 @@ flowchart LR
 |---|---|
 | native | `cd relay && go run . -listen :8080` |
 | container, foreground | `make relay-run` (= `scripts/relay run [relay args]`) |
+| published image | `docker run -d -p 8080:8080 ghcr.io/jfryman/mega-wifi-radar-relay:latest` (amd64 + arm64, built by CI) |
 | container, background | `make relay-start` / `scripts/relay logs` / `make relay-stop` |
 
-`relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` runs `go vet` and `go test` and builds a static
-binary (CGO off). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
+`relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
+cross-compiles a static binary (CGO off, `GOOS/GOARCH` from `TARGETOS/TARGETARCH`). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
 the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker
 (override with `CTR=`), publishes `${RELAY_PORT:-8080}`, and names the detached container `mwradar-relay`
 (`--restart unless-stopped`).

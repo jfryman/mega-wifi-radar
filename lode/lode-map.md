@@ -8,7 +8,8 @@
   - [sgdk-megawifi.md](platform/sgdk-megawifi.md) - SGDK v2.11 vs master, Rev.C patch, program skeleton
   - [firmware.md](platform/firmware.md) - mw-fw-rtos rev-c-1250k, HTTPS cert behaviour
 - build/
-  - [container-build.md](build/container-build.md) - image, pins, hash-tagging, Rev.C guard, make targets
+  - [container-build.md](build/container-build.md) - image, pins, hash-tagging, GHCR pull, Rev.C guard, make targets
+  - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
   - [feed.md](net/feed.md) - feed_fetch() interface, relay implementation, spike screen

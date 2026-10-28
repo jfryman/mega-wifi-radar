@@ -1,8 +1,17 @@
-/* The only file that includes the optional, git-ignored src/dev_config.h.
- * make deletes this object before every build: SGDK's dependency files can't
- * see a header that didn't exist at the last build, so without that, creating
- * or editing dev_config.h would silently leave the old values in the ROM. */
+/* The only file that includes the optional, git-ignored src/dev_config.h and
+ * the generated src/version.h. make deletes this object before every build:
+ * SGDK's dependency files can't see a header that didn't exist at the last
+ * build, so without that, creating or editing either would silently leave the
+ * old values in the ROM. */
 #include "devcfg.h"
+
+#if __has_include("version.h")
+#include "version.h"
+#endif
+#ifndef APP_VERSION
+#define APP_VERSION "dev"
+#endif
+const char *const app_version = APP_VERSION;
 
 #if __has_include("dev_config.h")
 #include "dev_config.h"

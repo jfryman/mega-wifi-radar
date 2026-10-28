@@ -9,6 +9,7 @@ flowchart TD
   S3 --> S6[Live radar on real cart]
   S5 --> S6
   S6 --> S7[Network setup screen, settings in ESP flash]
+  S7 --> S8[Public repo, CI, releases]
 ```
 
 ## Status
@@ -22,8 +23,9 @@ flowchart TD
   ([../net/feed.md](../net/feed.md)) every ~5 s and lists the nearest aircraft around KBNA (verified 2026-10-28).
 - **Radar built** ([../ui/radar-renderer.md](../ui/radar-renderer.md)): sweep, blips, trails, tags, panel,
   zoom/select/pan, Classic + STARS themes, setup screen with Wi-Fi/airport/relay + flash persistence
-  ([../ui/config-screen.md](../ui/config-screen.md)). Verified in MAME (`make sim-run`); flashed to the cart 2026-10-28,
-  on-hardware check pending.
+  ([../ui/config-screen.md](../ui/config-screen.md)). Verified in MAME (`make sim-run`) and working on the real cart.
+- **Published** at github.com/jfryman/mega-wifi-radar with CI building release ROMs and the relay image
+  ([../build/ci-release.md](../build/ci-release.md)). User-facing docs are in `docs/`.
 
 ## Planned: start-up config screen
 Runs before the radar when no saved settings exist, or when START is held at boot. Dev builds bypass it

@@ -268,7 +268,8 @@ int main(bool hard)
     (void)hard;
     line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
     settings_init();
-    VDP_drawText("mega_wifi_radar", 1, line++);
+    VDP_drawText("mega_wifi_radar", 1, line);
+    VDP_drawText(app_version, 17, line++);
 #ifndef FAKE_FEED
     boot_network();
 #else

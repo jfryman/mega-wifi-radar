@@ -3,3 +3,4 @@ out/
 .tools/
 src/dev_config.h
 res/resources.h
+src/version.h

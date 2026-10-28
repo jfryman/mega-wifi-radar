@@ -1,9 +1,12 @@
 #!/bin/sh
 # Run a command inside the mega_wifi_radar build image (macOS + Linux, Podman or Docker).
 #   scripts/md make -f /sgdk/makefile.gen release
-#   scripts/md --image        # just make sure the image exists
+#   scripts/md --image        # just make sure the image exists (prints its name)
+#   scripts/md --name         # print the image name without pulling or building
 # The image tag is a hash of everything that defines it, so editing docker/, sgdk/patches/
 # or src/rev_c_guard.c always triggers a rebuild: a stale, unpatched SGDK can't be used.
+# A missing image is first pulled from $MD_REGISTRY (CI publishes every hash there);
+# set MD_REGISTRY= (empty) to always build locally. MD_BUILD_FLAGS adds build options.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -14,10 +17,17 @@ if command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else SHA="shasum 
 HASH=$(cd "$ROOT" && find docker sgdk src/rev_c_guard.c -type f | LC_ALL=C sort \
        | xargs cat | $SHA | cut -c1-12)
 IMAGE="mwradar-sgdk:$HASH"
+REGISTRY=${MD_REGISTRY-ghcr.io/jfryman/mega-wifi-radar-sgdk}
+[ "${1:-}" = "--name" ] && { echo "$IMAGE"; exit 0; }
 
 if ! "$CTR" image inspect "$IMAGE" >/dev/null 2>&1; then
-    echo "md: building $IMAGE (first build compiles gcc; ~15-30 min)" >&2
-    "$CTR" build -t "$IMAGE" -f "$ROOT/docker/Dockerfile" "$ROOT"
+    if [ -n "$REGISTRY" ] && "$CTR" pull "$REGISTRY:$HASH" >&2 2>/dev/null; then
+        "$CTR" tag "$REGISTRY:$HASH" "$IMAGE"
+    else
+        echo "md: building $IMAGE (first build compiles gcc; ~15-30 min)" >&2
+        # shellcheck disable=SC2086
+        "$CTR" build ${MD_BUILD_FLAGS:-} -t "$IMAGE" -f "$ROOT/docker/Dockerfile" "$ROOT" >&2
+    fi
 fi
 [ "${1:-}" = "--image" ] && { echo "$IMAGE"; exit 0; }
 
