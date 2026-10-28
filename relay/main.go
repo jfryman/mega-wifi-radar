@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -156,6 +157,7 @@ func main() {
 	lat := flag.Float64("lat", 36.1245, "home latitude for -convert")
 	lon := flag.Float64("lon", -86.6782, "home longitude for -convert")
 	rng := flag.Int("range", 25, "range in nm for -convert")
+	mdns := flag.Bool("mdns", true, "advertise the relay over mDNS as _mwradar._tcp (lode/net/discovery.md)")
 	flag.Parse()
 
 	if *pack != "" {
@@ -174,6 +176,14 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /v1/frame", frameHandler(newSource(*upstream, *interval)))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
+	if *mdns {
+		_, p, err := net.SplitHostPort(*listen)
+		port, _ := strconv.Atoi(p)
+		host, _ := os.Hostname()
+		if err == nil && port > 0 {
+			go serveMDNS(newAdvert(host, uint16(port)))
+		}
+	}
 	log.Printf("relay listening on %s (upstream %s)", *listen, *upstream)
 	log.Fatal(http.ListenAndServe(*listen, mux))
 }

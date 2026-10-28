@@ -24,15 +24,29 @@ sequenceDiagram
 
 | How | Command |
 |---|---|
-| Published image | `docker run -d --name mwradar-relay --restart unless-stopped -p 8080:8080 ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
-| From this repo, container | `make relay-start` (detached), `make relay-run` (foreground), `make relay-stop`, `scripts/relay logs` |
+| Published image (Linux) | `docker run -d --name mwradar-relay --restart unless-stopped --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
+| From this repo, container | `make relay-start` (detached; also registers the mDNS advertisement on the host), `make relay-run` (foreground), `make relay-stop`, `scripts/relay logs` |
 | From this repo, native Go | `cd relay && go run . -listen :8080` |
 
 The image is distroless, runs as non-root, and is about 15 MB, built for linux/amd64 and
 linux/arm64. `scripts/relay` uses podman if it's installed, otherwise docker (override with `CTR=docker`).
 
-Then set the cart's **RELAY** to `http://<host>:8080`, where `<host>` is a name your router's DNS
-resolves for DHCP clients (fully qualified), or an IP address.
+Leave the cart's **RELAY** on **AUTO** and it finds the relay over mDNS. To pin one instead, type
+`http://<host>:8080`, where `<host>` is a fully qualified name your router's DNS resolves, or an IP address.
+
+## Discovery (mDNS)
+
+The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=1 path=/v1/frame`) with a small built-in
+responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _mwradar._tcp` (Linux).
+
+| Where the relay runs | Who advertises |
+|---|---|
+| Native (`go run .`, a binary) | The relay itself. On macOS, allow "Local Network" access when asked. |
+| Linux container with `--network host` | The relay itself |
+| Bridged container, Docker Desktop, Podman machine | **The host**: `scripts/relay start` runs `dns-sd -P` (macOS) or `avahi-publish` (Linux) for it, and the container runs with `-mdns=false`. After a reboot, run `scripts/relay advertise` (the container restarts by itself, the advertisement doesn't). |
+
+The cart sends a *legacy unicast* query (from UDP port 5354), and responders answer it directly, so the
+ESP32 never joins the multicast group. Details: [lode/net/discovery.md](../lode/net/discovery.md).
 
 ### Flags
 
@@ -41,6 +55,7 @@ resolves for DHCP clients (fully qualified), or an IP address.
 | `-listen` | `:8080` | HTTP listen address |
 | `-upstream` | `https://opendata.adsb.fi` | Any adsb.fi-compatible base URL |
 | `-min-interval` | `1s` | Minimum time between upstream requests (adsb.fi allows 1 per second) |
+| `-mdns` | `true` | Advertise `_mwradar._tcp` over mDNS (UDP 5353) |
 | `-convert FILE -o OUT -lat -lon -range` | | Convert a saved upstream JSON file into one frame, then exit |
 | `-pack OUT FILES...` | | Pack several JSON snapshots into a fake-feed file for the emulator build |
 

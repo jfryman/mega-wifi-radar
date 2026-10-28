@@ -35,3 +35,6 @@
 - Imposition - arranging manual pages onto sheets so that, printed duplex and folded, they read in order (`booklet.typ`).
 - Key art - the hero illustration shared by label, cover and manual: the vector scope from `keyart.typ`.
 - Black grid - the fine grey-on-black grid of 1989 US Genesis boxes, our cover background (`grid-tiling`).
+- AUTO - RELAY setting left empty: the cart finds the relay over mDNS at every boot (`_mwradar._tcp`).
+- Legacy unicast query - an mDNS query sent from a port other than 5353; responders must answer it directly to that port (RFC 6762 §6.7).
+- Reuse mode - a MegaWiFi UDP socket opened with only a local port: packets carry a 6-byte peer address prefix.

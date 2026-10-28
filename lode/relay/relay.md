@@ -23,14 +23,14 @@ flowchart LR
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
 - `GET /healthz` → `ok`.
 - See "Running it" below. The console URL is
-  `http://<relay-host-fqdn>:8080/v1/frame` (DHCP-registered DNS; see "Discovery" below).
+  found over mDNS (AUTO) or typed as `http://<relay-host-fqdn>:8080` (see "Discovery" below).
 
 ## Running it
 | How | Command |
 |---|---|
 | native | `cd relay && go run . -listen :8080` |
 | container, foreground | `make relay-run` (= `scripts/relay run [relay args]`) |
-| published image | `docker run -d -p 8080:8080 ghcr.io/jfryman/mega-wifi-radar-relay:latest` (amd64 + arm64, built by CI) |
+| published image | `docker run -d --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` (amd64 + arm64, built by CI; host network so its mDNS reaches the LAN) |
 | container, background | `make relay-start` / `scripts/relay logs` / `make relay-stop` |
 
 `relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
@@ -64,12 +64,18 @@ on Linux you see the real client.
 writes one frame. The ROM's fake data source and the golden tests use these files.
 
 ## Discovery
-None needed. The console's DHCP lease gives it the router's DNS (`192.168.1.1` here), and lwIP
-resolves through it. The router answers both bare names and the DHCP domain for DHCP clients
-(`relay-host` and `relay-host.example.lan` → `192.168.1.20`). Use the **FQDN**: lwIP ignores the
-DHCP search domain, so bare names only work while the router answers them. There's no mDNS in the
-firmware, so `.local` names don't resolve. The ESP32's own DHCP hostname is fixed at `MegaWiFi-1-5`
-(firmware `MwApJoin`); nothing needs to resolve it.
+**mDNS, `_mwradar._tcp`** (`relay/mdns.go`, stdlib only, `-mdns` default on). See [../net/discovery.md](../net/discovery.md).
+It answers legacy unicast queries (the cart's), normal mDNS queries (multicast reply, so `dns-sd -B` works) and QU
+queries. The A record uses the interface whose subnet holds the querier. Tests: `mdns_test.go` (the cart's exact query).
+A bridged or VM container can't advertise on the LAN: `scripts/relay start|run` runs the container with `-mdns=false` and
+registers the service on the host (`dns-sd -P "MegaWiFi Radar" _mwradar._tcp local <port> mwradar-relay.local <lan-ip>` on
+macOS, `avahi-publish -s` on Linux; pid in `.tools/relay-mdns.pid`; `scripts/relay advertise` re-registers after a reboot).
+macOS: a native relay needs "Local Network" permission to answer. The same permission blocks multicast *sends* from
+terminal tools, which is why a Python probe on the Mac fails with `EHOSTUNREACH`; test from the cart.
+
+Typed URLs still work: the console's DHCP lease gives it the router's DNS and lwIP resolves through it. Use the
+**FQDN**, because lwIP ignores the DHCP search domain. The firmware has no mDNS resolver, so `.local` *host names* don't
+resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `MegaWiFi-1-5`.
 
 ## Terms of use
 adsb.fi open data: personal non-commercial use, at most 1 req/s, attribution required. The relay sends

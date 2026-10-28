@@ -1,4 +1,5 @@
 #include "setup.h"
+#include "feed.h"
 #include "airports.h"
 #include "keyboard.h"
 #include "net.h"
@@ -54,7 +55,17 @@ static void draw_value(u16 r)
         ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, wifi_ssid[0] ? wifi_ssid : "NOT SET");
 #endif
         break;
-    case R_RELAY: ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, settings.relay[0] ? settings.relay : "NOT SET"); break;
+    case R_RELAY:
+        if (settings.relay[0]) {
+            ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, settings.relay);
+        } else {                                /* AUTO: show what mDNS found, if anything */
+            const char *u = feed_relay_host();
+            char buf[RELAY_LEN + 8];              /* ui_field cuts it to VAL_W */
+            if (u[0]) sprintf(buf, "AUTO %s", u);
+            else strcpy(buf, "AUTO (MDNS)");
+            ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, buf);
+        }
+        break;
     }
 }
 
@@ -68,7 +79,7 @@ static void draw_all(u16 cur)
         draw_value(r);
     }
     ui_text(PAL1, 2, 23, "UP/DN ROW  L/R CHANGE  A EDIT");
-    ui_text(PAL1, 2, 24, "C NEXT LETTER  START SAVE");
+    ui_text(PAL1, 2, 24, "C NEXT LETTER / AUTO  START SAVE");
 }
 
 static void cursor(u16 old, u16 cur)
@@ -186,7 +197,7 @@ bool setup_run(bool wifi_first)
     net_current_ssid(wifi_ssid);
     if (wifi_first) {
         wifi_page();
-        if (!settings.relay[0]) cur = R_RELAY;
+        if (!settings.relay[0] && !feed_relay_url()[0]) cur = R_RELAY;  /* AUTO found nothing */
     }
 #endif
     draw_all(cur);
@@ -200,6 +211,7 @@ bool setup_run(bool wifi_first)
         if (p & BUTTON_LEFT) change(cur, -1, p);
         if (p & BUTTON_RIGHT) change(cur, 1, p);
         if (p & BUTTON_C && cur == R_AIRPORT) change(cur, 0, p);
+        if (p & BUTTON_C && cur == R_RELAY) { settings.relay[0] = 0; draw_value(R_RELAY); }  /* back to AUTO */
 
         bool save = p & BUTTON_START;
         if (p & BUTTON_A) {
@@ -222,7 +234,7 @@ bool setup_run(bool wifi_first)
 #endif
             case R_RELAY:
                 strcpy(buf, settings.relay);
-                kb_edit("RELAY URL (HTTP://HOST:PORT)", buf, RELAY_LEN);
+                kb_edit("RELAY URL (EMPTY = AUTO)", buf, RELAY_LEN);
                 strcpy(settings.relay, buf);
                 draw_all(cur);
                 break;

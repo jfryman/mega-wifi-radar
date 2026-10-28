@@ -10,15 +10,22 @@ cartridge every time the sweep passes north.
 
 == Starting the relay
 
-Any computer that stays on and can run Docker will do, including a Raspberry Pi:
+Any computer on your network that stays on will do, including a Raspberry Pi. The cartridge
+*finds the relay by itself*, because the relay announces itself on your network (mDNS).
 
-#block(fill: ink.black, inset: 2.5mm, width: 100%, text(font: font.pixel, size: 5pt, fill: ink.phosphor,
-  [docker run -d --name mwradar-relay \ #h(4mm) --restart unless-stopped -p 8080:8080 \ #h(4mm)
-  ghcr.io/jfryman/mega-wifi-radar-relay]))
+#table(columns: (auto, 1fr), stroke: none, inset: (x: 1.4mm, y: 1.2mm),
+  fill: (_, y) => if calc.odd(y) { rgb("#f1f1f3") } else { none },
+  text(..cond, weight: "bold")[Linux / Pi],
+  block(fill: ink.black, inset: 1.8mm, width: 100%, text(font: font.pixel, size: 4.6pt, fill: ink.phosphor,
+    [docker run -d --name mwradar-relay \ #h(3mm) --restart unless-stopped --network host \ #h(3mm)
+    ghcr.io/jfryman/mega-wifi-radar-relay])),
+  text(..cond, weight: "bold")[Mac],
+  [From the project's source: *make relay-start*. Your Mac announces the relay for its container.],
+)
 
-The relay's address is *http://* followed by the computer's name or IP address and *:8080*, for
-example *http://radar-pi.home.lan:8080*. Use the full name your router gives the computer, or its IP
-address. Names ending in *.local* won't work.
+If your network blocks these announcements, type the relay's address under *RELAY* in Setup instead:
+*#"http://"* plus the computer's name or IP address plus *:8080*, for example
+*#"http://radar-pi.home.lan:8080"*.
 
 #note[Fair use][Traffic comes from the adsb.fi open data feed, which is free for personal,
 non-commercial use. The panel always credits it. Please keep it that way.]

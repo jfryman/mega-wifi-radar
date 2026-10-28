@@ -26,6 +26,14 @@ struct feed_stats {
 /* Blocking fetch of one frame. On FEED_OK, *hdr points at a validated frame
  * that stays valid until the next feed_fetch(). Records start at feed_rec(i). */
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st);
+
+/* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
+ * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO); feed_fetch() also re-runs
+ * discovery after RELAY_RETRIES failed polls in AUTO, so a relay that moves is found again. */
+bool feed_find_relay(void);
+const char *feed_relay_url(void);       /* "" until found */
+const char *feed_relay_host(void);      /* the same without "http://", for display */
+#define RELAY_RETRIES 3
 const struct ar_rec *feed_rec(const struct ar_hdr *hdr, u16 i);
 const char *feed_err_str(enum feed_err e);
 

@@ -11,8 +11,11 @@ stateDiagram-v2
   GATE --> TAXI: module found
   GATE --> NO_MODULE: detect failed (halts, red)
   TAXI --> HOLD: joining Wi-Fi
-  HOLD --> TAKEOFF: joined + relay set
-  HOLD --> HOLD_POS: join failed / no relay
+  HOLD --> RELAY: joined, RELAY = AUTO (mDNS)
+  HOLD --> TAKEOFF: joined, typed relay
+  RELAY --> TAKEOFF: relay found
+  RELAY --> HOLD_POS: none found
+  HOLD --> HOLD_POS: join failed
   HOLD_POS --> HOLD: setup_run returns (splash restarts at HOLD)
   TAKEOFF --> AIRBORNE: plane off screen
   AIRBORNE --> [*]: fade, radar_up
@@ -25,7 +28,8 @@ stateDiagram-v2
   so its call can be read. START skips the minimums and the rest of the animation.
 - Callsign **MEGA 787**, departing east on **runway 9** (side view, moving right). The ground/tower
   callsign uses the first word of the home airport's name (`NASHVILLE GROUND`).
-- Status line (row 27, dim): firmware version, then IP, so the old boot diagnostics stay visible.
+- Status line (row 26, dim): version + firmware + settings, then `IP a.b.c.d  RELAY host:port`.
+- SP_RELAY (pilot): *Tower, MEGA 787, holding short, request radar service.* The plane stays at the hold line.
 
 ## Scene and layers
 | Layer | Content | Palette |

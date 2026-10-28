@@ -10,12 +10,13 @@ real boot step is a radio call.
 | *Ground, MEGA 787, at gate, radio check* | Looking for the MegaWiFi module |
 | *Taxi runway 9 via Alpha* | Module found, settings loaded: the 787 taxis out |
 | *Hold short runway 9* | Joining your Wi-Fi network |
+| *Request radar service* | RELAY is AUTO: finding the relay over mDNS |
 | *Cleared for takeoff* | Connected: it rolls, climbs out behind the logo, and the radar starts |
-| *Hold position* (red reason) | Wi-Fi failed or no relay set: setup opens, then the 787 resumes at the hold line |
+| *Hold position* (red reason) | Wi-Fi failed or no relay found: setup opens, then the 787 resumes at the hold line |
 | *No reply: MegaWiFi module not found* (red) | The module didn't answer; the 787 stays at the gate |
 
 The tower uses the first word of your home airport's name (*Nashville Ground*). The bottom line shows
-the ROM version, the module firmware, and then the IP address. Press **START** to skip the waits and
+the ROM version and module firmware, then the cart's IP and the relay in use. Press **START** to skip the waits and
 the takeoff. **Hold START while powering on** to go straight to setup.
 
 ```mermaid
@@ -38,7 +39,7 @@ Use up/down to move between rows; each row lists its controls below.
 | TAGS | left/right: ALL / SELECTED / OFF |
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
-| RELAY | A: edit the relay base URL, for example `http://radar-pi.home.lan:8080` |
+| RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
 | SAVE & EXIT | A: write the settings to the ESP32 flash and return |
 | EXIT | A: leave and discard the changes |
 
@@ -48,8 +49,10 @@ Wi-Fi page; if no relay is set, the cursor then starts on RELAY.
 On the keyboard: the D-pad moves, **A** types, **B** deletes, **START** accepts. SPACE / DEL / OK /
 CANCEL are on the bottom row.
 
-**Relay URLs:** use plain `http://`, a fully qualified name or an IP, and the port. The module's
-DNS client ignores your network's search domain, and `.local` (mDNS) names don't resolve.
+**Relay discovery:** with RELAY on AUTO, the cart sends one mDNS query for `_mwradar._tcp` after joining
+Wi-Fi. After three failed polls in a row, it looks again, so a relay that moves to a new IP is found again.
+**Typed URLs:** use plain `http://`, a fully qualified name or an IP, and the port. The module's DNS client
+ignores your network's search domain, and `.local` host names don't resolve (only the discovery query uses mDNS).
 
 ## Radar controls
 

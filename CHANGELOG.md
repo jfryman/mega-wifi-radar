@@ -1,5 +1,20 @@
 ## 0.1.3 (Unreleased)
 
+FEATURES:
+
+  * **relay:** finds itself on the network. The relay advertises `_mwradar._tcp` over mDNS
+    (`-mdns`, on by default), and `scripts/relay start` also registers containerized relays with
+    the host's mDNS (`dns-sd` on macOS, `avahi-publish` on Linux).
+  * **cartridge:** RELAY defaults to **AUTO**. After joining Wi-Fi, the cart finds the relay with one
+    mDNS query, and it looks again after three failed polls. A typed URL still pins a relay, and C
+    in Setup goes back to AUTO. The boot adds a *request radar service* call, and the status line
+    shows the relay in use.
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **cartridge:** an empty RELAY setting now means AUTO (it used to mean "not set"). Saved
+    settings with a typed URL keep using it.
+
 ## 0.1.2 (October 28, 2026)
 
 FEATURES:

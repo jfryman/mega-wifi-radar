@@ -72,6 +72,9 @@ sequenceDiagram
 Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → poll the relay through the feed every ~5 s and
 list the nearest aircraft; see [feed.md](feed.md).
 
+### Relay discovery
+`net_discover(url)`: one mDNS legacy-unicast query on socket channel 1 (UDP reuse mode). See [discovery.md](discovery.md).
+
 ### Dev settings
 The git-ignored `src/dev_config.h` (template: `src/dev_config.h.example`) is included **only** by
 `src/devcfg.c`, which exposes `devcfg_wifi_ssid` / `devcfg_wifi_pass` (NULL = use the module's saved

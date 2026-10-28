@@ -12,6 +12,7 @@
   - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
+  - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
   - [feed.md](net/feed.md) - feed_fetch() interface, relay implementation, spike screen
 - relay/
   - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery

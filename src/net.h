@@ -14,6 +14,8 @@ enum net_err {
     NET_ERR_IP,
     NET_ERR_HTTP,
     NET_ERR_RECV,
+    NET_ERR_UDP,       /* couldn't open/send on the discovery socket */
+    NET_ERR_NOT_FOUND, /* no relay answered the mDNS query */
 };
 
 struct net_module_info {
@@ -58,5 +60,10 @@ void net_current_ssid(char *out);
 
 enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
                           struct net_http_result *res);
+
+/* Find the relay over mDNS (lode/net/discovery.md): one legacy-unicast PTR query for
+ * _mwradar._tcp.local from UDP port 5354, up to 3 tries of ~1 s. On success writes
+ * "http://a.b.c.d:port" into url (>= 24 bytes). Needs a joined network. */
+enum net_err net_discover(char *url);
 
 #endif

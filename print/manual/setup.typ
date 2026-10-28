@@ -3,7 +3,7 @@
 = Setting Up
 
 Press *Start* on the radar to open Setup, or hold *Start* while you turn the power on. Setup
-also opens by itself if the cartridge can't join Wi-Fi or has no relay yet.
+also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 
 #shot("setup", callouts: ((1, 18, 59), (2, 18, 91), (3, 18, 115), (4, 18, 131), (5, 18, 147)))
 #v(1mm)
@@ -12,7 +12,7 @@ also opens by itself if the cartridge can't join Wi-Fi or has no relay yet.
   key(2)[AIRPORT][#sym.arrow.l #sym.arrow.r steps through airports, *C* jumps to the next letter,
     *A* lets you type the four-letter ICAO code (KBNA, KORD, EGLL...).],
   key(3)[WI-FI][*A* scans for networks. Pick yours, then type its password.],
-  key(4)[RELAY][*A* to type the relay's address.],
+  key(4)[RELAY][*AUTO* finds the relay by itself. *A* types an address instead; *C* goes back to AUTO.],
   key(5)[SAVE & EXIT][Stores everything in the cartridge. *EXIT* throws your changes away.],
 )
 

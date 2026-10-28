@@ -10,6 +10,7 @@ enum splash_phase {
     SP_GATE,        /* detecting the module: "radio check" */
     SP_TAXI,        /* module found: taxi to the hold line */
     SP_HOLD,        /* joining Wi-Fi: hold short */
+    SP_RELAY,       /* AUTO: looking for the relay over mDNS ("request radar service") */
     SP_HOLD_POS,    /* join failed / no relay: hold position, detail says why */
     SP_TAKEOFF,     /* joined: cleared for takeoff, rolls and climbs away */
     SP_NO_MODULE,   /* detect failed: red detail, boot stops here */

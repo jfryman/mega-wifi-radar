@@ -7,9 +7,10 @@
     on again. If it keeps happening, its firmware needs updating (rev-c-1250k).]),
   ([HOLD POSITION. WI-FI FAILED], [Wrong password, too far from the router, or a 5 GHz-only network.
     Setup opens so you can fix it.]),
-  ([HOLD POSITION. NO RELAY SET], [Enter the relay's address in Setup, which opens by itself.]),
-  ([ERR HTTP / ERR RECV], [The relay can't be reached. Check that it's running, the address and
-    the port (:8080), and use the full name or the IP address.]),
+  ([HOLD POSITION. NO RELAY FOUND], [No relay answered. Check that it's running on the same
+    network. If your router blocks mDNS, type the relay's address under RELAY in Setup.]),
+  ([ERR HTTP / ERR RECV], [The relay can't be reached. After three misses in a row the cartridge
+    looks for it again (AUTO). With a typed address, check the address and port (:8080).]),
   ([ERR FRAME / ERR SIZE], [Something other than the relay answered at that address, or the relay
     is newer than the cartridge.]),
   ([UPSTRM ERR], [The relay is fine, but the traffic feed isn't answering it. It keeps showing the

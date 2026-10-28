@@ -1,7 +1,7 @@
 # Setup screen (src/setup.c, keyboard.c, ui.c, settings.c)
 
 Opened with **START** on the radar, by **holding START at boot**, or automatically when Wi-Fi
-can't join / no relay is set. Runs with the renderer stopped (SGDK's normal VBlank loop).
+can't join or no relay is found. The cursor starts on RELAY when the relay is AUTO and none was found. Runs with the renderer stopped (SGDK's normal VBlank loop).
 
 | Row | Control |
 |---|---|
@@ -10,7 +10,7 @@ can't join / no relay is set. Runs with the renderer stopped (SGDK's normal VBla
 | TAGS | L/R: ALL / SELECTED / OFF |
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
 | WI-FI | A: scan (`net_scan`), pick, keyboard password, `net_connect` (slot 0, DHCP, saved) |
-| RELAY | A: keyboard edit of the base URL (`http://host:port`) |
+| RELAY | `AUTO <found host>` or `AUTO (MDNS)` when empty (mDNS, [../net/discovery.md](../net/discovery.md)); A: keyboard edit (empty = AUTO); C: back to AUTO |
 | SAVE & EXIT / EXIT | START = save |
 
 - Keyboard: 7 rows of 13 chars + SPACE/DEL/OK/CANCEL; A type, B delete, START OK.

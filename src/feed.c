@@ -9,7 +9,7 @@ const char *feed_err_str(enum feed_err e)
 {
     switch (e) {
     case FEED_OK:         return "OK";
-    case FEED_ERR_CONFIG: return "NO RELAY";
+    case FEED_ERR_CONFIG: return "NO RELAY";   /* AUTO found none */
     case FEED_ERR_HTTP:   return "ERR HTTP";
     case FEED_ERR_RECV:   return "ERR RECV";
     case FEED_ERR_SIZE:   return "ERR SIZE";

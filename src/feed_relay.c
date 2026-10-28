@@ -29,15 +29,37 @@ static void collect_chunk(const u8 *data, u16 len, void *ctx)
     c->len += len;
 }
 
+static char relay_url[RELAY_LEN + 1];   /* base URL in use: typed, or found over mDNS */
+static u16 failures;
+
+bool feed_find_relay(void)
+{
+    failures = 0;
+    if (settings.relay[0]) {
+        strcpy(relay_url, settings.relay);
+        return TRUE;
+    }
+    if (net_discover(relay_url) == NET_OK) return TRUE;
+    relay_url[0] = 0;
+    return FALSE;
+}
+
+const char *feed_relay_url(void) { return relay_url; }
+
+const char *feed_relay_host(void)
+{
+    return memcmp(relay_url, "http://", 7) ? relay_url : relay_url + 7;   /* buffer is RELAY_LEN + 1 */
+}
+
 static bool build_url(char *url, u16 size)
 {
     char lat[12], lon[12];
 
-    if (!settings.relay[0]) return FALSE;
+    if (!relay_url[0] && !feed_find_relay()) return FALSE;
     fmt_deg_e4(lat, settings.lat_e4);
     fmt_deg_e4(lon, settings.lon_e4);
     /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96" (<= 56) */
-    sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", settings.relay,
+    sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", relay_url,
             lat, lon, settings_range_nm(), AR_MAX_RECS);
     return TRUE;
 }
@@ -64,8 +86,12 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     st->bytes = c.len;
     st->chunks = res.chunks;
     st->frames = res.frames;
-    if (e == NET_ERR_RECV) return FEED_ERR_RECV;
-    if (e != NET_OK || res.status != 200) return FEED_ERR_HTTP;
+    if (e != NET_OK || res.status != 200) {
+        /* AUTO: the relay may have moved (new DHCP lease, restarted elsewhere): find it again */
+        if (!settings.relay[0] && ++failures >= RELAY_RETRIES) feed_find_relay();
+        return e == NET_ERR_RECV ? FEED_ERR_RECV : FEED_ERR_HTTP;
+    }
+    failures = 0;
     if (c.overflow) return FEED_ERR_SIZE;
     if (!valid((const struct ar_hdr *)frame_buf, c.len)) return FEED_ERR_FORMAT;
     *hdr = (const struct ar_hdr *)frame_buf;

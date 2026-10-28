@@ -192,3 +192,86 @@ enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
     if (e != NET_OK) mw_http_cleanup();
     return e;
 }
+
+/* ------------------------------------------------------------ relay discovery (mDNS) */
+
+#define DISC_CH         1               /* LSD socket channel 1 (HTTP uses MW_HTTP_CH) */
+#define DISC_PORT       "5354"          /* not 5353: makes it a legacy unicast query */
+#define DISC_ID         0x4D57          /* "MW" */
+#define DISC_TRIES      3
+#define DISC_TOUT       MW_MS_TO_FRAMES(1000)
+#define DNS_SRV         33
+#define DNS_A           1
+
+/* query: header + PTR _mwradar._tcp.local IN, after the 6-byte reuse-mode address prefix */
+static const u8 disc_query[] = {
+    224, 0, 0, 251, 0x14, 0xE9,                         /* to 224.0.0.251:5353 */
+    DISC_ID >> 8, DISC_ID & 0xFF, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    8, '_', 'm', 'w', 'r', 'a', 'd', 'a', 'r', 4, '_', 't', 'c', 'p', 5, 'l', 'o', 'c', 'a', 'l', 0,
+    0, 12, 0, 1,                                        /* PTR, IN (QM) */
+};
+
+static inline u16 be16(const u8 *p) { return p[0] << 8 | p[1]; }
+
+/* Skip a (possibly compressed) name; returns the offset after it, or 0 if malformed. */
+static u16 skip_name(const u8 *m, u16 len, u16 off)
+{
+    while (off < len) {
+        u8 l = m[off];
+        if (!l) return off + 1;
+        if ((l & 0xC0) == 0xC0) return off + 2 <= len ? off + 2 : 0;
+        off += 1 + l;
+    }
+    return 0;
+}
+
+/* Parse a reply: first SRV gives the port, first A the address. */
+static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port)
+{
+    bool have_ip = FALSE;
+
+    *port = 0;
+    if (len < 12 || be16(m) != DISC_ID || !(m[2] & 0x80)) return FALSE;
+    u16 nq = be16(m + 4), nrr = be16(m + 6) + be16(m + 8) + be16(m + 10);
+    u16 off = 12;
+    while (nq--) {
+        if (!(off = skip_name(m, len, off)) || (off += 4) > len) return FALSE;
+    }
+    while (nrr--) {
+        if (!(off = skip_name(m, len, off)) || off + 10 > len) return FALSE;
+        u16 type = be16(m + off), rdlen = be16(m + off + 8);
+        off += 10;
+        if (off + rdlen > len) return FALSE;
+        if (type == DNS_SRV && rdlen >= 6 && !*port) *port = be16(m + off + 4);
+        if (type == DNS_A && rdlen == 4 && !have_ip) { memcpy(ip, m + off, 4); have_ip = TRUE; }
+        off += rdlen;
+    }
+    return *port != 0 && (have_ip || ip[0]);
+}
+
+enum net_err net_discover(char *url)
+{
+    enum net_err e = NET_ERR_NOT_FOUND;
+    u8 ip[4];
+    u16 port = 0;
+
+    if (mw_udp_set(DISC_CH, NULL, NULL, DISC_PORT) != MW_ERR_NONE) return NET_ERR_UDP;
+    for (u16 t = 0; t < DISC_TRIES && e != NET_OK; t++) {
+        if (mw_send_sync(DISC_CH, (const char *)disc_query, sizeof(disc_query), DISC_TOUT) != MW_ERR_NONE) {
+            e = NET_ERR_UDP;
+            break;
+        }
+        for (;;) {                          /* replies until one is ours or the wait times out */
+            u8 ch = DISC_CH;
+            s16 len = MW_BUFLEN;
+            if (mw_recv_sync(&ch, (char *)cmd_buf, &len, DISC_TOUT) != MW_ERR_NONE) break;
+            if (ch != DISC_CH || len <= 6) continue;
+            const u8 *p = (const u8 *)cmd_buf;
+            memcpy(ip, p, 4);               /* sender: used if the reply has no A record */
+            if (parse_reply(p + 6, len - 6, ip, &port)) { e = NET_OK; break; }
+        }
+    }
+    mw_close(DISC_CH);
+    if (e == NET_OK) sprintf(url, "http://%u.%u.%u.%u:%u", ip[0], ip[1], ip[2], ip[3], port);
+    return e;
+}

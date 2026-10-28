@@ -25,7 +25,8 @@
 #align(center, shot("boot-takeoff", width: 88%))
 #v(1mm)
 Each radio call is a real step: *radio check* (finding the Wi-Fi module), *taxi* (settings
-loaded), *hold short* (joining Wi-Fi), *cleared for takeoff* (connected). Press *Start* to skip ahead.
+loaded), *hold short* (joining Wi-Fi), *request radar service* (finding the relay), *cleared for
+takeoff* (connected). Press *Start* to skip ahead.
 
 #grid(columns: (26mm, 1fr), column-gutter: 5mm,
   cartridge(24mm, art: (w, h) => {
@@ -35,9 +36,9 @@ loaded), *hold short* (joining Wi-Fi), *cleared for takeoff* (connected). Press 
   [
     == The first time
 
-    A new cartridge doesn't know your Wi-Fi network or where to get its traffic, so the tower
-    says *hold position* and the *Setup* screen opens by itself. Choose your network, enter the
-    password, type in your relay's address and pick your home airport. See _Setting Up_.
+    A new cartridge doesn't know your Wi-Fi network yet, so the tower says *hold position* and
+    the *Setup* screen opens by itself. Choose your network, enter the password and pick your home
+    airport. The relay is found automatically. See _Setting Up_.
 
     == If nothing appears
 

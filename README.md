@@ -33,18 +33,21 @@ once per sweep.
 ## Quick start
 
 1. **Flash the ESP32 firmware** (new or blank modules only). Connect the cart's USB-C and run `make esp-flash`.
-2. **Run the relay** on a machine on your LAN:
-   ```sh
-   docker run -d --name mwradar-relay --restart unless-stopped -p 8080:8080 \
-       ghcr.io/jfryman/mega-wifi-radar-relay:latest
-   ```
+2. **Run the relay** on a machine on your LAN. It announces itself over mDNS, so the cart finds it on its own.
+   - **Linux / Raspberry Pi:**
+     ```sh
+     docker run -d --name mwradar-relay --restart unless-stopped --network host \
+         ghcr.io/jfryman/mega-wifi-radar-relay:latest
+     ```
+   - **macOS:** from a clone, `make relay-start`. Docker Desktop's VM can't announce on your LAN, so your
+     Mac announces the container for it. Or run it natively: `cd relay && go run .`
+     (allow "Local Network" access when macOS asks).
 3. **Flash the ROM.** Download `mega-wifi-radar-<version>.bin` from
    [Releases](https://github.com/jfryman/mega-wifi-radar/releases) and write it with your
    flasher (`flashkit-md write-rom mega-wifi-radar-<version>.bin`).
-4. **First boot.** With no Wi-Fi or relay configured, the ROM opens the setup screen. Pick
-   your network, type the password, set **RELAY** to `http://<relay-host>:8080` (use the full
-   DNS name or an IP address), choose your **AIRPORT**, then **SAVE & EXIT**. Settings are stored
-   in the ESP32's flash and survive power cycles.
+4. **First boot.** With no Wi-Fi configured, the ROM opens the setup screen. Pick your network,
+   type the password, choose your **AIRPORT**, then **SAVE & EXIT**. **RELAY** stays on **AUTO**,
+   and the cart finds the relay at every boot. Settings are stored in the ESP32's flash and survive power cycles.
 
 See [docs/usage.md](docs/usage.md) for controls and settings.
 

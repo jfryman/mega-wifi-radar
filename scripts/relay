@@ -3,7 +3,12 @@
 #   scripts/relay build        # build mwradar-relay:latest (runs go vet + tests)
 #   scripts/relay run          # run in the foreground on port ${RELAY_PORT:-8080}
 #   scripts/relay start|stop|logs   # detached container named mwradar-relay
+#   scripts/relay advertise    # (re-)register the mDNS advertisement only, e.g. after a reboot
 # Extra args after run/start go to the relay, e.g. scripts/relay run -min-interval 2s
+#
+# Discovery (lode/net/discovery.md): a bridged or VM container never sees LAN multicast, so the
+# container runs with -mdns=false and the HOST advertises _mwradar._tcp for it: dns-sd -P on
+# macOS, avahi-publish on Linux. Set RELAY_MDNS=0 to skip that.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -12,16 +17,53 @@ CTR=${CTR:-$(command -v podman || command -v docker || true)}
 IMAGE=mwradar-relay:latest
 NAME=mwradar-relay
 PORT=${RELAY_PORT:-8080}
+PIDFILE="$ROOT/.tools/relay-mdns.pid"
+
+unadvertise() {
+    if [ -f "$PIDFILE" ]; then
+        kill "$(cat "$PIDFILE")" 2>/dev/null || true
+        rm -f "$PIDFILE"
+    fi
+}
+
+# Register "MegaWiFi Radar" _mwradar._tcp on $PORT with the host's mDNS daemon (background).
+advertise() {
+    [ "${RELAY_MDNS:-1}" = 0 ] && return 0
+    unadvertise
+    mkdir -p "$ROOT/.tools"
+    if command -v dns-sd >/dev/null 2>&1; then          # macOS: proxy record for this Mac's LAN IP
+        iface=$(route -n get default 2>/dev/null | awk '/interface:/ {print $2}')
+        ip=$(ipconfig getifaddr "${iface:-en0}" 2>/dev/null || true)
+        [ -n "$ip" ] || { echo "relay: no LAN IP found; mDNS advertisement skipped" >&2; return 0; }
+        nohup dns-sd -P "MegaWiFi Radar" _mwradar._tcp local "$PORT" mwradar-relay.local "$ip" \
+            v=1 path=/v1/frame >/dev/null 2>&1 &
+        echo $! > "$PIDFILE"
+        echo "relay: advertising _mwradar._tcp at $ip:$PORT (dns-sd, pid $(cat "$PIDFILE"))"
+    elif command -v avahi-publish >/dev/null 2>&1; then  # Linux: avahi uses the host's addresses
+        nohup avahi-publish -s "MegaWiFi Radar" _mwradar._tcp "$PORT" v=1 path=/v1/frame >/dev/null 2>&1 &
+        echo $! > "$PIDFILE"
+        echo "relay: advertising _mwradar._tcp on port $PORT (avahi-publish, pid $(cat "$PIDFILE"))"
+    else
+        echo "relay: no dns-sd or avahi-publish; cartridges must use a typed relay URL" >&2
+    fi
+}
+
+need_image() { "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build; }
 
 cmd=${1:-run}; [ $# -gt 0 ] && shift
 case "$cmd" in
     build) exec "$CTR" build -t "$IMAGE" "$ROOT/relay" ;;
-    run)   "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build
-           exec "$CTR" run --rm -it --init -p "$PORT:8080" "$IMAGE" -listen :8080 "$@" ;;
-    start) "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build
-           exec "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" \
-               "$IMAGE" -listen :8080 "$@" ;;
-    stop)  "$CTR" rm -f "$NAME" ;;
+    run)   need_image
+           advertise
+           trap unadvertise EXIT INT TERM
+           "$CTR" run --rm -it --init -p "$PORT:8080" "$IMAGE" -listen :8080 -mdns=false "$@" ;;
+    start) need_image
+           "$CTR" rm -f "$NAME" >/dev/null 2>&1 || true
+           "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" \
+               "$IMAGE" -listen :8080 -mdns=false "$@"
+           advertise ;;
+    stop)  unadvertise; "$CTR" rm -f "$NAME" ;;
+    advertise) advertise ;;
     logs)  exec "$CTR" logs -f "$NAME" ;;
-    *)     echo "usage: scripts/relay build|run|start|stop|logs [relay args]" >&2; exit 2 ;;
+    *)     echo "usage: scripts/relay build|run|start|stop|advertise|logs [relay args]" >&2; exit 2 ;;
 esac

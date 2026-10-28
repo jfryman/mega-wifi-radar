@@ -100,6 +100,10 @@ static void script(u16 p, const char *detail)
         say(0, PAL_ATC, "MEGA 787, HOLD SHORT RUNWAY 9,", NULL);
         say(1, PAL_ATC, "CONTACT TOWER 118.7.", NULL);
         break;
+    case SP_RELAY:
+        say(0, PAL_PILOT, "TOWER, MEGA 787, HOLDING SHORT,", NULL);
+        say(1, PAL_PILOT, "REQUEST RADAR SERVICE.", NULL);
+        break;
     case SP_HOLD_POS:
         say(0, PAL_ATC, "MEGA 787, HOLD POSITION.", NULL);
         say(1, PAL_RED, detail, NULL);
@@ -151,6 +155,7 @@ static void move(void)
         break;
     case SP_TAXI:
     case SP_HOLD:
+    case SP_RELAY:
         vx = px < HOLD_X ? 128 : 0;
         if (px > HOLD_X) px = HOLD_X;
         break;

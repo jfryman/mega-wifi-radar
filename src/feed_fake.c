@@ -23,4 +23,8 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     *hdr = h;
     return FEED_OK;
 }
+bool feed_find_relay(void) { return TRUE; }
+const char *feed_relay_url(void) { return ""; }
+const char *feed_relay_host(void) { return ""; }
+
 #endif

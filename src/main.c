@@ -50,8 +50,12 @@ static void boot_network(void)
     for (;;) {
         if (!setup) {
             splash_phase(SP_HOLD, NULL);
-            if (net_join(ip) == NET_OK && settings.relay[0]) break;
-            splash_phase(SP_HOLD_POS, settings.relay[0] ? "WI-FI FAILED: OPENING SETUP" : "NO RELAY SET: OPENING SETUP");
+            bool joined = net_join(ip) == NET_OK;
+            if (joined) {
+                if (!settings.relay[0]) splash_phase(SP_RELAY, NULL);   /* AUTO: mDNS */
+                if (feed_find_relay()) break;
+            }
+            splash_phase(SP_HOLD_POS, !joined ? "WI-FI FAILED: OPENING SETUP" : "NO RELAY FOUND: OPENING SETUP");
             wait_frames(120);
         }
         splash_stop();
@@ -59,8 +63,9 @@ static void boot_network(void)
         setup = FALSE;
         splash_start(SP_HOLD);
     }
-    sprintf(buf, "%s  FW %u.%u  IP %u.%u.%u.%u", app_version, mod.major, mod.minor, ip[0], ip[1], ip[2], ip[3]);
+    sprintf(buf, "IP %u.%u.%u.%u  RELAY %s", ip[0], ip[1], ip[2], ip[3], feed_relay_host());
     splash_status(buf);
+
     splash_phase(SP_TAKEOFF, NULL);
     splash_finish();
 }
