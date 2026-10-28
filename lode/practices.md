@@ -9,6 +9,9 @@
 - Develop rendering in emulators against the **fake source**. Test networking only on the real cart.
 - Every user-visible change adds a bullet under `## X.Y.Z (Unreleased)` in `CHANGELOG.md`, in the same commit
   (format: [build/ci-release.md](build/ci-release.md)).
+- A change to what the player sees or does also updates its manual section in `print/manual/` and, if the
+  screen changed, `print/shots.txt` + `make print-shots`, in the same commit ([print/print-assets.md](print/print-assets.md)).
+- Printed pieces copy Sega's 1989 *style*, never its marks: no SEGA logo, Genesis wordmark or seal.
 
 ## Hard rules for 68k code
 - No floats. Use `fix16`/`fix32` and lookup tables. Do geographic projection off-console.

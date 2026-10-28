@@ -50,6 +50,8 @@ flowchart LR
 | `esp-flash` | Write the `rev-c-1250k` firmware to the cart's ESP32 |
 | `image` | Just make sure the build image exists |
 | `relay-image`, `relay-run`, `relay-start`, `relay-stop` | The relay container |
+| `print` | Label, cover and manual PDFs in `out/print/` ([print.md](print.md)) |
+| `print-shots` | Recapture the manual's screenshots in MAME |
 | `clean` | |
 
 The boot screen shows the version from `git describe --tags --always --dirty`. `make` writes it to the
@@ -87,8 +89,9 @@ cd tools && go vet ./...
 2. **relay**: `go vet`/`go test` for `relay/` and `tools/`, then a multi-arch image
    (amd64 + arm64) that is pushed to `ghcr.io/jfryman/mega-wifi-radar-relay` on `main` (`:edge`) and on tags
    (`:<version>`, `:latest`).
-3. **release** (tags `v*` only): creates a GitHub release with
-   `mega-wifi-radar-<tag>.bin`, `mega-wifi-radar-<tag>-emu.bin` and `SHA256SUMS`.
+3. **print**: builds the label, cover and manual PDFs.
+4. **release** (tags `v*` only): creates a GitHub release with the ROMs, the print PDFs and
+   `SHA256SUMS`, with notes taken from `CHANGELOG.md`.
 
 To cut a release:
 ```sh

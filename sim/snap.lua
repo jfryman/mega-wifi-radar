@@ -19,11 +19,17 @@ local function find_field(name)
 end
 emu.register_frame_done(function()
   local t = now()
+  -- A field can be pressed several times: it's held if any of its presses is active.
+  -- (keyed by name: each lookup returns a new wrapper object for the same field).
+  local held, field = {}, {}
   for _, p in ipairs(presses) do
-    local f = p.f or find_field(p.field)
-    p.f = f
-    if f then f:set_value((t >= p.t and t < p.t + 0.2) and 1 or 0) end
+    p.f = p.f or find_field(p.field)
+    if p.f then
+      field[p.field] = p.f
+      held[p.field] = held[p.field] or (t >= p.t and t < p.t + 0.2)
+    end
   end
+  for name, on in pairs(held) do field[name]:set_value(on and 1 or 0) end
   if snap_at[idx] and t >= snap_at[idx] then
     manager.machine.video:snapshot()
     idx = idx + 1

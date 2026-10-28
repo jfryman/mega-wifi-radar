@@ -16,6 +16,8 @@ from the relay, plus a setup screen (Wi-Fi, home airport, relay, saved to ESP32 
 ([architecture/frame-format.md](architecture/frame-format.md)); see [plans/roadmap.md](plans/roadmap.md).
 The project is public at github.com/jfryman/mega-wifi-radar (MIT). CI builds the cart and emulator ROMs and a multi-arch
 relay image, and publishes releases on `v*` tags ([build/ci-release.md](build/ci-release.md)).
+Printed extras (cartridge label, clamshell cover, manual) are generated with Typst from shared art and copy
+([print/print-assets.md](print/print-assets.md)).
 
 ```mermaid
 flowchart LR

@@ -20,6 +20,9 @@
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
   - [radar-renderer.md](ui/radar-renderer.md) - V-Int renderer, shared state, measured costs, perf lessons
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence, airports
+- print/
+  - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
+  - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/

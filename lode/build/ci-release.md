@@ -17,6 +17,7 @@ flowchart LR
   end
   D --> R[job release on v*: gh release create]
   X --> R
+  PR[job print: scripts/print<br/>label, cover, manual, booklets] --> R
 ```
 
 ## Contracts
@@ -31,6 +32,8 @@ flowchart LR
 - **Version:** `make` writes `#define APP_VERSION "<git describe --tags --always --dirty>"` to the git-ignored
   `src/version.h` (only rewritten when it changes). It's included only by `devcfg.c` (always rebuilt), and the
   boot screen shows `app_version` at column 17. `VERSION=` overrides it; the checkout needs `fetch-depth: 0`.
+- **Release assets:** `mega-wifi-radar-<v>.bin`, `-emu.bin`, `-label.pdf`, `-cover.pdf`, `-manual.pdf`,
+  `-manual-booklet-letter.pdf`, `-manual-booklet-a4.pdf`, and `SHA256SUMS` covering all of them.
 - Order matters: `make sim` wipes `out/release` and `out/rom.bin`, so CI runs it **before** `make release`.
 - **GHCR visibility:** both packages are public; anonymous pulls work (checked with a token-less
   `ghcr.io/token` request). The first CI run took ~11 min (it built gcc); runs that hit the cache skip that build.

@@ -29,3 +29,9 @@
 - Config screen - planned start-up screen for Wi-Fi and home-airport selection; dev builds skip it via `dev_config.h`.
 - Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
 - H40 - the 320×224 VDP display mode.
+- Trim - the finished size of a printed piece after cutting (`print/dims.toml`).
+- Bleed - the 3 mm of art beyond the trim on every edge, so a slightly-off cut shows no white.
+- Slug - the 9 mm margin outside the bleed that carries the crop marks (dropped with `marks=false`).
+- Imposition - arranging manual pages onto sheets so that, printed duplex and folded, they read in order (`booklet.typ`).
+- Key art - the hero illustration shared by label, cover and manual: the vector scope from `keyart.typ`.
+- Black grid - the fine grey-on-black grid of 1989 US Genesis boxes, our cover background (`grid-tiling`).

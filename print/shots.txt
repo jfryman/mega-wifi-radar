@@ -1,0 +1,7 @@
+# Manual screenshots from the emulator build (make print-shots; needs the MAME image, see scripts/sim).
+# name | snapshot time (emulated s) | presses "t:FIELD,..." (MAME names: P1 A/B/C, P1 Start, P1 Up...)
+radar    | 9  | 7:P1 C
+setup    | 8  | 6:P1 Start
+stars    | 12 | 6:P1 Start,7:P1 Right,8:P1 Start
+zoom     | 9  | 6:P1 A,7:P1 A
+keyboard | 10 | 6:P1 Start,7:P1 Down,7.5:P1 Down,8:P1 Down,8.5:P1 Down,9:P1 Down,9.5:P1 A

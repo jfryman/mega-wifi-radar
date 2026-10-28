@@ -1,0 +1,13 @@
+#!/bin/sh
+# Capture the manual's screenshots (print/shots.txt) from the emulator build in headless MAME.
+# Writes print/shots/<name>.png (committed: CI has no MAME). Needs `make sim` first.
+set -eu
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+cd "$ROOT"
+[ -f out/sim.bin ] || { echo "print-shots: run make sim first" >&2; exit 1; }
+grep -vE '^\s*(#|$)' print/shots.txt | while IFS='|' read -r name at presses; do
+    name=$(echo "$name" | xargs); at=$(echo "$at" | xargs); presses=$(echo "$presses" | xargs)
+    SIM_PRESS="$presses" scripts/sim out/sim.bin "$at" >/dev/null
+    cp out/snap/genesis/0000.png "print/shots/$name.png"
+    echo "print-shots: print/shots/$name.png"
+done

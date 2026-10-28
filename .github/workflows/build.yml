@@ -114,9 +114,33 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # version on the manual's back cover
+
+      - name: Build label, cover and manual
+        run: |
+          scripts/print
+          V=$(git describe --tags --always)
+          mkdir dist
+          for f in label cover manual; do
+            cp "out/print/$f.pdf" "dist/mega-wifi-radar-$V-$f.pdf"
+          done
+          cp out/print/manual-booklet-us-letter.pdf "dist/mega-wifi-radar-$V-manual-booklet-letter.pdf"
+          cp out/print/manual-booklet-a4.pdf "dist/mega-wifi-radar-$V-manual-booklet-a4.pdf"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: print
+          path: dist/
+          if-no-files-found: error
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [rom, relay]
+    needs: [rom, relay, print]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -126,6 +150,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: roms
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: print
           path: dist
 
       - name: Release notes from CHANGELOG.md
@@ -139,5 +168,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          (cd dist && sha256sum *.bin *.pdf > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --notes-file notes.md

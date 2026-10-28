@@ -1,0 +1,13 @@
+# Fixed copy shared by the label, cover and manual. Feature text lives in print/manual/*.typ.
+
+pretitle = "MEGA WIFI"
+title = "RADAR"
+subtitle = "LIVE AIR TRAFFIC SCOPE"
+system = "16-BIT WI-FI CARTRIDGE"
+platform = "FOR USE WITH SEGA GENESIS AND MEGA DRIVE SYSTEMS"
+requires = "MEGAWIFI REV.C CARTRIDGE AND A NETWORK RELAY REQUIRED"
+badge = ["LIVE", "ADS-B", "DATA"]
+tagline = "Real aircraft. Real time. On your Genesis."
+home = "KBNA"
+url = "github.com/jfryman/mega-wifi-radar"
+disclaimer = "Not for navigation. Sega, Genesis and Mega Drive are trademarks of Sega Corporation. This is an unofficial homebrew product, not made, licensed or endorsed by Sega."

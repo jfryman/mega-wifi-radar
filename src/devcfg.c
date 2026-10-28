@@ -13,7 +13,8 @@
 #endif
 const char *const app_version = APP_VERSION;
 
-#if __has_include("dev_config.h")
+/* Emulator builds never read it: their screenshots go into the manual. */
+#if __has_include("dev_config.h") && !defined(FAKE_FEED)
 #include "dev_config.h"
 #endif
 

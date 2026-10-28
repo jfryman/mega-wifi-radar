@@ -1,0 +1,52 @@
+#!/bin/sh
+# Build the printed pieces (print/*.typ) with Typst in its official image, pinned by digest.
+#   scripts/print                 # all pieces -> out/print/*.pdf + previews out/print/*.png
+#   scripts/print cover           # one piece (label, cover, manual)
+#   scripts/print watch cover     # rebuild on change (marks off)
+# Fonts come only from print/fonts (--ignore-system-fonts), so output matches on every machine.
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+[ -n "$CTR" ] || { echo "print: need podman or docker on PATH" >&2; exit 1; }
+IMAGE=ghcr.io/typst/typst:0.15.1@sha256:032e292249bcd378480cc7c142cfa324b63ef8aadeb88d7e7230320c4c9c422f
+VERSION=${VERSION:-$(cd "$ROOT" && git describe --tags --always --dirty 2>/dev/null || echo dev)}
+OUT=out/print
+mkdir -p "$ROOT/$OUT"
+
+case "$(basename "$CTR")" in
+    podman) USEROPT="--userns=keep-id" ;;
+    *)      USEROPT="--user $(id -u):$(id -g)" ;;
+esac
+
+typst() {
+    # shellcheck disable=SC2086
+    "$CTR" run --rm $USEROPT -v "$ROOT:/work" -w /work "$IMAGE" "$@" \
+        --root /work --font-path /work/print/fonts --ignore-system-fonts \
+        --input "version=$VERSION"
+}
+
+piece() {   # piece <name>
+    rm -f "$ROOT/$OUT/$1"-*.png
+    typst compile "print/$1.typ" "$OUT/$1.pdf"
+    typst compile "print/$1.typ" "$OUT/$1-trim.pdf" --input marks=false
+    typst compile "print/$1.typ" "$OUT/$1-{p}.png" --input marks=false --ppi 150
+    echo "print: $OUT/$1.pdf"
+}
+
+booklet() {  # imposes manual-trim.pdf (needs it first); its page count = the PNG previews
+    pages=$(ls "$ROOT/$OUT"/manual-*.png | grep -c '/manual-[0-9]*\.png$')
+    for paper in us-letter a4; do
+        typst compile print/booklet.typ "$OUT/manual-booklet-$paper.pdf" --input "paper=$paper" \
+            --input "pages=$pages"
+        echo "print: $OUT/manual-booklet-$paper.pdf"
+    done
+}
+
+case "${1:-all}" in
+    all)     for p in label cover manual; do piece "$p"; done; booklet ;;
+    label|cover) piece "$1" ;;
+    manual)  piece manual; booklet ;;
+    watch)   typst watch "print/${2:?piece}.typ" "$OUT/${2}.pdf" --input marks=false ;;
+    *)       echo "usage: scripts/print [all|label|cover|manual|watch <piece>]" >&2; exit 2 ;;
+esac

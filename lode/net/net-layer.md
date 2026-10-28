@@ -78,7 +78,7 @@ The git-ignored `src/dev_config.h` (template: `src/dev_config.h.example`) is inc
 AP) and `devcfg_relay_url` (relay base URL, NULL = not configured). The host `make` deletes `devcfg.o` before every build.
 
 ```c
-#if __has_include("dev_config.h")   /* SGDK's .d files never list a header that was absent */
+#if __has_include("dev_config.h") && !defined(FAKE_FEED)  /* SGDK's .d files never list a */
 #include "dev_config.h"             /* at the last build, so creating it later wouldn't    */
 #endif                              /* trigger a rebuild. Hence the forced devcfg.o rebuild. */
 ```
@@ -89,6 +89,8 @@ query (`lat=…&lon=…&range=…`) is built from. `main.c`'s `fmt_deg_e4()` pri
 
 Lesson: any `__has_include`d optional file must sit behind a forced-rebuild object like this.
 Wi-Fi credentials end up in `out/rom.bin`. `out/` is git-ignored; don't share dev ROMs.
+The **emulator build (`FAKE_FEED`) never includes it**: its screenshots go into the manual, and a dev relay
+hostname once showed up on the setup screen. `devcfg.c` also includes the generated `version.h` the same way.
 
 `src/rom_header.c` overrides SGDK's: system `"SEGA MEGAWIFI   "` and **no SRAM** (SGDK's default
 declares SRAM at `$200000`, which is ROM on Rev.C).

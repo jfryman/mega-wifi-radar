@@ -54,6 +54,7 @@ See [docs/usage.md](docs/usage.md) for controls and settings.
 | [docs/hardware.md](docs/hardware.md) | The Rev.C board, firmware, flashing both chips |
 | [docs/usage.md](docs/usage.md) | Boot, setup screen, controls, themes, what's on screen |
 | [docs/relay.md](docs/relay.md) | Running and configuring the relay; its HTTP API |
+| [docs/print.md](docs/print.md) | Cartridge label, box cover and manual: building and printing them |
 | [docs/building.md](docs/building.md) | Building the ROM and relay from source, emulator builds, CI |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [lode/](lode/lode-map.md) | Design notes in depth: frame format, renderer, timing budget, lessons learned |
@@ -65,6 +66,8 @@ Each [release](https://github.com/jfryman/mega-wifi-radar/releases) contains:
 - `mega-wifi-radar-<version>.bin` is the cart ROM. It contains no credentials; you configure it on the console.
 - `mega-wifi-radar-<version>-emu.bin` is an emulator build that replays a recorded feed around KBNA, so
   it needs no MegaWiFi hardware. It runs in MAME, BlastEm and others.
+- `mega-wifi-radar-<version>-label.pdf`, `-cover.pdf`, `-manual.pdf` and `-manual-booklet-letter.pdf` / `-a4.pdf`
+  are the printable cartridge label, clamshell cover and manual (see [docs/print.md](docs/print.md)).
 - `SHA256SUMS`
 
 The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64).

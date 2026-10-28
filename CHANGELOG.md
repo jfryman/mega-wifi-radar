@@ -1,5 +1,18 @@
 ## 0.1.1 (Unreleased)
 
+FEATURES:
+
+  * **print:** a printable cartridge label, clamshell front cover and 16-page instruction manual in
+    the early-Genesis style, built from shared art and copy (`make print`, `docs/print.md`). The key
+    art is generated from recorded traffic. The manual comes as single pages plus imposed Letter and A4
+    booklets, and releases attach all of them.
+
+IMPROVEMENTS:
+
+  * **sim:** the emulator build never includes `src/dev_config.h`, so its screenshots can't show
+    local network details.
+  * **sim:** several presses of the same button in one `SIM_PRESS` list now all register.
+
 ## 0.1.0 (October 28, 2026)
 
 Initial release.

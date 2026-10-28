@@ -1,0 +1,18 @@
+# Physical sizes in mm: the only place they're defined. Original Sega US clamshell + stock shell.
+# Taken from published 300 dpi templates and listings, NOT yet checked against a real case:
+# print once at 100% (no "fit to page") and measure against yours before cutting.
+
+bleed = 3.0          # extra art beyond the trim line on every edge
+slug = 9.0           # margin outside the bleed that carries the crop marks
+
+[label]              # front label on the cartridge shell
+width = 80.5
+height = 77.0
+
+[cover]              # front panel of the clamshell sleeve insert (1536 x 2100 px @ 300 dpi)
+width = 130.0
+height = 178.0
+
+[manual]             # instruction booklet, one page (trim size)
+width = 121.0
+height = 171.0
