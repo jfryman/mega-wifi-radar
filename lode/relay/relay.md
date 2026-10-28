@@ -22,8 +22,23 @@ flowchart LR
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
 - `GET /healthz` → `ok`.
-- Run it: `cd relay && go run . -listen :8080`. The console URL is
+- See "Running it" below. The console URL is
   `http://<relay-host-fqdn>:8080/v1/frame` (DHCP-registered DNS; see "Discovery" below).
+
+## Running it
+| How | Command |
+|---|---|
+| native | `cd relay && go run . -listen :8080` |
+| container, foreground | `make relay-run` (= `scripts/relay run [relay args]`) |
+| container, background | `make relay-start` / `scripts/relay logs` / `make relay-stop` |
+
+`relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` runs `go vet` and `go test` and builds a static
+binary (CGO off). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
+the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker
+(override with `CTR=`), publishes `${RELAY_PORT:-8080}`, and names the detached container `mwradar-relay`
+(`--restart unless-stopped`).
+On Docker Desktop (macOS) the request log shows the NAT address `192.168.65.1`, not the console's IP;
+on Linux you see the real client.
 
 ## Conversion (adsb.fi `ac[]` → record)
 | Field | Rule |

@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash
+.PHONY: all release debug clean image flash esp-flash relay-image relay-run relay-start relay-stop
 
 all: release
 
@@ -30,3 +30,16 @@ flash: release
 # ESP32-C3 on the cart (USB-C): mw-fw-rtos rev-c-1250k (keeps mw_cfg/user_data).
 esp-flash:
 	scripts/esp-flash
+
+# Relay container (relay/Dockerfile): build runs go vet + tests.
+relay-image:
+	scripts/relay build
+
+relay-run:
+	scripts/relay run
+
+relay-start:
+	scripts/relay start
+
+relay-stop:
+	scripts/relay stop

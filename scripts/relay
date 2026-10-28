@@ -1,0 +1,27 @@
+#!/bin/sh
+# Build and run the relay container (macOS + Linux, Podman or Docker).
+#   scripts/relay build        # build mwradar-relay:latest (runs go vet + tests)
+#   scripts/relay run          # run in the foreground on port ${RELAY_PORT:-8080}
+#   scripts/relay start|stop|logs   # detached container named mwradar-relay
+# Extra args after run/start go to the relay, e.g. scripts/relay run -min-interval 2s
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+[ -n "$CTR" ] || { echo "relay: need podman or docker on PATH" >&2; exit 1; }
+IMAGE=mwradar-relay:latest
+NAME=mwradar-relay
+PORT=${RELAY_PORT:-8080}
+
+cmd=${1:-run}; [ $# -gt 0 ] && shift
+case "$cmd" in
+    build) exec "$CTR" build -t "$IMAGE" "$ROOT/relay" ;;
+    run)   "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build
+           exec "$CTR" run --rm -it --init -p "$PORT:8080" "$IMAGE" -listen :8080 "$@" ;;
+    start) "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build
+           exec "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" \
+               "$IMAGE" -listen :8080 "$@" ;;
+    stop)  "$CTR" rm -f "$NAME" ;;
+    logs)  exec "$CTR" logs -f "$NAME" ;;
+    *)     echo "usage: scripts/relay build|run|start|stop|logs [relay args]" >&2; exit 2 ;;
+esac
