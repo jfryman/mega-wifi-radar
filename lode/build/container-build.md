@@ -39,9 +39,16 @@ flowchart TD
 make            # = make release -> out/rom.bin
 make debug      # libmd_debug + symbols
 make image      # build/print the image tag only
-make flash      # flashkit-md write-rom out/rom.bin (host side)
+make flash      # scripts/flashkit write-rom out/rom.bin (host side)
 scripts/md sh   # shell inside the image (GDK=/sgdk)
 ```
+
+## Flashing (host side)
+`scripts/flashkit` runs `flashkit-md` from PATH if it's there. Otherwise it downloads the pinned,
+self-contained **v1.12.0** release for the host (osx-arm64/x64, linux-arm64/x64) into the
+git-ignored `.tools/`, checks it against the release's SHA256SUMS, and runs it. `FLASHKIT_FETCH=1`
+forces the pinned copy even if one is on PATH. No .NET runtime is needed. The FlashKit
+auto-detects its port (`/dev/cu.usbserial-*` / `/dev/ttyUSB*`).
 
 ## Updating the SGDK pin
 1. Change `SGDK_COMMIT`.

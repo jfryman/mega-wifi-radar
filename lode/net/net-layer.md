@@ -38,8 +38,20 @@ sequenceDiagram
 ## Spike ROM (src/main.c)
 Detect → `net_ensure_ap(DEV_WIFI_SSID…)` → join → GET `DEV_HTTP_URL` (default `http://example.com/`)
 → prints the status, length, chunk count, frames, and the first ~15 lines of the body. Then a spinner
-proves the main loop is alive. Dev settings live in the git-ignored `src/dev_config.h` (template:
-`src/dev_config.h.example`).
+proves the main loop is alive.
+
+### Dev settings
+The git-ignored `src/dev_config.h` (template: `src/dev_config.h.example`) is included **only** by
+`src/devcfg.c`, which exposes `devcfg_wifi_ssid` / `devcfg_wifi_pass` (NULL = use the module's saved
+AP) and `devcfg_http_url`. The host `make` deletes `devcfg.o` before every build.
+
+```c
+#if __has_include("dev_config.h")   /* SGDK's .d files never list a header that was absent */
+#include "dev_config.h"             /* at the last build, so creating it later wouldn't    */
+#endif                              /* trigger a rebuild. Hence the forced devcfg.o rebuild. */
+```
+Lesson: any `__has_include`d optional file must sit behind a forced-rebuild object like this.
+Wi-Fi credentials end up in `out/rom.bin`. `out/` is git-ignored; don't share dev ROMs.
 
 `src/rom_header.c` overrides SGDK's: system `"SEGA MEGAWIFI   "` and **no SRAM** (SGDK's default
 declares SRAM at `$200000`, which is ROM on Rev.C).

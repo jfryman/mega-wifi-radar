@@ -1,0 +1,35 @@
+#!/bin/sh
+# Run flashkit-md (github.com/jfryman/flashkit-md-dotnet). Uses the one on PATH if
+# present, otherwise fetches the pinned, self-contained release into .tools/ and
+# checks it against the release's SHA256SUMS.
+#   scripts/flashkit write-rom out/rom.bin
+set -eu
+
+VER=1.12.0
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+DIR="$ROOT/.tools/flashkit-md-$VER"
+
+if [ -z "${FLASHKIT_FETCH:-}" ] && command -v flashkit-md >/dev/null 2>&1; then
+    exec flashkit-md "$@"
+fi
+
+if [ ! -x "$DIR/flashkit-md" ]; then
+    case "$(uname -s)-$(uname -m)" in
+        Darwin-arm64)            RID=osx-arm64;   SUM=2b942a0fa401c7dc9f419d24214f7413156ca80c02d9f53b6a60581353e2ed88 ;;
+        Darwin-x86_64)           RID=osx-x64;     SUM=defbb4cc6aa28fa337d1d4a6520bbf37d6d7c67ebbbb72b7c2050ccffc0cd917 ;;
+        Linux-aarch64)           RID=linux-arm64; SUM=153734f6c9ea3fbde63c82cf92e42c3a833ac3b03bfa013073f460c0b2e5dee7 ;;
+        Linux-x86_64)            RID=linux-x64;   SUM=81f7164bf14fc7ae116ead9baf5e3d403485df20680cc63d84eb3d4663228491 ;;
+        *) echo "flashkit: no release for $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+    esac
+    TGZ="flashkit-md-v$VER-$RID.tar.gz"
+    echo "flashkit: fetching $TGZ" >&2
+    mkdir -p "$DIR"
+    curl -fsSL -o "$DIR/$TGZ" \
+        "https://github.com/jfryman/flashkit-md-dotnet/releases/download/v$VER/$TGZ"
+    if command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else SHA="shasum -a 256"; fi
+    (cd "$DIR" && echo "$SUM  $TGZ" | $SHA -c - >/dev/null) \
+        || { echo "flashkit: checksum mismatch for $TGZ" >&2; rm -rf "$DIR"; exit 1; }
+    tar xzf "$DIR/$TGZ" -C "$DIR" && rm "$DIR/$TGZ"
+fi
+
+exec "$DIR/flashkit-md" "$@"

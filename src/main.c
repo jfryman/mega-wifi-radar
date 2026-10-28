@@ -1,19 +1,8 @@
 /* Network spike: detect module -> join AP -> plain-HTTP GET -> show body.
  * Proves the Rev.C UART link, Wi-Fi config and the HTTP channel end to end. */
 #include <genesis.h>
+#include "devcfg.h"
 #include "net.h"
-
-/* Optional, git-ignored: copy src/dev_config.h.example to src/dev_config.h. */
-#if __has_include("dev_config.h")
-#include "dev_config.h"
-#endif
-#ifndef DEV_WIFI_SSID
-#define DEV_WIFI_SSID NULL     /* use whatever the module already has saved */
-#define DEV_WIFI_PASS NULL
-#endif
-#ifndef DEV_HTTP_URL
-#define DEV_HTTP_URL "http://example.com/"
-#endif
 
 #define COLS        40
 #define BODY_TOP    12
@@ -75,14 +64,15 @@ int main(bool hard)
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);
 
-    if (net_ensure_ap(DEV_WIFI_SSID, DEV_WIFI_PASS) != NET_OK) fail("Saving AP config failed");
+    if (net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass) != NET_OK) fail("Saving AP config failed");
     say("Joining AP...");
     if (net_join(ip) != NET_OK) fail("Association / DHCP failed");
     sprintf(buf, "IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
     say(buf);
 
-    say("GET " DEV_HTTP_URL);
-    enum net_err e = net_http_get(DEV_HTTP_URL, show_chunk, &view, &res);
+    sprintf(buf, "GET %.36s", devcfg_http_url);
+    say(buf);
+    enum net_err e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
     sprintf(buf, "HTTP %d len %lu", res.status, res.content_len);
     say(buf);
     if (e != NET_OK) fail(e == NET_ERR_RECV ? "Body receive failed" : "HTTP request failed");

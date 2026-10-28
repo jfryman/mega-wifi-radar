@@ -1,15 +1,20 @@
 # Host-side entry points. All compiling happens inside the build image (scripts/md).
 MD      := scripts/md
+FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
 .PHONY: all release debug clean image flash
 
 all: release
 
+# devcfg.o is always rebuilt: it includes the optional src/dev_config.h, which
+# SGDK's dependency tracking can't see appear (see src/devcfg.c).
 release:
+	rm -f out/release/src/devcfg.o
 	$(MD) $(SGDKMK) release
 
 debug:
+	rm -f out/debug/src/devcfg.o
 	$(MD) $(SGDKMK) debug
 
 clean:
@@ -18,6 +23,6 @@ clean:
 image:
 	$(MD) --image
 
-# FlashKit MD (github.com/jfryman/flashkit-md-dotnet >= v1.10.5) on the host.
+# FlashKit MD on the host: PATH's flashkit-md, else the pinned release in .tools/.
 flash: release
-	flashkit-md write-rom out/rom.bin
+	$(FLASHKIT) write-rom out/rom.bin
