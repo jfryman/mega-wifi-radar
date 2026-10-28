@@ -27,6 +27,6 @@ image:
 flash: release
 	$(FLASHKIT) write-rom out/rom.bin
 
-# ESP32-C3 on the cart (USB-C): mw-fw-rtos rev-c-1250k. Erases saved Wi-Fi config.
+# ESP32-C3 on the cart (USB-C): mw-fw-rtos rev-c-1250k (keeps mw_cfg/user_data).
 esp-flash:
 	scripts/esp-flash

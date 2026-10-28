@@ -3,6 +3,16 @@
 - Release **`rev-c-1250k`** (published 2026-10-28). Assets: `mw-fw-rtos-merged.bin` (flash at 0x0)
   and `mw_fw_rtos_esp32c3-rev-c-1250k.tar.xz`.
 
+## Partition table (`partitions.csv`)
+| name | offset | size | notes |
+|---|---|---|---|
+| nvs | 0x9000 | 0x5000 | IDF NVS; overwritten by the merged bin |
+| otadata | 0xe000 | 0x2000 | |
+| ota_0 / ota_1 | 0x10000 / 0x120000 | 1 MiB each | app slots |
+| mw_cfg | 0x110000 | 0x8000 | MegaWiFi config (3 AP slots, IP cfg, default slot) |
+| cert | 0x118000 | 0x8000 | the single HTTPS CA |
+| user_data | 0x220000 | 0x1E0000 | `mw_flash_*` area (~1.9 MiB), for our settings |
+
 ## HTTPS behaviour (confirmed in `main/http.c`)
 ```c
 esp_http_client_config_t config = {

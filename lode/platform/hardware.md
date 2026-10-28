@@ -35,7 +35,8 @@ make flash       # scripts/flashkit: 68k ROM via FlashKit MD
 (sha256 `edc00181…0054`), and runs pinned esptool 4.8.1 through `uvx` (or `pipx`, or `esptool.py`
 on PATH): `--chip esp32c3 write_flash 0x0`. It auto-picks the single `/dev/cu.usbmodem*` /
 `/dev/ttyACM*` port, or uses `PORT=...`. It never considers the FlashKit's `usbserial`/`ttyUSB` port.
-Flashing from 0x0 **erases the module's saved Wi-Fi config**; the ROM's `net_ensure_ap` writes it again on the next boot.
+The merged image covers `0x0–0xE1320`: bootloader, partition table, the IDF `nvs` (`0x9000`, written as 0xFF), otadata, and the app in `ota_0`.
+It does **not** touch `mw_cfg` (`0x110000`, the MegaWiFi Wi-Fi slots), `cert` (`0x118000`) or `user_data` (`0x220000`, our settings), so saved config survives a reflash.
 A blank C3 still enumerates its USB-Serial/JTAG from ROM, so if no port shows up, suspect the cable (charge-only), the connection, or power.
 Device nodes: FlashKit = `/dev/cu.usbserial-*` / `/dev/ttyUSB*`; ESP32 = `/dev/cu.usbmodem*` / `/dev/ttyACM*`.
 

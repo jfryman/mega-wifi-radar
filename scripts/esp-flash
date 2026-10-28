@@ -2,7 +2,8 @@
 # Flash the MegaWiFi Rev.C ESP32-C3 with jfryman/mw-fw-rtos release rev-c-1250k.
 #   scripts/esp-flash            # auto-detect the cart's USB-C port
 #   PORT=/dev/ttyACM0 scripts/esp-flash
-# Overwrites the whole image from 0x0, including the module's saved Wi-Fi config.
+# Writes 0x0-0xE1320 (bootloader, partitions, nvs, otadata, app). The MegaWiFi
+# config (mw_cfg @0x110000), cert and user_data partitions are left untouched.
 set -eu
 
 TAG=rev-c-1250k
