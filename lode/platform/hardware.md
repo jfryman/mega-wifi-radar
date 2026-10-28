@@ -38,6 +38,10 @@ on PATH): `--chip esp32c3 write_flash 0x0`. It auto-picks the single `/dev/cu.us
 The merged image covers `0x0–0xE1320`: bootloader, partition table, the IDF `nvs` (`0x9000`, written as 0xFF), otadata, and the app in `ota_0`.
 It does **not** touch `mw_cfg` (`0x110000`, the MegaWiFi Wi-Fi slots), `cert` (`0x118000`) or `user_data` (`0x220000`, our settings), so saved config survives a reflash.
 A blank C3 still enumerates its USB-Serial/JTAG from ROM, so if no port shows up, suspect the cable (charge-only), the connection, or power.
+FlashKit failure modes: `No flash chip detected: CFI query returned FF-FF…` means the cart isn't in
+the FlashKit or isn't seated. `Device is not detected: … Value does not fall within the expected range`
+(even for `info`) means the FlashKit's MCU is wedged while its USB-serial chip still enumerates; **unplug and
+replug its USB** (seen 2026-10-28; nothing on the host held the port).
 Device nodes: FlashKit = `/dev/cu.usbserial-*` / `/dev/ttyUSB*`; ESP32 = `/dev/cu.usbmodem*` / `/dev/ttyACM*`.
 
 Related: [sgdk-megawifi.md](sgdk-megawifi.md), [firmware.md](firmware.md).
