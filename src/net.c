@@ -43,6 +43,15 @@ void net_init(void)
     mw_up = TRUE;
 }
 
+void net_reset(void)
+{
+    /* mw_init() again = full ESP32 reset + fresh lsd/comm state, which also
+     * drops a 68k receiver wedged mid-"frame" by boot-time line garbage. */
+    mw_up = FALSE;
+    mw_init(cmd_buf, MW_BUFLEN);
+    mw_up = TRUE;
+}
+
 enum net_err net_detect(struct net_module_info *info)
 {
     char *variant = NULL;

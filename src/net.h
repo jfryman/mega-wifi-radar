@@ -35,6 +35,8 @@ struct net_http_result {
 
 /* mw_init + the user task that runs mw_process(). Call once, first. */
 void net_init(void);
+/* Reset the ESP32 and the driver state again (for detect retries). */
+void net_reset(void);
 enum net_err net_detect(struct net_module_info *info);
 /* If ssid != NULL and slot 0 doesn't already hold it, store ssid/pass with DHCP
  * in slot 0, make it the default and save. Writes ESP flash only on change. */

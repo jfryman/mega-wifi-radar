@@ -5,6 +5,7 @@
 #include "net.h"
 
 #define COLS        40
+#define DETECT_ATTEMPTS 3   /* each: ESP32 reset + mw_detect (5 x 2 s) */
 #define BODY_TOP    12
 #define BODY_ROWS   (27 - BODY_TOP)
 
@@ -60,7 +61,15 @@ int main(bool hard)
     say("mega_wifi_radar net spike (Rev.C)");
 
     net_init();
-    if (net_detect(&mod) != NET_OK) fail("MegaWiFi module not found");
+    enum net_err e = NET_ERR_NO_MODULE;
+    for (u16 attempt = 1; attempt <= DETECT_ATTEMPTS; attempt++) {
+        if (attempt > 1) net_reset();
+        sprintf(buf, "Detecting module (attempt %u/%u)", attempt, DETECT_ATTEMPTS);
+        VDP_drawText(buf, 0, line);
+        if ((e = net_detect(&mod)) == NET_OK) break;
+    }
+    line++;
+    if (e != NET_OK) fail("MegaWiFi module not found");
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);
 
@@ -72,7 +81,7 @@ int main(bool hard)
 
     sprintf(buf, "GET %.36s", devcfg_http_url);
     say(buf);
-    enum net_err e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
+    e = net_http_get(devcfg_http_url, show_chunk, &view, &res);
     sprintf(buf, "HTTP %d len %lu", res.status, res.content_len);
     say(buf);
     if (e != NET_OK) fail(e == NET_ERR_RECV ? "Body receive failed" : "HTTP request failed");

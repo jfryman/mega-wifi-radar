@@ -5,7 +5,8 @@ the non-blocking path (async API or `mw_send`/`mw_recv`) is still to be designed
 
 ```c
 net_init();                                   /* mw_init(cmd_buf, MW_BUFLEN) + TSK_userSet(user_tsk) */
-net_detect(&mod);                             /* mw_detect -> fw major.minor + variant */
+net_detect(&mod);                             /* mw_detect -> fw major.minor + variant (5 tries x 2 s) */
+net_reset();                                  /* mw_init again: ESP32 reset + fresh lsd/comm state */
 net_ensure_ap(ssid, pass);                    /* slot 0, DHCP, default, mw_cfg_save; no-op if unchanged */
 net_join(ip);                                 /* mw_ap_assoc(def slot) + wait 30 s + mw_ip_current */
 net_http_get(url, chunk_cb, ctx, &res);       /* url/method/open(0)/finish, then recv chunks on MW_HTTP_CH */
@@ -33,6 +34,12 @@ sequenceDiagram
   while the chip is still booting. On Rev.C ~RTS drives GPIO9, the boot strap, so the ESP32 boots
   into **download mode**: `mw_detect` fails, and the module, which had booted normally at power-on, "goes off".
   SGDK's own `sample/megawifi/basic` uses the wrong order.
+- **Detect = up to 3 attempts**, each a full `net_reset()` + `mw_detect` (`DETECT_ATTEMPTS` in
+  `main.c`; the screen shows `attempt n/3`). Observed on the bench: right after `make esp-flash`
+  + `make flash`, the first cold boot failed detection and a console soft reset worked. Unconfirmed
+  hypothesis: the ESP32's 115200-baud boot output wedges SGDK's LSD receiver mid-"frame", so every
+  retry inside `mw_detect` times out. A one-off slow first boot (NVS format + RF calibration after
+  a reflash) is the alternative. Which attempt succeeds tells them apart.
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
   valid inside the callback.
@@ -43,7 +50,7 @@ sequenceDiagram
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.
 
 ## Spike ROM (src/main.c)
-Detect → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
+Detect (≤ 3 attempts) → `net_ensure_ap(devcfg_wifi_ssid…)` → join → GET `devcfg_http_url` (default `http://example.com/`)
 → prints the status, length, chunk count, frames, and the first ~15 lines of the body. Then a spinner
 proves the main loop is alive.
 
