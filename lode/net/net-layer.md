@@ -41,8 +41,15 @@ sequenceDiagram
   wedged 68k receiver are ruled out. The cause is something a cold power-on leaves behind that a
   soft reset (console ~RESET → Q1 → UART MR) clears, or that time clears. Suspects: the UART's 20 MHz
   oscillator starting slowly or wrongly from cold (TL16C550D + R18 Rp), or the UART not leaving MR
-  cleanly at power-up. Being diagnosed with the bring-up ROM on a cold boot (tests 3/4/6/7); see
-  [../build/container-build.md](../build/container-build.md).
+  cleanly at power-up. **The bring-up ROM passes every test on a cold boot (crystal 20.0 MHz,
+  VERSION OK)**, so the hardware and firmware are fine and the difference is in the SGDK path.
+  - Soft reset → `_reset_entry`: RAM isn't cleared and initialised data isn't reloaded, so statics
+    keep their last values. Cold → `_start_entry` zeroes everything.
+  - Correlation: on a soft reset our `mw_up` is still TRUE, so `mw_process()` runs during
+    `mw_init`'s reset waits. Cold boot and `net_reset()` retries run them with it FALSE, and fail.
+  - `net_diag` (frames in `mw_init`/`mw_detect`, LSR, MSR) prints after each attempt, and the
+    top-right shows `hard`/`soft reset`, so the next cold-vs-soft comparison is measured, not guessed.
+- Soft reset keeps statics: anything that must start fresh is set at the top of `main` (e.g. `line = 1`).
 - `user_tsk` idles until the `mw_up` flag is set after `mw_init()` returns, because lsd/comm state isn't valid before then.
 - `cmd_buf` (`MW_BUFLEN` = 1500 B) is shared by commands and body chunks. A chunk pointer is only
   valid inside the callback.

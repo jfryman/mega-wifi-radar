@@ -1,4 +1,7 @@
 #include "net.h"
+#include "ext/mw/16c550.h"
+
+struct net_diag net_diag;
 
 /* Command buffer shared with the MegaWiFi driver; also reused for HTTP body
  * chunks, which is safe because body reception is the only call in flight. */
@@ -39,7 +42,9 @@ void net_init(void)
      * set. Without the 1 s wait, RTS (-> ESP32 GPIO9 strap) goes active while
      * the chip is still booting, so it boots into download mode and never answers. */
     TSK_userSet(user_tsk);
+    u32 t0 = vtimer;
     mw_init(cmd_buf, MW_BUFLEN);
+    net_diag.init_frames = vtimer - t0;
     mw_up = TRUE;
 }
 
@@ -48,15 +53,22 @@ void net_reset(void)
     /* mw_init() again = full ESP32 reset + fresh lsd/comm state, which also
      * drops a 68k receiver wedged mid-"frame" by boot-time line garbage. */
     mw_up = FALSE;
+    u32 t0 = vtimer;
     mw_init(cmd_buf, MW_BUFLEN);
+    net_diag.init_frames = vtimer - t0;
     mw_up = TRUE;
 }
 
 enum net_err net_detect(struct net_module_info *info)
 {
     char *variant = NULL;
+    u32 t0 = vtimer;
+    enum mw_err err = mw_detect(&info->major, &info->minor, &variant);
 
-    if (mw_detect(&info->major, &info->minor, &variant) != MW_ERR_NONE)
+    net_diag.detect_frames = vtimer - t0;
+    net_diag.lsr = UART_LSR;
+    net_diag.msr = UART_MSR;
+    if (err != MW_ERR_NONE)
         return NET_ERR_NO_MODULE;
     info->variant = variant ? variant : "?";
     return NET_OK;

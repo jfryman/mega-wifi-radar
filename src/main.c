@@ -56,7 +56,9 @@ int main(bool hard)
     u8 ip[4];
     char buf[COLS + 1];
 
-    (void)hard;
+    line = 1;   /* soft reset keeps RAM: statics aren't re-initialised */
+    sprintf(buf, "%s reset", hard ? "hard" : "soft");
+    VDP_drawText(buf, COLS - 12, 0);
     PAL_setColor(PAL1 * 16 + 15, RGB24_TO_VDPCOLOR(0xFF4040));
     say("mega_wifi_radar net spike (Rev.C)");
 
@@ -66,9 +68,15 @@ int main(bool hard)
         if (attempt > 1) net_reset();
         sprintf(buf, "Detecting module (attempt %u/%u)", attempt, DETECT_ATTEMPTS);
         VDP_drawText(buf, 0, line);
-        if ((e = net_detect(&mod)) == NET_OK) break;
+        e = net_detect(&mod);
+        line++;
+        sprintf(buf, " %s init %uf det %uf LSR %02X MSR %02X", e == NET_OK ? "ok " : "bad",
+                net_diag.init_frames, net_diag.detect_frames, net_diag.lsr, net_diag.msr);
+        say(buf);
+        line--;
+        if (e == NET_OK) break;
     }
-    line++;
+    line += 2;
     if (e != NET_OK) fail("MegaWiFi module not found");
     sprintf(buf, "Module fw %u.%u %s", mod.major, mod.minor, mod.variant);
     say(buf);
