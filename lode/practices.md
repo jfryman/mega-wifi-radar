@@ -14,6 +14,8 @@
 - Contract changes (frame layout, constants, HTTP path/query, mDNS strings) start in `src/arframe.h`; then the
   relay, then the mapping in `relay/contract_test.go`. `make contract` (run before every ROM build) and CI enforce it
   ([architecture/contract.md](architecture/contract.md)).
+- The relay is part of the cartridge: extend it whenever a cart feature needs it. Relay vX requires cart vX; both
+  ship from the same tag. Any contract change bumps `AR_VER`, and mismatches are caught at build time and on screen.
 - Printed pieces copy Sega's 1989 *style*, never its marks: no SEGA logo, Genesis wordmark or seal.
 
 ## Hard rules for 68k code

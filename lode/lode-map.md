@@ -33,4 +33,5 @@
   - [frame-format.md](architecture/frame-format.md) - v1 binary frame: header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
+  - [v0.2.0-radar-ux.md](plans/v0.2.0-radar-ux.md) - 0.2.0 build plan: traffic list, detail pop-up, controls, version lock-step
 - tmp/ - git-ignored scratch
