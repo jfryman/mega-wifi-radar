@@ -68,7 +68,6 @@ enum net_err net_ensure_ap(const char *ssid, const char *pass)
 {
     char *cur_ssid, *cur_pass;
     enum mw_phy_type phy;
-    struct mw_ip_cfg dhcp;
 
     if (!ssid) return NET_OK;
     /* Stored strings are zero padded (32/64 bytes), so a bounded compare is enough. */
@@ -77,12 +76,33 @@ enum net_err net_ensure_ap(const char *ssid, const char *pass)
             mw_def_ap_cfg_get() == AP_SLOT)
         return NET_OK;
 
+    return net_save_ap(ssid, pass);
+}
+
+enum net_save_step net_save_step;
+
+/* Always write and save, then read back what the module holds: the in-memory config can match
+ * while the flash copy doesn't (a save that never landed), so never skip the save. */
+enum net_err net_save_ap(const char *ssid, const char *pass)
+{
+    char *cur_ssid, *cur_pass;
+    enum mw_phy_type phy;
+    struct mw_ip_cfg dhcp;
+
     memset(&dhcp, 0, sizeof(dhcp));   /* IP 0.0.0.0 => DHCP */
-    if (mw_ap_cfg_set(AP_SLOT, ssid, pass, MW_PHY_11BGN) != MW_ERR_NONE ||
-            mw_ip_cfg_set(AP_SLOT, &dhcp) != MW_ERR_NONE ||
-            mw_def_ap_cfg(AP_SLOT) != MW_ERR_NONE ||
-            mw_cfg_save() != MW_ERR_NONE)
+    net_save_step = SAVE_AP_CFG;
+    if (mw_ap_cfg_set(AP_SLOT, ssid, pass, MW_PHY_11BGN) != MW_ERR_NONE) return NET_ERR_CFG;
+    net_save_step = SAVE_IP_CFG;
+    if (mw_ip_cfg_set(AP_SLOT, &dhcp) != MW_ERR_NONE) return NET_ERR_CFG;
+    net_save_step = SAVE_DEFAULT;
+    if (mw_def_ap_cfg(AP_SLOT) != MW_ERR_NONE) return NET_ERR_CFG;
+    net_save_step = SAVE_FLASH;
+    if (mw_cfg_save() != MW_ERR_NONE) return NET_ERR_CFG;
+    net_save_step = SAVE_VERIFY;
+    if (mw_ap_cfg_get(AP_SLOT, &cur_ssid, &cur_pass, &phy) != MW_ERR_NONE ||
+            !str_eq_n(cur_ssid, ssid, 32) || mw_def_ap_cfg_get() != AP_SLOT)
         return NET_ERR_CFG;
+    net_save_step = SAVE_OK;
     return NET_OK;
 }
 
@@ -134,7 +154,7 @@ enum net_err net_connect(const char *ssid, const char *pass, u8 ip_out[4])
     enum net_err e;
 
     mw_ap_disassoc();
-    if ((e = net_ensure_ap(ssid, pass)) != NET_OK) return e;
+    if ((e = net_save_ap(ssid, pass)) != NET_OK) return e;
     return net_join(ip_out);
 }
 
@@ -145,6 +165,12 @@ enum net_err net_join(u8 ip_out[4])
 
     if (slot < 0) slot = AP_SLOT;
     left_ap = FALSE;
+    /* Already joined (e.g. setup's Wi-Fi page just connected): AP_JOIN is idle-only in the
+     * firmware and would be refused, so use the current IP. IP_CURRENT only works when joined. */
+    if (mw_ip_current(&ip) == MW_ERR_NONE && ip->addr.addr) {
+        memcpy(ip_out, ip->addr.byte, 4);
+        return NET_OK;
+    }
     if (mw_ap_assoc(slot) != MW_ERR_NONE ||
             mw_ap_assoc_wait(ASSOC_TOUT) != MW_ERR_NONE)
         return NET_ERR_ASSOC;

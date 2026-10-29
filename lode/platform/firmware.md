@@ -12,7 +12,9 @@ is healthy; the 68k `mw_detect` is the real check.
 The firmware gates commands by state (`megawifi.c`: `idleCmdMask`, `readyCmdMask`). IDLE = not joined; READY = joined.
 Some commands are IDLE-only (`FACTORY_RESET`, `AP_SCAN`, `AP_JOIN`), others READY-only (`TCP_CON`, `UDP_SET`, `HTTP_OPEN`,
 `IP_CURRENT`). A command in the wrong state fails with `MW_ERR`: leave the AP first (`mw_ap_disassoc`). `net_scan()` does this and
-sets `net_rejoin_needed()`, so main rejoins after setup if nothing reconnected. The setup reset disassociates before
+sets `net_rejoin_needed()`, so main rejoins after setup if nothing reconnected. `net_join()` returns the current IP
+when already joined (`mw_ip_current` succeeds), because AP_JOIN is refused while joined: without that, the first-boot
+setup → SAVE & EXIT → boot join looped back to *Wi-Fi failed* until a power cycle. The setup reset disassociates before
 `mw_factory_settings()`.
 
 ```c

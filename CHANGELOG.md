@@ -24,6 +24,12 @@ BUG FIXES:
   * **setup:** scanning for Wi-Fi from the radar (START → WI-FI) no longer fails while connected:
     the firmware only scans when idle, so the cart leaves the network first, and it rejoins after
     setup if you back out.
+  * **boot:** after connecting in the first-boot setup, SAVE & EXIT no longer loops back to
+    *Wi-Fi failed*. The module was already joined, and the firmware refuses a second join, so the
+    cart now uses the existing connection.
+  * **setup:** connecting to Wi-Fi always saves the network and reads it back. It used to skip the
+    save when the module's working copy already matched, which could leave it unsaved. Failures
+    name the step (AP CFG, FLASH SAVE, READ-BACK...).
 
 BACKWARDS INCOMPATIBILITIES:
 

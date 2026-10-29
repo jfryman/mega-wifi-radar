@@ -196,12 +196,16 @@ static void wifi_page(void)
         ui_text(PAL0, 2, 2, "WI-FI");
         ui_field(PAL2, 2, 4, 36, ssid);
         ui_status(PAL2, "CONNECTING...");
-        if (net_connect(ssid, pass, ip) == NET_OK) {
-            sprintf(buf, "CONNECTED  IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
+        enum net_err e = net_connect(ssid, pass, ip);
+        if (e == NET_OK) {
+            sprintf(buf, "SAVED + CONNECTED  IP %u.%u.%u.%u", ip[0], ip[1], ip[2], ip[3]);
             ui_status(PAL1, buf);
             strcpy(wifi_ssid, ssid);
         } else {
-            ui_status(PAL3, "FAILED - CHECK PASSWORD (B BACK)");
+            static const char *const steps[] = { "", "AP CFG", "IP CFG", "DEFAULT AP", "FLASH SAVE", "READ-BACK" };
+            if (e == NET_ERR_CFG) sprintf(buf, "SAVE FAILED: %s (B BACK)", steps[net_save_step]);
+            else strcpy(buf, "SAVED; JOIN FAILED - PASSWORD? (B)");
+            ui_status(PAL3, buf);
             while (!(ui_pad() & (BUTTON_B | BUTTON_A | BUTTON_START))) {}
             return;
         }

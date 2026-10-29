@@ -55,6 +55,11 @@ struct net_ap {
 s16 net_scan(struct net_ap *aps, u16 max);
 /* Store ssid/pass in slot 0 (DHCP, default, saved), rejoin, wait for an IP. */
 enum net_err net_connect(const char *ssid, const char *pass, u8 ip_out[4]);
+/* Write ssid/pass (DHCP) to slot 0 as the default and save, then read it back. net_connect uses it.
+ * On failure net_save_step says which step (for the setup screen). */
+enum net_save_step { SAVE_OK, SAVE_AP_CFG, SAVE_IP_CFG, SAVE_DEFAULT, SAVE_FLASH, SAVE_VERIFY };
+extern enum net_save_step net_save_step;
+enum net_err net_save_ap(const char *ssid, const char *pass);
 /* Scanning leaves the AP (the firmware scans only while idle). TRUE until something rejoins. */
 bool net_rejoin_needed(void);
 /* SSID of the default slot into out (NET_SSID_LEN + 1), "" if none. */
