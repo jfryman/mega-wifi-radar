@@ -19,18 +19,19 @@ flowchart TD
   v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
   join fixes). The cart runs the v0.1.3 release ROM (CRC32 `3A9DEF3C`). 0.1.4 is open in `CHANGELOG.md`. **Verified on the cart (2026-10-28):**
   RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
-  keeps it. The dev file (`src/dev_config.h`) is removed, so the dev cart runs release-style builds.
+  keeps it. **Verified on the cart (2026-10-29), v0.1.3 ROM:** AUTO re-discovery mid-session (`make relay-stop` while
+  the radar runs, then `make relay-start`: the cart searches again after 3 failed polls and recovers without a reboot),
+  and START → WI-FI from the radar (scan while joined → leave AP → rejoin after setup). The dev file (`src/dev_config.h`) is removed, so the dev cart runs release-style builds.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay` ([../build/ci-release.md](../build/ci-release.md)).
 - Verified on the cart: cold-boot detect, Wi-Fi join, relay polling once per sweep, renderer timing, setup + flash
-  persistence, the splash, mDNS discovery, setup RESET, and first-boot Wi-Fi save + join.
+  persistence, the splash, mDNS discovery, setup RESET, first-boot Wi-Fi save + join,
+  AUTO relay re-discovery mid-session, and the Wi-Fi scan + rejoin from the radar's setup.
 - The dev relay runs as the `mwradar-relay` container on the dev Mac (:8080), advertised by `dns-sd -P` from
   `scripts/relay start`.
 
 ## Not yet checked on hardware
-- AUTO re-discovery mid-session: `make relay-stop` while the radar runs, then `make relay-start`. After 3 failed polls the
-  cart searches again and should recover without a reboot.
-- Opening WI-FI from the radar's setup (scan while joined → leave AP → rejoin after setup).
+- Nothing outstanding.
 
 ```sh
 make flash                     # cart ROM (FlashKit); then cold-boot
