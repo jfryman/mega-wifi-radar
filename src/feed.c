@@ -14,6 +14,7 @@ const char *feed_err_str(enum feed_err e)
     case FEED_ERR_RECV:   return "ERR RECV";
     case FEED_ERR_SIZE:   return "ERR SIZE";
     case FEED_ERR_FORMAT: return "ERR FRAME";
+    case FEED_ERR_VERSION: return "RELAY VER?";     /* relay from another release */
     }
     return "ERR";
 }

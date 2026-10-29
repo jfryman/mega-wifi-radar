@@ -11,6 +11,8 @@
 #define MAX_BLIPS   79      /* + 1 selection box = 80 sprites */
 #define REDRAW_PER_FRAME 2
 #define PANEL_PER_FRAME  3
+#define POPUP_PER_FRAME  3       /* 28-cell rows: the pop-up fills in ~10 frames before it shows */
+#define C_OPAQUE         14      /* black in every palette of every theme: the pop-up's background */
 
 /* Blip tiles: 4 brightness levels (colour index 1..4) + stale; then the
  * 16x16 selection brackets (4 tiles, column-major). */
@@ -29,7 +31,7 @@ static const u32 box_tiles[4][8] = {
     { 0, 0, 0, 0, 0x00000005, 0x00000005, 0x00000005, 0x00005555 },
 };
 
-static u16 t_blip, t_box;
+static u16 t_blip, t_box, t_ofont;
 static u16 k_scale;
 static u8 grid[GRID_H][GRID_W];         /* tag/label occupancy per plane-A cell */
 static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
@@ -54,6 +56,14 @@ volatile u16 late_frames;
 
 
 static volatile u32 panel_dirty;
+
+/* Pop-up (lode/ui/detail-popup.md): the window plane over cols 0..27, drawn with an opaque copy of
+ * the font so the scope doesn't show through. Rows are written while it's hidden; it appears once
+ * they're all out, and closing is instant. Sprites hide while it's up. */
+static char popup_text[PANEL_ROWS][POPUP_COLS];
+static u8 popup_pal[PANEL_ROWS];
+static volatile u32 popup_dirty;
+static volatile u8 popup_want, popup_on;
 
 /* ------------------------------------------------------------ helpers */
 
@@ -263,7 +273,9 @@ static void sprites(void)
     bool fade = themes[settings.theme].blip_fade;
     u16 *e = spr[0];
 
-    for (u16 i = 0; i < TR_MAX && n < MAX_BLIPS; i++) {
+    u16 max = popup_on ? 0 : MAX_BLIPS;     /* hidden under the pop-up: emit nothing */
+
+    for (u16 i = 0; i < TR_MAX && n < max; i++) {
         if (!(tr_state[i] & TS_USED)) continue;
         struct track *t = &tracks[i];
         if (!t->shown || !t->vis) continue;
@@ -306,6 +318,25 @@ static void panel(void)
     }
 }
 
+static void popup_rows(void)
+{
+    vu16 *data = (vu16 *)VDP_DATA_PORT;
+    u16 done = 0;
+    u32 bit = 1;
+
+    for (u16 r = 0; r < PANEL_ROWS && done < POPUP_PER_FRAME; r++, bit <<= 1) {
+        if (!(popup_dirty & bit)) continue;
+        popup_dirty &= ~bit;
+        u16 base = TILE_ATTR(popup_pal[r], TRUE, FALSE, FALSE) + t_ofont - 32;
+        *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_WINDOW + ((r << 6) << 1)));
+        for (u16 x = 0; x < POPUP_COLS; x++) {
+            u8 c = popup_text[r][x];
+            *data = base + (c >= 32 && c < 32 + FONT_LENGTH ? c : ' ');
+        }
+        done++;
+    }
+}
+
 static void radar_vint(void)
 {
     /* A late handler (previous one overran) is no longer in V-Blank, where DMA
@@ -328,6 +359,10 @@ static void radar_vint(void)
     PROF(0);
     DMA_doDma(DMA_VRAM, spr, VDP_SPRITE_TABLE, spr_n * 4, 2);
     PROF(1);
+    if (popup_want != popup_on && !(popup_want && popup_dirty)) {
+        popup_on = popup_want;
+        VDP_setWindowVPos(FALSE, popup_on ? PANEL_ROWS : 0);   /* all rows: the window covers the scope */
+    }
 
     /* ---- CPU work for the next frame ---- */
     JOY_update();
@@ -423,6 +458,7 @@ static void radar_vint(void)
     sprites();
     PROF(6);
     panel();
+    popup_rows();
     PROF(7);
 
     /* scanlines spent in this handler: V-Int fires at line 224; the V counter
@@ -434,6 +470,26 @@ static void radar_vint(void)
 }
 
 /* ------------------------------------------------------------ setup + API */
+
+/* The font with its background (index 0) made C_OPAQUE: read back from VRAM, so it is whatever
+ * font SGDK loaded. Main loop, before radar_start(). */
+static void opaque_font(u16 dst)
+{
+    u32 t[8];
+
+    for (u16 i = 0; i < FONT_LENGTH; i++) {
+        *(vu32 *)VDP_CTRL_PORT = VDP_READ_VRAM_ADDR((u32)(TILE_FONT_INDEX + i) * 32);
+        for (u16 k = 0; k < 8; k++) {
+            u32 v = *(vu32 *)VDP_DATA_PORT, o = 0;
+            for (u16 n = 0; n < 32; n += 4) {
+                u32 px = (v >> n) & 0xF;
+                o |= (px ? px : C_OPAQUE) << n;
+            }
+            t[k] = o;
+        }
+        VDP_loadTileData(t, dst + i, 1, CPU);
+    }
+}
 
 void radar_init(void)
 {
@@ -451,6 +507,8 @@ void radar_init(void)
     t_box = t_blip + 5;
     VDP_loadTileData((const u32 *)blip_tiles, t_blip, 5, DMA);
     VDP_loadTileData((const u32 *)box_tiles, t_box, 4, DMA);
+    t_ofont = t_box + 4;
+    opaque_font(t_ofont);
 
     memset(tracks, 0, sizeof(tracks));
     memset((void *)tr_state, 0, sizeof(tr_state));
@@ -460,6 +518,9 @@ void radar_init(void)
     memset(panel_text, 0, sizeof(panel_text));
     memset(panel_pal, 0, sizeof(panel_pal));
     panel_dirty = 0;
+    memset(popup_text, ' ', sizeof(popup_text));
+    popup_dirty = 0;
+    popup_want = popup_on = 0;
     selected = -1;
     rotations = 0;
     redraw_cursor = 0;
@@ -496,6 +557,30 @@ void radar_panel_pal(u16 row, const char *text, u16 pal)
 }
 
 void radar_panel(u16 row, const char *text) { radar_panel_pal(row, text, PAL0); }
+
+void radar_popup_row(u16 row, const char *text, u16 pal)
+{
+    char buf[POPUP_COLS];
+    u16 i = 0;
+
+    if (row >= PANEL_ROWS) return;
+    for (; i < POPUP_COLS && text[i]; i++) buf[i] = text[i];
+    for (; i < POPUP_COLS; i++) buf[i] = ' ';
+    if (pal == popup_pal[row] && !memcmp(buf, popup_text[row], POPUP_COLS)) return;
+    SYS_disableInts();
+    memcpy(popup_text[row], buf, POPUP_COLS);
+    popup_pal[row] = pal;
+    popup_dirty |= 1UL << row;
+    SYS_enableInts();
+}
+
+void radar_popup(bool on)
+{
+    /* opening: write every row, blank ones too, or the window shows through where it never was */
+    if (on && !popup_want) popup_dirty = (1UL << PANEL_ROWS) - 1;
+    popup_want = on;
+}
+bool radar_popup_shown(void) { return popup_want; }
 
 void radar_rescale(void) { req_rescale = 1; }
 void radar_retheme(void) { req_theme = 1; req_retag = 1; }

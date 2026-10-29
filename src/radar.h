@@ -10,6 +10,7 @@
 #define PANEL_COL   28      /* window plane: cols 28..38 */
 #define PANEL_W     11
 #define PANEL_ROWS  28
+#define POPUP_COLS  28      /* pop-up: window cols 0..27 (text in 1..26 stays inside the TV's crop) */
 
 /* Main loop, before radar_start(): VDP setup, tiles, scope, static text. */
 void radar_init(void);
@@ -21,6 +22,9 @@ void radar_stop(void);
 /* ---- main loop -> renderer (safe to call any time after radar_init) ---- */
 void radar_panel(u16 row, const char *text);    /* set a side-panel row (PAL0) */
 void radar_panel_pal(u16 row, const char *text, u16 pal);   /* ... in a text palette; no-op if unchanged */
+void radar_popup_row(u16 row, const char *text, u16 pal);  /* pop-up row, padded to POPUP_COLS */
+void radar_popup(bool on);      /* show / hide the pop-up (shows once its rows are written) */
+bool radar_popup_shown(void);
 void radar_rescale(void);       /* range changed: rescale trails, tags, labels */
 void radar_retheme(void);       /* settings.theme changed */
 void radar_retag(void);         /* tag mode or selection changed */

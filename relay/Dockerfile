@@ -4,12 +4,13 @@
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24-bookworm AS build
 ARG TARGETOS
 ARG TARGETARCH
+ARG VERSION=dev
 WORKDIR /src
 COPY go.mod ./
 COPY *.go ./
 COPY testdata ./testdata
 RUN go vet ./... && go test ./... \
- && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} go build -trimpath -ldflags="-s -w" -o /relay .
+ && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /relay .
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /relay /relay
