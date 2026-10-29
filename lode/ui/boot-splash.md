@@ -54,7 +54,7 @@ Sizes now: scene 113 tiles, wordmark 170, 787 4×72. Sprite tiles are column-maj
 ```c
 splash_start(SP_GATE);                 /* scene up, V-Int animating; main must not touch the VDP */
 splash_phase(SP_TAXI, NULL);           /* waits: current call fully typed and >= DWELL frames (START skips) */
-splash_status("v0.1.2  FW 1.5 ...");   /* dim row 26 */
+splash_status("v0.2.0  FW 1.5 ...");   /* dim row 26 */
 splash_phase(SP_HOLD_POS, "WI-FI FAILED: OPENING SETUP");  /* then splash_stop(); setup_run(); splash_start(SP_HOLD) */
 splash_phase(SP_TAKEOFF, NULL); splash_finish();           /* departure, RADAR CONTACT, fade, stop */
 ```

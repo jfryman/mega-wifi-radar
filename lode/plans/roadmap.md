@@ -15,25 +15,19 @@ flowchart TD
 ```
 
 ## Status (current)
-- **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes),
-  v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
-  join fixes), v0.2.0 (traffic list, new controls, detail pop-up + `/v1/detail`, setup CONTROLS, contract v2 with
-version lock-step, start-up RAM check). 0.2.1 is open in `CHANGELOG.md`. The cart runs the v0.2.0 release ROM (CRC32 `DA73BCE4`) and
-boots (the first 0.2.0 flash booted to black: [../build/ram-budget.md](../build/ram-budget.md)). **Verified on the cart (2026-10-28):**
-  RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
-  keeps it. **Verified on the cart (2026-10-29), v0.1.3 ROM:** AUTO re-discovery mid-session (`make relay-stop` while
-  the radar runs, then `make relay-start`: the cart searches again after 3 failed polls and recovers without a reboot),
-  and START → WI-FI from the radar (scan while joined → leave AP → rejoin after setup). The dev file (`src/dev_config.h`) is removed, so the dev cart runs release-style builds.
+- **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash), v0.1.3 (mDNS discovery / AUTO relay,
+  setup RESET, contract check, Wi-Fi fixes), **v0.2.0** (traffic list, new controls, detail pop-up + `/v1/detail`, setup
+  CONTROLS, contract v2 with version lock-step, start-up RAM check). 0.2.1 is open in `CHANGELOG.md` (empty).
+- **The cart** runs the v0.2.0 release ROM (CRC32 `DA73BCE4`). The dev file (`src/dev_config.h`) is gone, so dev builds are
+  release-style; settings and Wi-Fi live on the module.
+- **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
+  version (`mwradar-relay:v0.2.0-2-ga93cd63`), advertised by `dns-sd -P` from `scripts/relay start`.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
-  image `ghcr.io/jfryman/mega-wifi-radar-relay` ([../build/ci-release.md](../build/ci-release.md)).
-- Verified on the cart: cold-boot detect, Wi-Fi join, relay polling once per sweep, renderer timing, setup + flash
-  persistence, the splash, mDNS discovery, setup RESET, first-boot Wi-Fi save + join,
-  AUTO relay re-discovery mid-session, and the Wi-Fi scan + rejoin from the radar's setup.
-- Verified on the cart (2026-10-29), 0.2.0: the traffic list, ▲▼ selection, hold-C sort, ◀▶ tags, the detail
-  pop-up against the real relay (▲▼ while open, C/B close), X on a 6-button pad, setup CONTROLS, and the
-  relay-mismatch message.
-- The dev relay runs as the `mwradar-relay` container on the dev Mac (:8080), advertised by `dns-sd -P` from
-  `scripts/relay start`.
+  image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
+- **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
+  persistence, the splash, mDNS discovery and mid-session re-discovery, setup RESET and the first-boot Wi-Fi flow,
+  the Wi-Fi scan + rejoin from the radar's setup, and all of 0.2.0: traffic list, ▲▼ selection, hold-C sort, ◀▶ tags,
+  the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message.
 
 ## Not yet checked on hardware
 - Nothing outstanding.
