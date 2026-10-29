@@ -1,4 +1,6 @@
-## 0.2.0 (Unreleased)
+## 0.2.1 (Unreleased)
+
+## 0.2.0 (October 29, 2026)
 
 BACKWARDS INCOMPATIBILITIES:
 
@@ -27,6 +29,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **build:** `make release` and `make sim` fail if a ROM leaves under 8 KiB of RAM for SGDK's
+    start-up allocations, which would otherwise hang the console on a black screen. SGDK's unused
+    DMA copy buffer is cut from 8 KiB to 2 KiB to make room.
   * **build:** `relay/contract.lock` ties `src/arframe.h` to its contract version, so the build
     fails if the contract changes without a version bump (`make contract-lock` records a new one).
   * **relay:** logs its release and contract version at start-up, and logs requests from a
