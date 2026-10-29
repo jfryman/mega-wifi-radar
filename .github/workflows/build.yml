@@ -130,6 +130,7 @@ jobs:
           for f in label cover manual; do
             cp "out/print/$f.pdf" "dist/mega-wifi-radar-$V-$f.pdf"
           done
+          cp out/print/cover-a4.pdf "dist/mega-wifi-radar-$V-cover-a4.pdf"
           cp out/print/manual-booklet-us-letter.pdf "dist/mega-wifi-radar-$V-manual-booklet-letter.pdf"
           cp out/print/manual-booklet-a4.pdf "dist/mega-wifi-radar-$V-manual-booklet-a4.pdf"
 

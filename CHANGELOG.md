@@ -1,5 +1,11 @@
 ## 0.2.1 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **print:** the clamshell cover is now a full wrap: a back with screenshots, features and
+    what you need, a 26 mm spine with the title, and the front. `cover-a4.pdf` puts it on A4
+    landscape for home printing, with cut and fold marks (the wrap is too wide for Letter).
+
 ## 0.2.0 (October 29, 2026)
 
 BACKWARDS INCOMPATIBILITIES:

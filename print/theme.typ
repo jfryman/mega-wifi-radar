@@ -54,7 +54,18 @@
 
 // Page set-up for a piece with trim size (w, h). `art` fills the bleed box behind the
 // content (a function of the page number, or none). Content gets `margin` inside the trim.
-#let printed(w, h, margin: 0mm, art: none, doc) = {
+// Fold marks: dashed hairlines in the slug at each x (from the trim's left edge), above and below.
+#let fold-marks(w, h, folds) = {
+  let o = slug + bleed
+  let len = slug - 2.5mm
+  let st = (paint: black, thickness: 0.3pt, dash: (1.2pt, 1.2pt))
+  for x in folds {
+    place(top + left, dx: o + x, dy: 0.5mm, line(angle: 90deg, length: len, stroke: st))
+    place(top + left, dx: o + x, dy: o + h + bleed + 2mm, line(angle: 90deg, length: len, stroke: st))
+  }
+}
+
+#let printed(w, h, margin: 0mm, art: none, folds: (), doc) = {
   set page(
     width: w + 2 * (bleed + slug),
     height: h + 2 * (bleed + slug),
@@ -67,7 +78,7 @@
         place(top + left, dx: slug, dy: slug,
           block(width: w + 2 * bleed, height: h + 2 * bleed, clip: true, art(here().page())))
       }
-      if marks { crop-marks(w, h) }
+      if marks { crop-marks(w, h); fold-marks(w, h, folds) }
     },
   )
   set text(font: font.body, size: 9pt, fill: ink.text)

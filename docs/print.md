@@ -5,8 +5,8 @@
 | Piece | Trim size | Output |
 |---|---|---|
 | Cartridge label | 80.5 × 77 mm | `out/print/label.pdf` |
-| Clamshell front cover | 130 × 178 mm | `out/print/cover.pdf` |
-| Instruction manual | 121 × 171 mm, 16 pages | `out/print/manual.pdf` (single pages), `manual-booklet-us-letter.pdf` / `-a4.pdf` (imposed) |
+| Clamshell sleeve insert (back, spine, front) | 286 × 178 mm (130 + 26 + 130) | `out/print/cover.pdf` (print shop, 11×17 / A3), `cover-a4.pdf` (home, A4 landscape) |
+| Instruction manual | 121 × 171 mm, 20 pages | `out/print/manual.pdf` (single pages), `manual-booklet-us-letter.pdf` / `-a4.pdf` (imposed) |
 
 Every release attaches all of them. To build locally (needs podman or docker):
 
@@ -22,12 +22,16 @@ and `*-N.png` files are 150 dpi previews.
 
 - **Label and cover:** print at **100% / actual size** (never "fit to page") on matte photo paper or
   sticker paper, and cut on the crop marks.
+- **Cover wrap:** too wide for Letter (it needs 286 mm plus bleed). At home, print `cover-a4.pdf` on **A4
+  landscape** at 100%: cut on the solid lines in the top and bottom margins (the short white ticks in the side
+  bleed mark the top and bottom edges), and fold on the dashed lines, which are the spine edges. A print shop
+  takes `cover.pdf` on 11×17 or A3.
 - **Manual booklet:** print `manual-booklet-*.pdf` **duplex, flip on short edge**, at 100%. Stack the
   sheets in order (sheet 1 on the outside), fold along the dashed marks, staple twice on the fold,
   then trim to the crop marks.
 
 The sizes are for an original US Sega clamshell and a stock cartridge shell. They come from published
-templates and haven't been checked against a real case yet. Measure a test print against yours and
+templates; the 26 mm spine was measured on a real case (they vary by about a millimetre). Measure a test print against yours and
 fix `print/dims.toml` if needed. Every size is defined only there.
 
 ## How it fits together
@@ -38,6 +42,8 @@ flowchart LR
   C[copy.toml] --> T
   K[keyart.typ<br/>scope from recorded traffic] --> F[front.typ]
   T --> F --> L[label.typ] & V[cover.typ] & M[manual.typ]
+  T --> BK[back.typ<br/>back + spine] --> V
+  V -.cover-trim.pdf.-> A4[cover-a4.typ]
   H[hardware.typ<br/>Model 1, pad, cartridge] --> M
   S[shots/*.png] --> M
   M --> B[booklet.typ]

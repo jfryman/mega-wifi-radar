@@ -9,9 +9,10 @@ slug = 9.0           # margin outside the bleed that carries the crop marks
 width = 80.5
 height = 77.0
 
-[cover]              # front panel of the clamshell sleeve insert (1536 x 2100 px @ 300 dpi)
-width = 130.0
+[cover]              # clamshell sleeve insert: a wrap of back | spine | front (286 mm wide: print on 11x17 / A3)
+width = 130.0        # one face, front or back (1536 x 2100 px @ 300 dpi)
 height = 178.0
+spine = 26.0         # measured on a real US clamshell (~26 mm); cases vary by a millimetre or so
 
 [manual]             # instruction booklet, one page (trim size)
 width = 121.0

@@ -11,3 +11,23 @@ tagline = "Real aircraft. Real time. On your Genesis."
 home = "KBNA"
 url = "github.com/jfryman/mega-wifi-radar"
 disclaimer = "Not for navigation. Sega, Genesis and Mega Drive are trademarks of Sega Corporation. This is an unofficial homebrew product, not made, licensed or endorsed by Sega."
+
+[back]               # back of the clamshell
+pitch = "Turn your Genesis into a working air traffic control scope. Real aircraft around your home airport arrive live over Wi-Fi and sweep onto the screen like a 1980s tower radar."
+features = [
+  "Live ADS-B traffic up to 100 nm from any of 1,143 airports",
+  "Sweep, trails and data tags, like the real thing",
+  "Tap C for everything about an aircraft: type, operator, altitude, squawk",
+  "Sort the traffic list by distance, callsign or altitude",
+  "Classic green phosphor or a modern STARS display",
+  "Finds its relay on your network by itself",
+]
+captions = ["LIVE TRAFFIC", "AIRCRAFT DETAILS", "STARS DISPLAY"]
+shots = ["radar", "popup", "stars"]
+need-title = "WHAT YOU NEED"
+need = [
+  "Sega Genesis or Mega Drive",
+  "MegaWiFi Rev.C cartridge (firmware rev-c-1250k)",
+  "A 2.4 GHz Wi-Fi network",
+  "The relay, running on a computer on your network",
+]
