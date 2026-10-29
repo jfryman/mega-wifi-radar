@@ -114,7 +114,11 @@ bool settings_reset(enum settings_reset what)
               mw_flash_write(MARK_SECTOR * 4096, mark, sizeof(mark)) == MW_ERR_NONE;
 
     if (what != RESET_WIFI) ok = ok && mw_flash_sector_erase(SAVE_SECTOR) == MW_ERR_NONE;
-    if (what != RESET_SETTINGS) ok = ok && mw_factory_settings() == MW_ERR_NONE;
+    /* The firmware only takes FACTORY_RESET while idle (idleCmdMask), not while joined to an AP. */
+    if (what != RESET_SETTINGS) {
+        mw_ap_disassoc();
+        ok = ok && mw_factory_settings() == MW_ERR_NONE;
+    }
     return ok;
 }
 #else

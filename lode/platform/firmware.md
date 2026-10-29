@@ -8,6 +8,18 @@ After a reset, the USB-Serial/JTAG console (`/dev/cu.usbmodem*`, 115200) shows o
 banner and `entry 0x403cc710`, with no app log. So the USB console can't tell whether the app
 is healthy; the 68k `mw_detect` is the real check.
 
+## Command states
+The firmware gates commands by state (`megawifi.c`: `idleCmdMask`, `readyCmdMask`). IDLE = not joined; READY = joined.
+Some commands are IDLE-only (`FACTORY_RESET`, `AP_SCAN`, `AP_JOIN`), others READY-only (`TCP_CON`, `UDP_SET`, `HTTP_OPEN`,
+`IP_CURRENT`). A command in the wrong state fails with `MW_ERR`: leave the AP first (`mw_ap_disassoc`). `net_scan()` does this and
+sets `net_rejoin_needed()`, so main rejoins after setup if nothing reconnected. The setup reset disassociates before
+`mw_factory_settings()`.
+
+```c
+mw_ap_disassoc();               /* READY -> IDLE */
+mw_factory_settings();          /* now accepted */
+```
+
 ## Inactivity sleep
 `MwInit` starts a one-shot **30 s** timer (`MW_SLEEP_TIMER_MS`) that calls `esp_deep_sleep_start()`.
 Only `MW_CMD_VERSION` (that is, `mw_detect`) cancels it. A module that never hears from the 68k

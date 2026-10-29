@@ -302,6 +302,12 @@ int main(bool hard)
             want_setup = FALSE;
             radar_stop();
             setup_run(FALSE);
+#ifndef FAKE_FEED
+            if (net_rejoin_needed()) {          /* a Wi-Fi scan left the AP and nothing reconnected */
+                u8 ip[4];
+                net_join(ip);
+            }
+#endif
             radar_up();
             poll();                 /* refill the (cleared) track table now */
             rot = radar_rotations();

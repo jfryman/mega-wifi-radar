@@ -19,6 +19,12 @@ IMPROVEMENTS:
     constants, HTTP query and mDNS strings, and `relay/contract_test.go` fails CI and `make release`
     if the relay disagrees with any of it, or if either side adds an item the other doesn't know.
 
+BUG FIXES:
+
+  * **setup:** scanning for Wi-Fi from the radar (START → WI-FI) no longer fails while connected:
+    the firmware only scans when idle, so the cart leaves the network first, and it rejoins after
+    setup if you back out.
+
 BACKWARDS INCOMPATIBILITIES:
 
   * **cartridge:** an empty RELAY setting now means AUTO (it used to mean "not set"). Saved

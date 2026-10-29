@@ -86,10 +86,18 @@ enum net_err net_ensure_ap(const char *ssid, const char *pass)
     return NET_OK;
 }
 
+static bool left_ap;     /* net_scan left the AP; nothing has rejoined since */
+
+bool net_rejoin_needed(void) { return left_ap; }
+
 s16 net_scan(struct net_ap *aps, u16 max)
 {
     char *data;
     u8 count;
+
+    /* AP_SCAN is idle-only in the firmware (idleCmdMask): leave the AP first */
+    mw_ap_disassoc();
+    left_ap = TRUE;
     s16 len = mw_ap_scan(MW_PHY_11BGN, &data, &count);
     struct mw_ap_data ap;
     s16 pos = 0;
@@ -136,6 +144,7 @@ enum net_err net_join(u8 ip_out[4])
     struct mw_ip_cfg *ip;
 
     if (slot < 0) slot = AP_SLOT;
+    left_ap = FALSE;
     if (mw_ap_assoc(slot) != MW_ERR_NONE ||
             mw_ap_assoc_wait(ASSOC_TOUT) != MW_ERR_NONE)
         return NET_ERR_ASSOC;

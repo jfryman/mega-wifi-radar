@@ -14,7 +14,8 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | RESET | A: page with WI-FI / SETTINGS / EVERYTHING / CANCEL; A twice confirms, then the console hard-resets |
 | SAVE & EXIT / EXIT | START = save |
 
-- **Reset** (for testing first-boot flows): WI-FI = `mw_factory_settings()` (the module's config: AP slots, IP config,
+- **Reset** (for testing first-boot flows): WI-FI = `mw_ap_disassoc()` then `mw_factory_settings()` (the firmware only
+  accepts FACTORY_RESET in the idle state, so a joined module rejects it; this clears the module's config: AP slots, IP config,
   default slot; our user_data is untouched); SETTINGS = erase the `MWR1` sector (back to defaults on the next boot);
   EVERYTHING = both. Every reset also writes the **dev-defaults-off marker** (`"MWRN"` + the ROM header checksum at
   `$18E`, user_data sector 1). While it matches the running ROM, boot skips `net_ensure_ap(DEV_WIFI_*)` and the
