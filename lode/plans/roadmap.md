@@ -16,20 +16,21 @@ flowchart TD
 
 ## Status (current)
 - **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes).
-  **0.1.3 is unreleased** (see `CHANGELOG.md`): mDNS relay discovery (AUTO RELAY). Built and pushed, and the
-  discovery spike is verified on the cart, but the full AUTO build hasn't been flashed and tested on hardware yet.
+  **0.1.3 is unreleased** (see `CHANGELOG.md`): mDNS relay discovery (AUTO RELAY), the setup RESET, the
+  relay ↔ cart contract check, and the Wi-Fi save / first-boot join fixes. **Verified on the cart (2026-10-28):**
+  RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
+  keeps it. The dev file (`src/dev_config.h`) is removed, so the dev cart runs release-style builds.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay` ([../build/ci-release.md](../build/ci-release.md)).
 - Verified on the cart: cold-boot detect, Wi-Fi join, relay polling once per sweep, renderer timing, setup + flash
-  persistence, the splash, and mDNS discovery (spike).
+  persistence, the splash, mDNS discovery, setup RESET, and first-boot Wi-Fi save + join.
 - The dev relay runs as the `mwradar-relay` container on the dev Mac (:8080), advertised by `dns-sd -P` from
   `scripts/relay start`.
 
-## Next to check on hardware (0.1.3)
-- Flash the current ROM. In setup, press C on RELAY (AUTO), SAVE & EXIT, power-cycle: the boot should show
-  *request radar service*, then the status line `RELAY 10.x.x.x:8080`.
-- Stop the relay (`make relay-stop`) during radar use: after 3 failed polls the cart re-discovers. Restart it and
-  the radar should recover without a reboot.
+## Not yet checked on hardware
+- AUTO re-discovery mid-session: `make relay-stop` while the radar runs, then `make relay-start`. After 3 failed polls the
+  cart searches again and should recover without a reboot.
+- Opening WI-FI from the radar's setup (scan while joined → leave AP → rejoin after setup).
 
 ```sh
 make flash                     # cart ROM (FlashKit); then cold-boot
