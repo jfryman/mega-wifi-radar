@@ -2,7 +2,7 @@
 
 = Reading the Scope
 
-#shot("radar", callouts: ((1, 160, 62), (2, 207, 37), (3, 199, 121), (4, 18, 76), (5, 314, 28), (6, 314, 80), (7, 314, 210)))
+#shot("radar", callouts: ((1, 160, 62), (2, 207, 37), (3, 199, 121), (4, 18, 76), (5, 215, 28), (6, 215, 110), (7, 215, 198)))
 #v(1mm)
 #key(1)[The sweep][turns once every 4.3 seconds, leaving a fading glow behind it. Each aircraft
   moves to its new position as the sweep passes over it, and dims until the next pass.]
@@ -17,10 +17,12 @@
 
 #key(5)[Status][Your airport, the range (*RNG*), the time in UTC (*Z*), the number of aircraft, and
   the link: *NET OK*, or *STALE* with the seconds since the last good update.]
-#key(6)[Selected aircraft][Press *C*: callsign, altitude (#sym.arrow.t climbing, #sym.arrow.b
-  descending, *GND* on the ground), ground speed, track, squawk code, and distance and bearing from
-  your airport.]
-#key(7)[Data][Where the traffic comes from.]
+#key(6)[Traffic list][Every aircraft on the scope: callsign and distance in nautical miles. The
+  top line shows the order (*NEAREST*, *A-Z*, *Z-A*, *LOW ALT*, *HIGH ALT*; hold *C* to change it).
+  The selected aircraft is highlighted and boxed on the scope. Emergencies are always at the top,
+  in red. *v13 MORE* means there are more below: keep pressing *down*.]
+#key(7)[Theme, tags and data][The theme, the tag setting (*ALL*, *SEL*, *OFF*), and where the
+  traffic comes from.]
 
 == Tag colours
 

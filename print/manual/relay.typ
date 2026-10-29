@@ -23,6 +23,9 @@ Any computer on your network that stays on will do, including a Raspberry Pi. Th
   [From the project's source: *make relay-start*. Your Mac announces the relay for its container.],
 )
 
+Use the relay from the *same release* as your cartridge: each cartridge works with its own relay
+version, and says so if they don't match.
+
 If your network blocks these announcements, type the relay's address under *RELAY* in Setup instead:
 *#"http://"* plus the computer's name or IP address plus *:8080*, for example
 *#"http://radar-pi.home.lan:8080"*.

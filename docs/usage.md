@@ -40,6 +40,7 @@ Use up/down to move between rows; each row lists its controls below.
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
+| CONTROLS | A: list every radar and setup button; B or START goes back |
 | RESET | A: choose **Wi-Fi networks** (forget saved Wi-Fi), **Settings** (back to defaults) or **Everything**; press A again to confirm, and the console restarts into the first-boot flow |
 | SAVE & EXIT | A: write the settings to the ESP32 flash and return |
 | EXIT | A: leave and discard the changes |
@@ -60,10 +61,19 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 | Button | Action |
 |---|---|
 | A / B | zoom in / out (5 to 100 nm) |
-| C | select the next aircraft, nearest first; details appear in the panel |
-| hold C | cycle tags: all, selected only, off |
-| D-pad | pan the scope |
+| up / down | select the previous / next aircraft in the traffic list (hold to scroll) |
+| C | open the detail pop-up for the selected aircraft; C or B closes it |
+| hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude |
+| left / right | tags: all, selected only, off |
+| X (6-button pad) | next theme. Optional: Y and Z are unused, and everything works on a 3-button pad |
 | START | setup |
+
+**Detail pop-up:** covers the scope (which keeps running) with the selected aircraft's callsign and ICAO
+address, registration, type, year, model and operator, then altitude, vertical speed, GPS altitude,
+autopilot-selected altitude and heading, altimeter setting (inHg and hPa), speed, track, squawk with its
+meaning, category, distance and bearing, status and time since last heard. The live values come from the
+frame; the rest from the relay's `/v1/detail`, refreshed once per sweep. Up/down move the selection
+without closing it. `--` means the aircraft doesn't report that value.
 
 ## What's on screen
 
@@ -78,8 +88,9 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
   (squawk 7500/7600/7700). Aircraft on the ground don't get tags.
 - **Stale targets** (no position for 15 s) are drawn dim. Targets are dropped after 60 s.
 - **Panel** (right): airport, range, UTC time, aircraft count, link state (`NET OK`, `STALE 20s`,
-  `ERR HTTP`, `UPSTRM ERR`, …), the selected aircraft (callsign, altitude with climb/descent arrow,
-  ground speed, track, squawk, distance/bearing), controls, theme, and the data source credit.
+  `ERR HTTP`, `RELAY VER?`, `UPSTRM ERR`, …), then the **traffic list**: a header with the sort order,
+  15 rows of `CALLSIGN DIST` (nm) with the selection highlighted and emergencies pinned on top in red,
+  and `^3 v10 MORE` when it scrolls. Below that, the theme and tag mode, and the data source credit.
 
 ## Themes
 
