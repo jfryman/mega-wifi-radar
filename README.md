@@ -70,8 +70,8 @@ Each [release](https://github.com/jfryman/mega-wifi-radar/releases) contains:
 - `mega-wifi-radar-<version>.bin` is the cart ROM. It contains no credentials; you configure it on the console.
 - `mega-wifi-radar-<version>-emu.bin` is an emulator build that replays a recorded feed around KBNA, so
   it needs no MegaWiFi hardware. It runs in MAME, BlastEm and others.
-- `mega-wifi-radar-<version>-label.pdf`, `-cover.pdf`, `-manual.pdf` and `-manual-booklet-letter.pdf` / `-a4.pdf`
-  are the printable cartridge label, clamshell cover and manual (see [docs/print.md](docs/print.md)).
+- `mega-wifi-radar-<version>-label.pdf`, `-cover.pdf` (with `-cover-a4.pdf` for home printing), `-manual.pdf` and
+  `-manual-booklet-letter.pdf` / `-a4.pdf` are the printable cartridge label, clamshell wrap (back, spine, front) and manual (see [docs/print.md](docs/print.md)).
 - `SHA256SUMS`
 
 The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64),

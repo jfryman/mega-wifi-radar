@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build the printed pieces (print/*.typ) with Typst in its official image, pinned by digest.
 #   scripts/print                 # all pieces -> out/print/*.pdf + previews out/print/*.png
-#   scripts/print cover           # one piece (label, cover, manual)
+#   scripts/print cover           # one piece (label, cover, manual); the cover also makes cover-a4.pdf
 #   scripts/print watch cover     # rebuild on change (marks off)
 # Fonts come only from print/fonts (--ignore-system-fonts), so output matches on every machine.
 set -eu
@@ -34,6 +34,11 @@ piece() {   # piece <name>
     echo "print: $OUT/$1.pdf"
 }
 
+cover_a4() {  # the wrap centred on A4 landscape (needs cover-trim.pdf first)
+    typst compile print/cover-a4.typ "$OUT/cover-a4.pdf"
+    echo "print: $OUT/cover-a4.pdf"
+}
+
 booklet() {  # imposes manual-trim.pdf (needs it first); its page count = the PNG previews
     pages=$(ls "$ROOT/$OUT"/manual-*.png | grep -c '/manual-[0-9]*\.png$')
     for paper in us-letter a4; do
@@ -44,8 +49,9 @@ booklet() {  # imposes manual-trim.pdf (needs it first); its page count = the PN
 }
 
 case "${1:-all}" in
-    all)     for p in label cover manual; do piece "$p"; done; booklet ;;
-    label|cover) piece "$1" ;;
+    all)     for p in label cover manual; do piece "$p"; done; cover_a4; booklet ;;
+    label)   piece "$1" ;;
+    cover)   piece cover; cover_a4 ;;
     manual)  piece manual; booklet ;;
     watch)   typst watch "print/${2:?piece}.typ" "$OUT/${2}.pdf" --input marks=false ;;
     *)       echo "usage: scripts/print [all|label|cover|manual|watch <piece>]" >&2; exit 2 ;;
