@@ -1,27 +1,43 @@
 # Relay (option A) — `relay/`, Go
 
-A small HTTP service that polls adsb.fi over HTTPS, turns its JSON into the v1 compact frame
+A small HTTP service that polls adsb.fi over HTTPS, turns its JSON into the compact frame
 ([../architecture/frame-format.md](../architecture/frame-format.md)), and serves it over plain HTTP
 to the console. Pure Go stdlib, no dependencies. Builds natively on macOS and Arch (`go` is packaged on both).
 
 ```mermaid
 flowchart LR
-  C[console<br/>GET /v1/frame?lat&lon&range&max] --> H[handler: parse + clamp]
+  C[console<br/>GET /v1/frame?lat&lon&range&max&v] --> V{v == frameVer?}
+  V -- no --> M[409 + relay release]
+  V -- yes --> H[handler: parse + clamp]
   H --> K{cache fresh?<br/>same query, < 1 s}
   K -- yes --> E
   K -- no --> U[adsb.fi /api/v3/lat/lon/dist<br/>≥ 1 s between upstream calls]
   U -- ok --> X[convert: filter, project, sort, cap] --> E[encode frame<br/>explicit Content-Length]
   U -- error --> L[last good frame + UPSTREAM_ERR]
   L --> E
+  U -. newest snapshot .-> S[(last, lastAt)]
+  D[GET /v1/detail?icao&v] --> S
+  S -- missing or > 30 s --> HX[adsb.fi /api/v2/hex/icao<br/>same rate limit]
+  S --> DE[encode ar_detail, 96 B]
+  HX --> DE
 ```
 
 ## Contract
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>`. `range` is clamped to 1–250 (the adsb.fi
+- **Version:** `version` (the release, `-ldflags -X main.version`; `VERSION` build arg from CI's semver tag or
+  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 2). Every route but `/healthz` needs
+  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v2: use the relay and cartridge
+  from the same release"*, logged with both versions. The start-up log names both.
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=2`. `range` is clamped to 1–250 (the adsb.fi
   limit) and `max` to 1–96. Missing or invalid `lat`/`lon` → `400`.
 - `200`, `application/octet-stream`, **explicit `Content-Length`**. Go's `net/http` would otherwise
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
+- `GET /v1/detail?icao=<6 hex>&v=2` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
+  snapshot, any query) if it's < 30 s old and has the aircraft, else `/api/v2/hex/<icao>` through the same
+  1 req/s limiter. Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
+  other bytes become `?` (`padASCII`, shared with callsigns).
 - `GET /healthz` → `ok`.
+- `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
 - See "Running it" below. The console URL is
   found over mDNS (AUTO) or typed as `http://<relay-host-fqdn>:8080` (see "Discovery" below).
 
@@ -82,7 +98,7 @@ resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `Meg
 
 ```sh
 scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
-dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=1 path=/v1/frame
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=2 path=/v1/frame
 cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ```
 

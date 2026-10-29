@@ -29,15 +29,17 @@ sequenceDiagram
 ## Implementation
 ```c
 enum net_err net_discover(char *url);   /* src/net.c: ch 1, port 5354, 3 tries x 1 s; "http://a.b.c.d:port" */
-bool feed_find_relay(void);             /* src/feed_relay.c: typed settings.relay, else net_discover */
+enum feed_err feed_find_relay(void);    /* src/feed_relay.c: typed settings.relay, else net_discover */
 ```
 `build_query()` assembles the query from the contract defines (`AR_MDNS_SERVICE`, `AR_MDNS_QUERY_ID`, `AR_MDNS_SRC_PORT`
 in `arframe.h`) behind the 6-byte reuse prefix (`224.0.0.251:5353`). `parse_reply` checks id `0x4D57`
-and the QR bit, skips questions and names (pointers included), and takes the first SRV port and A address. If there's
-no A record, the sender IP from the reuse prefix is used. Boot runs it as splash phase SP_RELAY.
+and the QR bit, skips questions and names (pointers included), and takes the first SRV port, A address and TXT
+`v=`. If there's no A record, the sender IP from the reuse prefix is used. A TXT `v=` other than `AR_VER` →
+`NET_ERR_VERSION` (no retries); a reply without TXT is accepted and HTTP's 409 catches a mismatch later. Boot runs it as splash phase SP_RELAY.
 
 ## Contracts
-- Service `_mwradar._tcp.local`. Instance `MegaWiFi Radar._mwradar._tcp.local`. TXT `v=1`, `path=/v1/frame`.
+- Service `_mwradar._tcp.local`. Instance `MegaWiFi Radar._mwradar._tcp.local`. TXT `v=<AR_VER>` (2), `path=/v1/frame`.
+  The host proxy (`scripts/relay advertise`) reads both from `src/arframe.h`.
   Target `<hostname>.local`, with an A record from the interface whose subnet holds the querier.
 - Legacy unicast replies (querier port ≠ 5353) echo the query ID and question, use TTL ≤ 10 s, and go to the
   querier's address and port. Queries from 5353 get a normal multicast answer (ID 0), so `dns-sd -B` sees us.

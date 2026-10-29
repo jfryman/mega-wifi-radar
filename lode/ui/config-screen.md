@@ -11,6 +11,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
 | WI-FI | A: scan (`net_scan`), pick, keyboard password, `net_connect` (slot 0, DHCP, saved) |
 | RELAY | `AUTO <found host>` or `AUTO (MDNS)` when empty (mDNS, [../net/discovery.md](../net/discovery.md)); A: keyboard edit (empty = AUTO); C: back to AUTO |
+| CONTROLS | A: read-only page of the radar + setup buttons (`controls_page`; descriptions from col 14, ≤ 25 chars); A/B/START back |
 | RESET | A: page with WI-FI / SETTINGS / EVERYTHING / CANCEL; A twice confirms, then the console hard-resets |
 | SAVE & EXIT / EXIT | START = save |
 
@@ -26,7 +27,10 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 - Persistence: `settings_save()` writes `"MWR1" + struct settings + checksum` to ESP32 user_data
   sector 0 (`mw_flash_sector_erase/write`); `settings_load()` at boot. Defaults come from devcfg.
 - `src/airports.c` is generated: `cd tools && go run ./airportgen -o ../src/airports.c` (OurAirports, public domain).
-- SGDK quirks: `strncpy` doesn't zero-pad; `sprintf` lacks `%-Ns`/`%.Ns`; pad by hand.
+- Layout: title on row 1, `ROW_Y(r) = 3 + 2r + (r > R_AIRPORT)` (the airport name gets a line), EXIT on row 22,
+  hints on rows 23–24, status on row 25.
+- SGDK quirks: `strncpy` doesn't zero-pad. `sprintf` left-justifies (`%-8s`, `%-*s` work: panel, pop-up); don't
+  rely on `%.Ns` precision.
 
 ```mermaid
 flowchart TD

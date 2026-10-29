@@ -1,4 +1,4 @@
-# Compact frame format (v1, agreed 2026-10-28)
+# Compact frame format (contract v2)
 
 The binary snapshot of nearby traffic that the console consumes. The digester produces it: the relay
 (option A) now, possibly the ESP32 firmware (option B) later, in byte-identical form. The console
@@ -28,7 +28,7 @@ flowchart LR
 | 0 | `char[2]` | magic | `"AR"` |
 | 2 | `u8` | ver | `1` |
 | 3 | `u8` | count | records that follow (≤ requested `max`, ≤ 96 by default) |
-| 4 | `u16` | rec_size | `24` in v1. Read the first 24 bytes of each record and skip `rec_size - 24` |
+| 4 | `u16` | rec_size | `24`. Read the first 24 bytes of each record and skip `rec_size - 24` |
 | 6 | `u16` | seq | +1 per upstream fetch (wraps). The same seq means the same snapshot |
 | 8 | `u32` | time | Unix seconds of the upstream snapshot |
 | 12 | `u16` | range_nm | filter radius applied |
@@ -70,7 +70,7 @@ struct ar_rec { u8 icao[3], flags; s16 x, y, alt; u16 squawk;
 ```
 
 ## Transport
-`GET http://<relay>/v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>` returns `200`,
+`GET http://<relay>/v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=<AR_VER>` returns `200`,
 `Content-Type: application/octet-stream`, **with a `Content-Length`** (no chunked encoding:
 `net_http_get` needs the length). Errors are non-200 statuses with no frame. The relay filters to
 `range`, drops aircraft with no position or `seen_pos > 60`, sorts **nearest first** and keeps
@@ -80,13 +80,16 @@ Sizing: 16 + 96 × 24 = **2,320 B maximum**. KORD at 25 nm (~74 aircraft) = 1,79
 MSS chunks. The console's frame buffer is 2,320 B.
 
 ## Versioning
-- New fields go **after** byte 24 and increase `rec_size`, so v1 consoles keep working.
-  v2 adds the aircraft **type** (`t`, e.g. `B738`, 4 chars) → 28 bytes.
-- An incompatible change bumps `ver`. The console rejects a `ver` it doesn't know and shows
-  "relay version".
+- `ver` is the contract version `AR_VER` (2 since 0.2.0, when `v=`, the 409 mismatch and `/v1/detail` came in).
+  The relay and the cart are released together and must match exactly: **any** change to `src/arframe.h`
+  bumps it (enforced by `relay/contract.lock`, [contract.md](contract.md)). The console rejects any other `ver`
+  (`FEED_ERR_VERSION`, panel `RELAY VER?`).
+- `rec_size` still lets a record grow without moving fields, but compatibility comes from lock-step, not from it.
+- Per-aircraft data that only the pop-up needs (type, registration, model, operator...) is **not** in the record:
+  it's the 96-byte `struct ar_detail` from `/v1/detail` ([../ui/detail-popup.md](../ui/detail-popup.md)).
 
 ## Validation on the console
-`magic == "AR"`, `ver == 1`, `rec_size >= 24`, `rec_size` even, and
+`magic == "AR"`, `ver == AR_VER`, `rec_size >= 24`, `rec_size` even, and
 `16 + count × rec_size == content_len`. Otherwise the snapshot is discarded and the previous one kept.
 
 The machine-checked form of this spec is `src/arframe.h`; `relay/contract_test.go` holds the relay to it

@@ -11,8 +11,8 @@
   (format: [build/ci-release.md](build/ci-release.md)).
 - A change to what the player sees or does also updates its manual section in `print/manual/` and, if the
   screen changed, `print/shots.txt` + `make print-shots`, in the same commit ([print/print-assets.md](print/print-assets.md)).
-- Contract changes (frame layout, constants, HTTP path/query, mDNS strings) start in `src/arframe.h`; then the
-  relay, then the mapping in `relay/contract_test.go`. `make contract` (run before every ROM build) and CI enforce it
+- Contract changes (frame/detail layout, constants, HTTP paths/queries, mDNS strings) start in `src/arframe.h` with an
+  `AR_VER` bump; then the relay, then the mapping in `relay/contract_test.go`, then `make contract-lock`. `make contract` (run before every ROM build) and CI enforce it
   ([architecture/contract.md](architecture/contract.md)).
 - The relay is part of the cartridge: extend it whenever a cart feature needs it. Relay vX requires cart vX; both
   ship from the same tag. Any contract change bumps `AR_VER`, and mismatches are caught at build time and on screen.
