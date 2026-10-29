@@ -19,7 +19,8 @@ flowchart TD
   v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
   join fixes). **0.2.0** (unreleased, `CHANGELOG.md`, plan [v0.2.0-radar-ux.md](v0.2.0-radar-ux.md)) is built: traffic list,
 new controls, detail pop-up + `/v1/detail`, setup CONTROLS, contract v2 with version lock-step; verified in MAME, and
-the cart is flashed with it (CRC32 `A708FAE9`, `main` at `3d9a6f8`) against the rebuilt dev relay. **Verified on the cart (2026-10-28):**
+the cart is flashed with it (CRC32 `4F89B902`: the first 0.2.0 flash, `A708FAE9`, booted to black, see
+[../build/ram-budget.md](../build/ram-budget.md)) against the rebuilt dev relay. **Verified on the cart (2026-10-28):**
   RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
   keeps it. **Verified on the cart (2026-10-29), v0.1.3 ROM:** AUTO re-discovery mid-session (`make relay-stop` while
   the radar runs, then `make relay-start`: the cart searches again after 3 failed polls and recovers without a reboot),

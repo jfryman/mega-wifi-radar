@@ -37,6 +37,7 @@ contract-lock:
 release: version contract
 	rm -f out/release/src/devcfg.o
 	$(MD) $(SGDKMK) release
+	scripts/ram-check out/release/symbol.txt
 
 debug: version
 	rm -f out/debug/src/devcfg.o
@@ -50,6 +51,7 @@ clean:
 sim: version contract
 	rm -rf out/release
 	$(MD) $(SGDKMK) release EXTRA_FLAGS=-DFAKE_FEED
+	scripts/ram-check out/release/symbol.txt
 	cp out/rom.bin out/sim.bin
 	rm -rf out/release out/rom.bin
 

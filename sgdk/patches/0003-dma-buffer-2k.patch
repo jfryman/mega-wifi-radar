@@ -1,0 +1,16 @@
+diff --git a/inc/dma.h b/inc/dma.h
+--- a/inc/dma.h
++++ b/inc/dma.h
+@@ -38,8 +38,10 @@
+ #define DMA_TRANSFER_CAPACITY_PAL_MAX   15000
+ 
+ // better to allocate a bit more than DMA capacity
+-#define DMA_BUFFER_SIZE_NTSC            8192
+-#define DMA_BUFFER_SIZE_PAL_LOW         8192
++// mega_wifi_radar: 2 KiB (stock 8 KiB). This buffer only backs DMA_QUEUE_COPY, which the ROM never uses,
++// and SGDK allocates it from the heap at start-up, before main(), where RAM is tight (lode/build/ram-budget.md).
++#define DMA_BUFFER_SIZE_NTSC            (2 * 1024)
++#define DMA_BUFFER_SIZE_PAL_LOW         (2 * 1024)
+ #define DMA_BUFFER_SIZE_PAL_MAX         (14 * 1024)
+ #define DMA_BUFFER_SIZE_MIN             (2 * 1024)
+ 

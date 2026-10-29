@@ -1,0 +1,19 @@
+#!/bin/sh
+# Fail the build if too little RAM is left for SGDK's heap at start-up (lode/build/ram-budget.md).
+# SGDK's heap runs from the end of .bss (_bend) to the stack (MEMORY_HIGH = 0xFFF600 with the 0xA00 stack),
+# and SGDK allocates its DMA queue and buffer and unpacks the font there before main(). If one of those
+# fails, the console hangs on a black screen before anything is drawn.
+#   scripts/ram-check out/release/symbol.txt
+set -eu
+SYM=${1:-out/release/symbol.txt}
+MIN=${RAM_MIN_HEAP:-8192}
+bend=$(awk '$3 == "_bend" {print $1}' "$SYM")
+[ -n "$bend" ] || { echo "ram-check: no _bend in $SYM" >&2; exit 1; }
+end=$((0x$bend & 0xFFFFFF))
+heap=$((0xFFF600 - end))
+if [ "$heap" -lt "$MIN" ]; then
+    echo "ram-check: only $heap bytes of heap at start-up (static RAM ends at $(printf '0x%X' $end)); need >= $MIN." >&2
+    echo "ram-check: shrink a static buffer (see the largest in $SYM) before this ROM hangs at boot." >&2
+    exit 1
+fi
+echo "ram-check: static RAM ends at $(printf '0x%X' $end), $heap bytes of heap at start-up (min $MIN)"
