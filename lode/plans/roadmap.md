@@ -17,7 +17,8 @@ flowchart TD
 ## Status (current)
 - **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash), v0.1.3 (mDNS discovery / AUTO relay,
   setup RESET, contract check, Wi-Fi fixes), **v0.2.0** (traffic list, new controls, detail pop-up + `/v1/detail`, setup
-  CONTROLS, contract v2 with version lock-step, start-up RAM check). 0.2.1 is open in `CHANGELOG.md` (empty).
+  CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet).
+  0.2.2 is open in `CHANGELOG.md` (empty).
 - **The cart** runs the v0.2.0 release ROM (CRC32 `DA73BCE4`). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's

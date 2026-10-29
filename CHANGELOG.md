@@ -1,4 +1,6 @@
-## 0.2.1 (Unreleased)
+## 0.2.2 (Unreleased)
+
+## 0.2.1 (October 29, 2026)
 
 IMPROVEMENTS:
 
