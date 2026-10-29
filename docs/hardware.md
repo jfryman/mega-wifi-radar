@@ -87,5 +87,6 @@ the sweep takes 5.1 s per turn instead of 4.3 s; everything else is the same.
 | *Hold position: Wi-Fi failed* | Wrong password, or the AP is out of range or 5 GHz only. Setup opens so you can fix it. |
 | *Hold position: no relay found* | No relay answered the mDNS query: check it's running and advertising (`dns-sd -B _mwradar._tcp`), or type its URL under RELAY |
 | Panel shows `ERR HTTP` / `ERR RECV` instead of `NET OK` | The relay can't be reached. Check the URL (use the full DNS name or an IP; `.local` doesn't resolve) and that port 8080 is open. |
-| Panel shows `ERR FRAME` / `ERR SIZE` | Something other than the relay answered at that URL, or a relay with a newer frame version |
+| Panel shows `ERR FRAME` / `ERR SIZE` | Something other than the relay answered at that URL |
+| Boot says `RELAY MISMATCH`, or the panel shows `RELAY VER?` | The relay is from another release: run the relay image tagged with your cartridge's version |
 | Panel shows `UPSTRM ERR` | The relay is up, but adsb.fi isn't answering it. It keeps serving the last good frame. |

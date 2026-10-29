@@ -53,7 +53,9 @@ flowchart LR
 | `print` | Label, cover and manual PDFs in `out/print/` ([print.md](print.md)) |
 | `print-shots` | Recapture the manual's screenshots in MAME |
 | `splash-art` | Regenerate the boot splash data from `res/splash/src/art.typ` |
-| `contract` | Check the relay against `src/arframe.h` (frame layout, constants, HTTP query, mDNS); runs before `release` and `sim` |
+| `contract` | Check the relay against `src/arframe.h` (frame and detail layouts, constants, HTTP queries, version, mDNS) and `relay/contract.lock`; runs before `release` and `sim` |
+| `contract-lock` | Record `src/arframe.h`'s hash for the current `AR_VER` in `relay/contract.lock` (after a bump) |
+| `fake-feed` | Rebuild the emulator feed (`res/fake/`) from `relay/testdata/kbna-seq/` |
 | `clean` | |
 
 The boot screen shows the version from `git describe --tags --always --dirty`. `make` writes it to the
@@ -73,7 +75,7 @@ These are committed. Regenerate them only if you change the generator:
 cd tools && go run ./scopegen -o ../res/scope                 # scope tiles + sweep pixel lists
 cd tools && go run ./airportgen -o ../src/airports.c          # airport table (OurAirports)
 make splash-art                                               # boot splash: Typst art -> tiles (tools/splashgen)
-cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json
+make fake-feed                                                # emulator feed: res/fake/kbna_seq.bin + kbna_detail.bin (relay -pack, -pack-detail)
 ```
 
 ## The relay ↔ cartridge contract
@@ -83,6 +85,11 @@ cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -
 service. `relay/contract_test.go` parses it and checks the relay against every item. It also fails on any `AR_*` item it
 doesn't recognise, so a change on either side that isn't mirrored can't pass `make release` or CI. To change the contract,
 edit `arframe.h` first, then the relay, then the mapping in the test.
+
+The relay and the cartridge are one product: relay vX serves cartridge vX. `relay/contract.lock` pins a hash of
+`arframe.h` (comments and whitespace ignored) to `AR_VER`, so any contract change must bump `AR_VER`; the test says so,
+and after the bump `make contract-lock` records the new hash. At runtime every request carries `v=AR_VER`, the relay
+answers other versions with `409`, and the cart shows the mismatch on screen.
 
 ## Tests
 

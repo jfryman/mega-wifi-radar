@@ -5,16 +5,17 @@
 Press *Start* on the radar to open Setup, or hold *Start* while you turn the power on. Setup
 also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 
-#shot("setup", callouts: ((1, 18, 51), (2, 18, 83), (3, 18, 107), (4, 18, 123), (5, 18, 139), (6, 18, 155)))
+#shot("setup", callouts: ((1, 18, 43), (2, 18, 75), (3, 18, 99), (4, 18, 115), (5, 18, 131), (6, 18, 147), (7, 18, 163)))
 #v(1mm)
 #grid(columns: (1fr, 1fr), column-gutter: 4mm, row-gutter: 1.6mm,
   key(1)[THEME, RANGE, TAGS][#sym.arrow.l #sym.arrow.r on the D-Button changes them.],
   key(2)[AIRPORT][#sym.arrow.l #sym.arrow.r steps through airports, *C* jumps to the next letter,
     *A* lets you type the four-letter ICAO code (KBNA, KORD, EGLL...).],
-  key(3)[WI-FI][*A* scans for networks. Pick yours, then type its password.],
+  key(3)[WI-FI][*A* scans for networks: pick yours, type its password.],
   key(4)[RELAY][*AUTO* finds the relay by itself. *A* types an address instead; *C* goes back to AUTO.],
-  key(5)[RESET][Forget the Wi-Fi network, the settings, or both, then restart, as if new.],
-  key(6)[SAVE & EXIT][Stores everything in the cartridge. *EXIT* throws your changes away.],
+  key(5)[CONTROLS][Every button, on screen.],
+  key(6)[RESET][Forget Wi-Fi, settings or both, and restart as new.],
+  key(7)[SAVE & EXIT][Keeps your changes. *EXIT* drops them.],
 )
 
 #pagebreak()

@@ -7,7 +7,7 @@
 
 #let (w, h) = size-of("manual")
 #let sections = (
-  "handling", "contents", "starting-up", "controls", "relay", "setup", "scope", "themes",
+  "handling", "contents", "starting-up", "controls", "relay", "setup", "scope", "details", "themes",
   "troubleshooting", "credits",
 )
 

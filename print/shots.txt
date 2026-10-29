@@ -1,6 +1,7 @@
 # Manual screenshots from the emulator build (make print-shots; needs the MAME image, see scripts/sim).
-# name | snapshot time (emulated s) | presses "t:FIELD,..." (MAME names: P1 A/B/C, P1 Start, P1 Up...)
-radar    | 14 | 12:P1 C
+# name | snapshot time (emulated s) | presses "t:FIELD,t:FIELD/secs" (MAME names: P1 A/B/C, P1 Start, P1 Up...)
+radar    | 14 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down
+popup    | 13.5 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down,12.2:P1 C
 setup    | 13 | 11:P1 Start
 stars    | 17 | 11:P1 Start,12:P1 Right,13:P1 Start
 zoom     | 14 | 11:P1 A,12:P1 A

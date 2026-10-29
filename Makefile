@@ -27,7 +27,7 @@ contract:
 
 # Emulator feed from the recorded KBNA snapshots: frames + pop-up details (res/fake/, embedded by make sim).
 fake-feed:
-	cd relay && go run . -pack ../res/fake/kbna_seq.bin testdata/kbna-seq/*.json \
+	cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json \
 		&& go run . -pack-detail ../res/fake/kbna_detail.bin testdata/kbna-seq/*.json
 
 # After bumping AR_VER in src/arframe.h: record the new contract in relay/contract.lock.

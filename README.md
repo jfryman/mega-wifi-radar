@@ -6,7 +6,7 @@ phosphor afterglow, and aircraft blips with history trails and data tags (callsi
 ground speed). The traffic is real ADS-B traffic around an airport you choose. It boots with a
 787 departure in which every ATC radio call is a real boot step.
 
-<p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, UAL2414 selected"></p>
+<p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, the traffic list with SWA692 selected"></p>
 
 ```mermaid
 flowchart LR
@@ -74,7 +74,9 @@ Each [release](https://github.com/jfryman/mega-wifi-radar/releases) contains:
   are the printable cartridge label, clamshell cover and manual (see [docs/print.md](docs/print.md)).
 - `SHA256SUMS`
 
-The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64).
+The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64),
+tagged with each release. **Run the relay from the same release as your cartridge** (`:latest` is the newest
+release; `:0.2.0` pins one). A mismatched pair says so on screen instead of working half-way.
 
 ## Credits and data
 
