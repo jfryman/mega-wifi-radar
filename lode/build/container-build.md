@@ -33,6 +33,8 @@ flowchart TD
   fails a `_Static_assert` unless `UART_CLK=20 MHz`, `UART_BR=1.25 M`, and the implementation is `MW_CART`.
 - Containers run as the host user (`--user uid:gid` on Docker, `--userns=keep-id` on Podman), so `out/` isn't owned by root.
 - Patches must apply cleanly (`git apply --check`). When the pin moves, regenerate them; don't fuzz them.
+  They are: `0001` Rev.C UART (20 MHz, 1.25 Mbaud), `0002` MegaWiFi on for `MW_CART`, `0003` DMA copy buffer
+  8 KiB → 2 KiB (start-up heap, [ram-budget.md](ram-budget.md)). Hunk headers must count lines exactly.
 
 ## Usage
 ```sh
@@ -70,7 +72,7 @@ presses buttons (MAME field names: `P1 A/B/C`, `P1 Start`, `P1 Up`...). Generate
 
 ## Updating the SGDK pin
 1. Change `SGDK_COMMIT`.
-2. In a checkout at the new SHA, re-make both edits and `git diff > sgdk/patches/000N-*.patch`.
+2. In a checkout at the new SHA, re-make the three edits and `git diff > sgdk/patches/000N-*.patch`.
 3. Run `make image`. The guard step must pass.
 
 CI and releases: [ci-release.md](ci-release.md).

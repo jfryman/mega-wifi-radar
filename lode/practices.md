@@ -29,6 +29,9 @@
   from a **cold** power-on, and reset statics at the top of `main` when it matters.
 - V-Int code: no sprintf, no SGDK text/sprite helpers, no 32-bit multiply/divide/modulo; grep the disassembly for `jsr __`. See [ui/radar-renderer.md](ui/radar-renderer.md).
 - Respect the sprite budget: 80 total, 20 per scanline.
+- Respect the RAM budget: `scripts/ram-check` (run by `make release`/`sim`) needs ≥ 8 KiB of heap at start-up. After
+  RAM-affecting changes, boot the **cart** ROM in MAME (`scripts/sim out/rom.bin 2,5` → 787 at the gate); the emulator
+  build has less static RAM and can't catch it ([build/ram-budget.md](build/ram-budget.md)).
 - ROM size ≤ 4 MiB unless there is a reason to go bigger (emulators and tools assume 4 MiB).
 
 ## SGDK library must match Rev.C

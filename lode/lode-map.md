@@ -9,6 +9,7 @@
   - [firmware.md](platform/firmware.md) - mw-fw-rtos rev-c-1250k, HTTPS cert behaviour
 - build/
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, GHCR pull, Rev.C guard, make targets
+  - [ram-budget.md](build/ram-budget.md) - static RAM vs SGDK's start-up heap, ram-check, the 2 KiB DMA buffer patch
   - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
