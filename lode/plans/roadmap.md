@@ -15,9 +15,9 @@ flowchart TD
 ```
 
 ## Status (current)
-- **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes).
-  **0.1.3 is unreleased** (see `CHANGELOG.md`): mDNS relay discovery (AUTO RELAY), the setup RESET, the
-  relay ↔ cart contract check, and the Wi-Fi save / first-boot join fixes. **Verified on the cart (2026-10-28):**
+- **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes),
+  v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
+  join fixes). 0.1.4 is open in `CHANGELOG.md`. **Verified on the cart (2026-10-28):**
   RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
   keeps it. The dev file (`src/dev_config.h`) is removed, so the dev cart runs release-style builds.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
