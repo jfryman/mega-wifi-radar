@@ -7,13 +7,13 @@
 #include "theme.h"
 #include "ui.h"
 
-enum { R_THEME, R_RANGE, R_TAGS, R_AIRPORT, R_WIFI, R_RELAY, R_SAVE, R_EXIT, R_COUNT };
+enum { R_THEME, R_RANGE, R_TAGS, R_AIRPORT, R_WIFI, R_RELAY, R_RESET, R_SAVE, R_EXIT, R_COUNT };
 static const char *const labels[R_COUNT] = {
-    "THEME", "RANGE", "TAGS", "AIRPORT", "WI-FI", "RELAY", "SAVE & EXIT", "EXIT",
+    "THEME", "RANGE", "TAGS", "AIRPORT", "WI-FI", "RELAY", "RESET", "SAVE & EXIT", "EXIT",
 };
 static const char *const tag_names[TAGS_MODES] = { "ALL", "SELECTED", "OFF" };
 
-#define ROW_Y(r)    (5 + (r) * 2 + ((r) > R_AIRPORT))   /* airport name gets a line */
+#define ROW_Y(r)    (4 + (r) * 2 + ((r) > R_AIRPORT))   /* airport name gets a line; EXIT ends on row 21 */
 #define VAL_X       14
 #define VAL_W       25
 
@@ -91,6 +91,56 @@ static void cursor(u16 old, u16 cur)
 }
 
 /* ------------------------------------------------------------ Wi-Fi page */
+
+/* RESET: pick what to forget, confirm with a second A, then hard-reset into the new flow. */
+static void reset_page(void)
+{
+    static const char *const items[] = { "WI-FI NETWORKS", "SETTINGS", "EVERYTHING", "CANCEL" };
+    static const char *const notes[] = {
+        "FORGETS SAVED WI-FI, KEEPS SETTINGS.",  /* <= 36: cols 2..37 */
+        "SETTINGS BACK TO DEFAULTS.",
+        "WI-FI AND SETTINGS: AS NEW.",
+        "",
+    };
+    u16 cur = 0;
+    bool armed = FALSE;
+
+    ui_clear();
+    ui_text(PAL0, 2, 2, "RESET");
+    ui_text(PAL1, 2, 18, "DEV BUILDS: DEV WI-FI/RELAY STAY OFF");
+    ui_text(PAL1, 2, 19, "UNTIL ANOTHER ROM IS FLASHED.");
+    ui_wait_release();
+    for (;;) {
+        for (u16 i = 0; i < 4; i++) {
+            ui_text(i == cur ? PAL3 : PAL0, 2, 5 + i * 2, i == cur ? ">" : " ");
+            ui_field(i == cur ? PAL3 : PAL0, 4, 5 + i * 2, 20, items[i]);
+        }
+        ui_field(PAL2, 2, 14, 36, notes[cur]);
+        ui_status(armed ? PAL3 : PAL1, armed ? "PRESS A AGAIN TO RESET, B TO CANCEL" : "A SELECT  B BACK");
+        u16 p = ui_pad();
+        if (p & (BUTTON_UP | BUTTON_DOWN)) {
+            if (p & BUTTON_UP && cur) cur--;
+            if (p & BUTTON_DOWN && cur < 3) cur++;
+            armed = FALSE;
+        }
+        if (p & BUTTON_B) { if (armed) { armed = FALSE; continue; } return; }
+        if (!(p & BUTTON_A)) continue;
+        if (cur == 3) return;
+        if (!armed) { armed = TRUE; continue; }
+#ifdef FAKE_FEED
+        ui_status(PAL3, "NOTHING TO RESET IN AN EMULATOR");
+        for (u16 f = 0; f < 60; f++) ui_pad();
+        return;
+#else
+        ui_status(PAL2, "RESETTING...");
+        bool ok = settings_reset(cur == 0 ? RESET_WIFI : cur == 1 ? RESET_SETTINGS : RESET_ALL);
+        ui_status(ok ? PAL1 : PAL3, ok ? "DONE. RESTARTING..." : "RESET FAILED");
+        for (u16 f = 0; f < 60; f++) ui_pad();
+        if (ok) SYS_hardReset();
+        armed = FALSE;
+#endif
+    }
+}
 
 #ifndef FAKE_FEED
 #define MAX_APS 14
@@ -236,6 +286,10 @@ bool setup_run(bool wifi_first)
                 strcpy(buf, settings.relay);
                 kb_edit("RELAY URL (EMPTY = AUTO)", buf, RELAY_LEN);
                 strcpy(settings.relay, buf);
+                draw_all(cur);
+                break;
+            case R_RESET:
+                reset_page();
                 draw_all(cur);
                 break;
             case R_SAVE:

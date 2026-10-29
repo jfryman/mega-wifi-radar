@@ -40,11 +40,13 @@ static void boot_network(void)
         splash_phase(SP_NO_MODULE, "MEGAWIFI MODULE NOT FOUND");
         while (TRUE) {}
     }
+    bool dev = !settings_dev_suppressed();      /* a setup reset turns dev defaults off */
+    if (dev) settings_dev_defaults();
     bool loaded = settings_load();
     sprintf(buf, "%s  FW %u.%u %s  %s", app_version, mod.major, mod.minor, mod.variant,
-            loaded ? "SETTINGS LOADED" : "DEFAULTS");
+            !dev ? "DEV OFF" : loaded ? "SETTINGS LOADED" : "DEFAULTS");
     splash_status(buf);
-    net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass);
+    if (dev) net_ensure_ap(devcfg_wifi_ssid, devcfg_wifi_pass);
     bool setup = JOY_readJoypad(JOY_1) & BUTTON_START;      /* hold START at boot: setup */
     splash_phase(SP_TAXI, NULL);
     for (;;) {

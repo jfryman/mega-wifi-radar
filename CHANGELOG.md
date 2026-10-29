@@ -9,6 +9,9 @@ FEATURES:
     mDNS query, and it looks again after three failed polls. A typed URL still pins a relay, and C
     in Setup goes back to AUTO. The boot adds a *request radar service* call, and the status line
     shows the relay in use.
+  * **setup:** a RESET row forgets the Wi-Fi networks, the settings, or both (A twice to confirm),
+    then restarts into the first-boot flow. On dev builds the compiled-in Wi-Fi and relay stay off
+    until a different ROM is flashed, so those flows can be tested.
 
 IMPROVEMENTS:
 

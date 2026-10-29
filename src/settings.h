@@ -23,8 +23,17 @@ struct settings {
 
 extern struct settings settings;
 
-/* Defaults from devcfg (range snapped to the nearest step). */
+/* Defaults: home point and range from devcfg (range snapped to the nearest step). */
 void settings_init(void);
+/* Dev-build defaults on top (DEV_RELAY_URL). Boot applies them unless settings_dev_suppressed(). */
+void settings_dev_defaults(void);
+/* TRUE after a setup reset on this same ROM build: boot then skips the dev Wi-Fi seed and
+ * DEV_RELAY_URL, so first-boot flows can be tested on a dev build. Needs MegaWiFi up. */
+bool settings_dev_suppressed(void);
+
+/* Setup's RESET (lode/ui/config-screen.md). Also writes the dev-defaults-off marker. */
+enum settings_reset { RESET_WIFI, RESET_SETTINGS, RESET_ALL };
+bool settings_reset(enum settings_reset what);
 /* Saved copy from ESP32 flash, if valid. Needs MegaWiFi up. TRUE if loaded. */
 bool settings_load(void);
 /* Write to ESP32 flash. TRUE on success. */

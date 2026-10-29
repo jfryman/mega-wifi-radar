@@ -40,6 +40,7 @@ Use up/down to move between rows; each row lists its controls below.
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
+| RESET | A: choose **Wi-Fi networks** (forget saved Wi-Fi), **Settings** (back to defaults) or **Everything**; press A again to confirm, and the console restarts into the first-boot flow |
 | SAVE & EXIT | A: write the settings to the ESP32 flash and return |
 | EXIT | A: leave and discard the changes |
 
@@ -90,6 +91,8 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 
 ## Settings storage
 
-Settings are saved as one record in ESP32 flash sector 0 of `user_data`. Wi-Fi credentials are
+Settings are saved as one record in ESP32 flash sector 0 of `user_data`. **RESET** in setup erases them and/or the
+module's Wi-Fi config. On a dev build (`src/dev_config.h`) it also keeps the compiled-in dev Wi-Fi and relay off
+until a different ROM is flashed, so you can test the Wi-Fi-not-set and AUTO-relay flows. Wi-Fi credentials are
 kept separately by the MegaWiFi firmware. Reflashing the ROM or the ESP32 firmware
 (`make esp-flash`) doesn't erase either.

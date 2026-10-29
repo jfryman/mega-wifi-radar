@@ -11,8 +11,15 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
 | WI-FI | A: scan (`net_scan`), pick, keyboard password, `net_connect` (slot 0, DHCP, saved) |
 | RELAY | `AUTO <found host>` or `AUTO (MDNS)` when empty (mDNS, [../net/discovery.md](../net/discovery.md)); A: keyboard edit (empty = AUTO); C: back to AUTO |
+| RESET | A: page with WI-FI / SETTINGS / EVERYTHING / CANCEL; A twice confirms, then the console hard-resets |
 | SAVE & EXIT / EXIT | START = save |
 
+- **Reset** (for testing first-boot flows): WI-FI = `mw_factory_settings()` (the module's config: AP slots, IP config,
+  default slot; our user_data is untouched); SETTINGS = erase the `MWR1` sector (back to defaults on the next boot);
+  EVERYTHING = both. Every reset also writes the **dev-defaults-off marker** (`"MWRN"` + the ROM header checksum at
+  `$18E`, user_data sector 1). While it matches the running ROM, boot skips `net_ensure_ap(DEV_WIFI_*)` and the
+  `DEV_RELAY_URL` default, so a dev build really shows "Wi-Fi not set" / AUTO relay. Flashing any other build changes
+  the checksum and the dev defaults come back. Then `SYS_hardReset()`.
 - Keyboard: 7 rows of 13 chars + SPACE/DEL/OK/CANCEL; A type, B delete, START OK.
 - `ui_wait_release()` on entry: the press that opened a screen must not act on it.
 - Persistence: `settings_save()` writes `"MWR1" + struct settings + checksum` to ESP32 user_data
