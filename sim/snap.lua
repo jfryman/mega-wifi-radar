@@ -1,12 +1,13 @@
 -- Headless MAME helper: snapshot at the emulated seconds in SIM_SNAP_AT
 -- (comma separated), optionally holding pad buttons from SIM_PRESS
--- ("t:mask,t:mask" with mask bits as MAME port field names, e.g. "9:P1 A" (MAME names: P1 A/B/C, P1 Start, P1 Up...)),
+-- ("t:FIELD,t:FIELD/secs" with MAME port field names, e.g. "9:P1 A" (MAME names: P1 A/B/C, P1 Start, P1 Up...);
+-- held 0.2 s, or secs with "/secs", e.g. "12:P1 C/1" holds C for a second),
 -- then exit after the last snapshot.
 local snap_at = {}
 for s in string.gmatch(os.getenv("SIM_SNAP_AT") or "3,8", "[^,]+") do snap_at[#snap_at + 1] = tonumber(s) end
 local presses = {}
-for t, f in string.gmatch(os.getenv("SIM_PRESS") or "", "([%d%.]+):([^,]+)") do
-  presses[#presses + 1] = { t = tonumber(t), field = f }
+for t, f, d in string.gmatch(os.getenv("SIM_PRESS") or "", "([%d%.]+):([^,/]+)/?([%d%.]*)") do
+  presses[#presses + 1] = { t = tonumber(t), field = f, dur = tonumber(d) or 0.2 }
 end
 local idx = 1
 local function now() return manager.machine.time:as_double() end
@@ -26,7 +27,7 @@ emu.register_frame_done(function()
     p.f = p.f or find_field(p.field)
     if p.f then
       field[p.field] = p.f
-      held[p.field] = held[p.field] or (t >= p.t and t < p.t + 0.2)
+      held[p.field] = held[p.field] or (t >= p.t and t < p.t + p.dur)
     end
   end
   for name, on in pairs(held) do field[name]:set_value(on and 1 or 0) end

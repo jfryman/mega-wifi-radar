@@ -19,11 +19,11 @@ void radar_start(void);
 void radar_stop(void);
 
 /* ---- main loop -> renderer (safe to call any time after radar_init) ---- */
-void radar_panel(u16 row, const char *text);    /* set a side-panel row */
+void radar_panel(u16 row, const char *text);    /* set a side-panel row (PAL0) */
+void radar_panel_pal(u16 row, const char *text, u16 pal);   /* ... in a text palette; no-op if unchanged */
 void radar_rescale(void);       /* range changed: rescale trails, tags, labels */
 void radar_retheme(void);       /* settings.theme changed */
 void radar_retag(void);         /* tag mode or selection changed */
-void radar_pan(s16 dx, s16 dy); /* nudge the view (clamped) */
 void radar_select(s16 track);   /* -1 = none */
 s16 radar_selected(void);
 

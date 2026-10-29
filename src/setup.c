@@ -7,13 +7,13 @@
 #include "theme.h"
 #include "ui.h"
 
-enum { R_THEME, R_RANGE, R_TAGS, R_AIRPORT, R_WIFI, R_RELAY, R_RESET, R_SAVE, R_EXIT, R_COUNT };
+enum { R_THEME, R_RANGE, R_TAGS, R_AIRPORT, R_WIFI, R_RELAY, R_CONTROLS, R_RESET, R_SAVE, R_EXIT, R_COUNT };
 static const char *const labels[R_COUNT] = {
-    "THEME", "RANGE", "TAGS", "AIRPORT", "WI-FI", "RELAY", "RESET", "SAVE & EXIT", "EXIT",
+    "THEME", "RANGE", "TAGS", "AIRPORT", "WI-FI", "RELAY", "CONTROLS", "RESET", "SAVE & EXIT", "EXIT",
 };
 static const char *const tag_names[TAGS_MODES] = { "ALL", "SELECTED", "OFF" };
 
-#define ROW_Y(r)    (4 + (r) * 2 + ((r) > R_AIRPORT))   /* airport name gets a line; EXIT ends on row 21 */
+#define ROW_Y(r)    (3 + (r) * 2 + ((r) > R_AIRPORT))   /* airport name gets a line; EXIT ends on row 22 */
 #define VAL_X       14
 #define VAL_W       25
 
@@ -72,7 +72,7 @@ static void draw_value(u16 r)
 static void draw_all(u16 cur)
 {
     ui_clear();
-    ui_text(PAL0, 2, 2, "MEGA WIFI RADAR - SETUP");
+    ui_text(PAL0, 2, 1, "MEGA WIFI RADAR - SETUP");
     for (u16 r = 0; r < R_COUNT; r++) {
         ui_text(r == cur ? PAL3 : PAL0, 2, ROW_Y(r), r == cur ? ">" : " ");
         ui_text(r == cur ? PAL3 : PAL0, 4, ROW_Y(r), labels[r]);
@@ -88,6 +88,47 @@ static void cursor(u16 old, u16 cur)
     ui_text(PAL0, 4, ROW_Y(old), labels[old]);
     ui_text(PAL3, 2, ROW_Y(cur), ">");
     ui_text(PAL3, 4, ROW_Y(cur), labels[cur]);
+}
+
+/* ------------------------------------------------------------ controls page */
+
+/* Read-only: the radar and setup controls (the manual's controls page, on screen).
+ * Descriptions start at col 14 and stay within 25 chars (col 38 is the last safe one). */
+static void controls_page(void)
+{
+    static const char *const rows[][2] = {
+        { "RADAR", NULL },
+        { "A / B", "ZOOM IN / OUT" },
+        { "UP / DOWN", "SELECT IN THE LIST" },
+        { "C", "DETAILS (C OR B CLOSES)" },
+        { "HOLD C", "CHANGE THE SORT ORDER" },
+        { "LEFT/RIGHT", "TAGS: ALL / SEL / OFF" },
+        { "X", "NEXT THEME (6-BUTTON)" },
+        { "START", "SETUP" },
+        { "SETUP", NULL },
+        { "UP / DOWN", "CHOOSE A ROW" },
+        { "LEFT/RIGHT", "CHANGE THE VALUE" },
+        { "A", "EDIT / OPEN" },
+        { "C", "NEXT LETTER / RELAY AUTO" },
+        { "START", "SAVE & EXIT" },
+    };
+    u16 y = 4;
+
+    ui_clear();
+    ui_text(PAL0, 2, 1, "CONTROLS");
+    for (u16 i = 0; i < sizeof(rows) / sizeof(rows[0]); i++, y++) {
+        if (!rows[i][1]) {
+            if (i) y++;
+            ui_text(PAL2, 2, y, rows[i][0]);
+            continue;
+        }
+        ui_text(PAL0, 3, y, rows[i][0]);
+        ui_text(PAL1, 14, y, rows[i][1]);
+    }
+    ui_status(PAL1, "B OR START: BACK");
+    ui_wait_release();
+    while (!(ui_pad() & (BUTTON_B | BUTTON_START | BUTTON_A))) {}
+    ui_wait_release();
 }
 
 /* ------------------------------------------------------------ Wi-Fi page */
@@ -290,6 +331,10 @@ bool setup_run(bool wifi_first)
                 strcpy(buf, settings.relay);
                 kb_edit("RELAY URL (EMPTY = AUTO)", buf, RELAY_LEN);
                 strcpy(settings.relay, buf);
+                draw_all(cur);
+                break;
+            case R_CONTROLS:
+                controls_page();
                 draw_all(cur);
                 break;
             case R_RESET:

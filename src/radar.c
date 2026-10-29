@@ -11,7 +11,6 @@
 #define MAX_BLIPS   79      /* + 1 selection box = 80 sprites */
 #define REDRAW_PER_FRAME 2
 #define PANEL_PER_FRAME  3
-#define PAN_MAX     48
 
 /* Blip tiles: 4 brightness levels (colour index 1..4) + stale; then the
  * 16x16 selection brackets (4 tiles, column-major). */
@@ -34,14 +33,13 @@ static u16 t_blip, t_box;
 static u16 k_scale;
 static u8 grid[GRID_H][GRID_W];         /* tag/label occupancy per plane-A cell */
 static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
-static s16 pan_x, pan_y;
-static volatile s16 want_pan_x, want_pan_y;
 static volatile s16 selected = -1;
 static volatile u8 req_rescale, req_theme, req_retag;
 static volatile u16 rotations;
 static volatile u16 joy;
 static u16 redraw_cursor;
 static char panel_text[PANEL_ROWS][PANEL_W + 1];
+static u8 panel_pal[PANEL_ROWS];
 volatile u16 vint_lines_max;
 volatile u32 vint_lines_sum;
 volatile u32 prof_sum[8];
@@ -272,16 +270,16 @@ static void sprites(void)
 
         u16 attr = t->spr_attr;
         if (fade && !(t->cur.flags & AR_F_STALE)) attr += lvl_tab[(u8)(step - t->hit_step) >> 5];
-        e[0] = t->spr_y + pan_y;
+        e[0] = t->spr_y;
         e[1] = (SPRITE_SIZE(1, 1) << 8) | ++n;
         e[2] = attr;
-        e[3] = t->spr_x + pan_x;
+        e[3] = t->spr_x;
         e += 4;
         if ((s16)i == selected && n < MAX_BLIPS) {
-            e[0] = t->spr_y - 4 + pan_y;
+            e[0] = t->spr_y - 4;
             e[1] = (SPRITE_SIZE(2, 2) << 8) | ++n;
             e[2] = TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, t_box);
-            e[3] = t->spr_x - 4 + pan_x;
+            e[3] = t->spr_x - 4;
             e += 4;
         }
     }
@@ -303,7 +301,7 @@ static void panel(void)
         if (!(panel_dirty & bit)) continue;
         panel_dirty &= ~bit;
         row_write(VDP_WINDOW, PANEL_COL, r, panel_text[r], PANEL_W,
-                  TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
+                  TILE_ATTR(panel_pal[r], TRUE, FALSE, FALSE));
         done++;
     }
 }
@@ -330,14 +328,6 @@ static void radar_vint(void)
     PROF(0);
     DMA_doDma(DMA_VRAM, spr, VDP_SPRITE_TABLE, spr_n * 4, 2);
     PROF(1);
-    if (pan_x != want_pan_x || pan_y != want_pan_y) {
-        pan_x = want_pan_x;
-        pan_y = want_pan_y;
-        VDP_setHorizontalScroll(BG_A, pan_x);
-        VDP_setHorizontalScroll(BG_B, pan_x);
-        VDP_setVerticalScroll(BG_A, -pan_y);
-        VDP_setVerticalScroll(BG_B, -pan_y);
-    }
 
     /* ---- CPU work for the next frame ---- */
     JOY_update();
@@ -468,8 +458,8 @@ void radar_init(void)
     memset(grid, 0, sizeof(grid));
     memset(label_cells, 0, sizeof(label_cells));
     memset(panel_text, 0, sizeof(panel_text));
+    memset(panel_pal, 0, sizeof(panel_pal));
     panel_dirty = 0;
-    pan_x = pan_y = want_pan_x = want_pan_y = 0;
     selected = -1;
     rotations = 0;
     redraw_cursor = 0;
@@ -489,27 +479,27 @@ void radar_stop(void)
     VDP_setAutoInc(2);
 }
 
-void radar_panel(u16 row, const char *text)
+void radar_panel_pal(u16 row, const char *text, u16 pal)
 {
+    char buf[PANEL_W + 1];
+
     if (row >= PANEL_ROWS) return;
-    SYS_disableInts();
     /* SGDK's strncpy doesn't zero-pad: clear first so shorter text erases longer */
-    memset(panel_text[row], 0, PANEL_W + 1);
-    for (u16 i = 0; i < PANEL_W && text[i]; i++) panel_text[row][i] = text[i];
+    memset(buf, 0, sizeof(buf));
+    for (u16 i = 0; i < PANEL_W && text[i]; i++) buf[i] = text[i];
+    if (pal == panel_pal[row] && !memcmp(buf, panel_text[row], PANEL_W)) return;   /* unchanged */
+    SYS_disableInts();
+    memcpy(panel_text[row], buf, sizeof(buf));
+    panel_pal[row] = pal;
     panel_dirty |= 1UL << row;
     SYS_enableInts();
 }
 
+void radar_panel(u16 row, const char *text) { radar_panel_pal(row, text, PAL0); }
+
 void radar_rescale(void) { req_rescale = 1; }
 void radar_retheme(void) { req_theme = 1; req_retag = 1; }
 void radar_retag(void) { req_retag = 1; }
-
-void radar_pan(s16 dx, s16 dy)
-{
-    s16 x = want_pan_x + dx, y = want_pan_y + dy;
-    want_pan_x = x < -PAN_MAX ? -PAN_MAX : x > PAN_MAX ? PAN_MAX : x;
-    want_pan_y = y < -PAN_MAX ? -PAN_MAX : y > PAN_MAX ? PAN_MAX : y;
-}
 
 void radar_select(s16 track) { selected = track; }
 s16 radar_selected(void) { return selected; }

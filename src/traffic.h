@@ -31,7 +31,7 @@ struct track {
     s16 trail_y[TRAIL_N];
     u8 trail_n;
     s16 bx, by;                 /* [vint] cur position in disc-block px */
-    u16 spr_y, spr_x;           /* [vint] sprite words (VDP +128 offsets), no pan */
+    u16 spr_y, spr_x;           /* [vint] sprite words (VDP +128 offsets) */
     u16 spr_attr;               /* [vint] blip attr with brightness level 0 */
     u8 vis;                     /* [vint] cur is inside the disc at this range */
     s8 tag_x, tag_y;            /* [vint] tag cell on plane A, -1 = none */

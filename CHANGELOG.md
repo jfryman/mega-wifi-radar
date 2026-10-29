@@ -1,5 +1,20 @@
 ## 0.2.0 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * **radar:** new controls. The D-pad no longer pans the scope: UP/DOWN select aircraft in the
+    traffic list, LEFT/RIGHT cycle the tags (all / selected / off), and holding C changes the
+    list's sort order instead of the tags.
+
+FEATURES:
+
+  * **radar:** a traffic list on the side panel, replacing the on-screen control help: every
+    tracked aircraft's callsign and distance, with the selection highlighted, and emergencies
+    always on top. Hold C to sort by nearest, A-Z, Z-A, lowest or highest altitude.
+  * **radar:** X on a 6-button pad cycles the theme. It's a shortcut only: the theme is also in
+    Setup, so nothing needs a 6-button pad.
+  * **setup:** a CONTROLS page lists the radar and setup controls.
+
 ## 0.1.3 (October 29, 2026)
 
 FEATURES:

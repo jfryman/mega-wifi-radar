@@ -13,9 +13,12 @@
 #include "splash.h"
 #include "settings.h"
 #include "theme.h"
+#include "tlist.h"
 #include "traffic.h"
 
-#define HOLD_FRAMES     40      /* C held this long cycles the tag mode */
+#define HOLD_FRAMES     40      /* C held this long cycles the sort order */
+#define REPEAT_DELAY    16      /* up/down held: frames before auto-repeat, then one row per REPEAT_RATE */
+#define REPEAT_RATE     5
 #define STALE_SECS      15      /* panel shows STALE after this without data */
 
 #ifndef FAKE_FEED
@@ -88,10 +91,10 @@ static void boot_network(void)
 
 enum {
     ROW_HOME = 1, ROW_RANGE, ROW_TIME, ROW_COUNT, ROW_NET,
-    ROW_SEP1, ROW_SEL, ROW_SEL_ALT, ROW_SEL_GS, ROW_SEL_TRK, ROW_SEL_SQK, ROW_SEL_POS,
-    ROW_SEP2, ROW_HELP1 = 15, ROW_HELP2, ROW_HELP3, ROW_HELP4, ROW_HELP5,
-    ROW_THEME = 21, ROW_TAGS, ROW_DATA1 = 25, ROW_DATA2,
+    ROW_LIST,                               /* sort header, LIST_ROWS entries, "more" (tlist.c) */
+    ROW_SEP = ROW_LIST + LIST_ROWS + 2, ROW_MODES, ROW_DATA1, ROW_DATA2,
 };
+_Static_assert(ROW_DATA2 == 26, "the data credit must sit on the last safe row");
 
 static const char *source_name(u8 src)
 {
@@ -103,92 +106,39 @@ static const char *source_name(u8 src)
     return "?";
 }
 
+/* "CLASSIC ALL": theme + tag mode */
+static void panel_modes(void)
+{
+    static const char *const tags[TAGS_MODES] = { "ALL", "SEL", "OFF" };
+    char buf[16];
+
+    sprintf(buf, "%-7s %s", themes[settings.theme].name, tags[settings.tag_mode]);
+    radar_panel(ROW_MODES, buf);
+}
+
 static void panel_static(void)
 {
-    static const char *const tags[TAGS_MODES] = { "TAGS ALL", "TAGS SEL", "TAGS OFF" };
     char buf[16];
 
     radar_panel(ROW_HOME, settings.icao);
     sprintf(buf, "RNG %3uNM", settings_range_nm());
     radar_panel(ROW_RANGE, buf);
-    radar_panel(ROW_SEP1, "-----------");
-    radar_panel(ROW_SEP2, "-----------");
-    radar_panel(ROW_HELP1, "A/B  ZOOM");
-    radar_panel(ROW_HELP2, "C    SELECT");
-    radar_panel(ROW_HELP3, "HOLD C TAGS");
-    radar_panel(ROW_HELP4, "PAD  PAN");
-    radar_panel(ROW_HELP5, "STRT SETUP");
-    radar_panel(ROW_THEME, themes[settings.theme].name);
-    radar_panel(ROW_TAGS, tags[settings.tag_mode]);
+    radar_panel(ROW_SEP, "-----------");
+    panel_modes();
     radar_panel(ROW_DATA1, "Data:");
-}
-
-static void panel_selection(void)
-{
-    s16 sel = radar_selected();
-    char buf[16];
-
-    if (sel < 0 || !tracks[sel].used || !tracks[sel].shown) {
-        radar_panel(ROW_SEL, "NO SELECT");
-        for (u16 r = ROW_SEL_ALT; r <= ROW_SEL_POS; r++) radar_panel(r, "");
-        return;
-    }
-    struct ar_rec r = tracks[sel].cur;
-    s32 x = r.x, y = r.y;
-    u16 d10 = ((u32)isqrt32(x * x + y * y) * 10) >> 5;
-    u16 brg = ((u16)geo_angle(r.x, r.y) * 45 + 16) >> 5;     /* steps -> degrees */
-
-    memcpy(buf, r.cs, 8);
-    buf[8] = 0;
-    radar_panel(ROW_SEL, buf);
-    if (r.flags & AR_F_GROUND) strcpy(buf, "ALT GND");
-    else if (r.flags & AR_F_ALT_UNK) strcpy(buf, "ALT ---");
-    else sprintf(buf, "ALT %03d %c", (r.alt < 0 ? 0 : r.alt) >> 2,
-                 r.vrate > 2 ? '^' : r.vrate < -2 ? 'v' : ' ');
-    radar_panel(ROW_SEL_ALT, buf);
-    sprintf(buf, "GS  %3u", r.gs * 2);
-    radar_panel(ROW_SEL_GS, buf);
-    sprintf(buf, "TRK %03u", ((u16)r.track * 45 + 16) >> 5);
-    radar_panel(ROW_SEL_TRK, buf);
-    if (r.squawk == AR_SQUAWK_NONE) strcpy(buf, "SQK ----");
-    else sprintf(buf, "SQK %04X", r.squawk);
-    radar_panel(ROW_SEL_SQK, buf);
-    sprintf(buf, "%u.%uNM %03u", d10 / 10, d10 % 10, brg);
-    radar_panel(ROW_SEL_POS, buf);
+    tlist_draw(ROW_LIST);
+    tlist_rebuild();                        /* radar_init() emptied the track table */
 }
 
 /* ------------------------------------------------------------ input */
 
-static u16 dist_of(s16 i)
-{
-    s32 x = tracks[i].cur.x, y = tracks[i].cur.y;
-    return isqrt32(x * x + y * y);
-}
-
-/* Next shown aircraft by distance after the current selection (wraps). */
-static void select_next(void)
-{
-    s16 cur = radar_selected(), best = -1, first = -1;
-    u16 cd = cur >= 0 && tracks[cur].used ? dist_of(cur) : 0;
-    u16 bd = 0xFFFF, fd = 0xFFFF;
-
-    for (s16 i = 0; i < TR_MAX; i++) {
-        if (!tracks[i].used || !tracks[i].shown || tracks[i].drop) continue;
-        u16 d = dist_of(i);
-        if (d < fd) { fd = d; first = i; }
-        if ((cur < 0 || d > cd || (d == cd && i > cur)) && d < bd) { bd = d; best = i; }
-    }
-    radar_select(best >= 0 ? best : first);
-    if (settings.tag_mode == TAGS_SELECTED) radar_retag();
-    panel_selection();
-}
-
 static bool want_setup;
 
+/* Radar controls (lode/ui/screen-layout.md). X is a 6-button shortcut: everything it does is
+ * also in setup, so a 3-button pad loses nothing. */
 static void handle_input(void)
 {
-    static u16 prev;
-    static u16 c_held;
+    static u16 prev, c_held, dir_held;
     u16 j = radar_joy(), pressed = j & ~prev;
 
     prev = j;
@@ -203,19 +153,26 @@ static void handle_input(void)
         }
     }
     if (j & BUTTON_C) {
-        if (++c_held == HOLD_FRAMES) {
-            settings.tag_mode = (settings.tag_mode + 1) % TAGS_MODES;
-            radar_retag();
-            panel_static();
-        }
+        if (++c_held == HOLD_FRAMES) tlist_sort_next();
     } else {
-        if (c_held && c_held < HOLD_FRAMES) select_next();
         c_held = 0;
     }
+    /* up/down: list selection, auto-repeating while held */
+    u16 ud = j & (BUTTON_UP | BUTTON_DOWN);
+    if (ud && (ud & pressed || (++dir_held >= REPEAT_DELAY && !((dir_held - REPEAT_DELAY) % REPEAT_RATE))))
+        tlist_move((ud & BUTTON_UP) ? -1 : 1);
+    if (!ud) dir_held = 0;
+    if (pressed & (BUTTON_LEFT | BUTTON_RIGHT)) {
+        settings.tag_mode = (settings.tag_mode + ((pressed & BUTTON_RIGHT) ? 1 : TAGS_MODES - 1)) % TAGS_MODES;
+        radar_retag();
+        panel_modes();
+    }
+    if (pressed & BUTTON_X) {
+        settings.theme = (settings.theme + 1) % THEME_COUNT;
+        radar_retheme();
+        panel_modes();
+    }
     if (pressed & BUTTON_START) want_setup = TRUE;
-    s16 dx = (j & BUTTON_RIGHT) ? 2 : (j & BUTTON_LEFT) ? -2 : 0;
-    s16 dy = (j & BUTTON_DOWN) ? 2 : (j & BUTTON_UP) ? -2 : 0;
-    if (dx || dy) radar_pan(dx, dy);
 }
 
 /* ------------------------------------------------------------ poll */
@@ -239,7 +196,7 @@ static void poll(void)
         radar_panel(ROW_COUNT, buf);
         radar_panel(ROW_NET, (h->hflags & AR_H_UPSTREAM_ERR) ? "UPSTRM ERR" : "NET OK");
         radar_panel(ROW_DATA2, source_name(h->source));
-        panel_selection();
+        tlist_rebuild();
     } else {
         radar_panel(ROW_NET, feed_err_str(e));
     }
@@ -276,7 +233,6 @@ static void radar_up(void)
 {
     radar_init();
     panel_static();
-    panel_selection();
     radar_panel(ROW_NET, have_snap ? "NET OK" : "WAIT DATA");
     radar_start();
 }
