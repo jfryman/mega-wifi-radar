@@ -1,10 +1,15 @@
 #!/bin/sh
 # Build and run the relay container (macOS + Linux, Podman or Docker).
-#   scripts/relay build        # build mwradar-relay:latest (runs go vet + tests)
+#   scripts/relay build        # build mwradar-relay:<git describe> from this checkout (runs go vet + tests)
 #   scripts/relay run          # run in the foreground on port ${RELAY_PORT:-8080}
 #   scripts/relay start|stop|logs   # detached container named mwradar-relay
 #   scripts/relay advertise    # (re-)register the mDNS advertisement only, e.g. after a reboot
 # Extra args after run/start go to the relay, e.g. scripts/relay run -min-interval 2s
+#
+# Dev relays are built from the checkout and tagged with its version, so the relay you run is the
+# code you have: mwradar-relay:v0.2.0-3-gabc1234, plus a hash of relay/ when the tree is dirty, so
+# edits get a fresh build. run/start build the tag if it's missing. To run a published release
+# instead: RELAY_IMAGE=ghcr.io/jfryman/mega-wifi-radar-relay:0.2.0 scripts/relay start (pulled if needed).
 #
 # Discovery (lode/net/discovery.md): a bridged or VM container never sees LAN multicast, so the
 # container runs with -mdns=false and the HOST advertises _mwradar._tcp for it: dns-sd -P on
@@ -14,7 +19,12 @@ set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CTR=${CTR:-$(command -v podman || command -v docker || true)}
 [ -n "$CTR" ] || { echo "relay: need podman or docker on PATH" >&2; exit 1; }
-IMAGE=mwradar-relay:latest
+VERSION=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)
+case "$VERSION" in
+    *-dirty) SUM=$(cd "$ROOT" && find relay -type f | LC_ALL=C sort | xargs cat | { sha256sum 2>/dev/null || shasum -a 256; } | cut -c1-8)
+             VERSION="$VERSION.$SUM" ;;
+esac
+IMAGE=${RELAY_IMAGE:-mwradar-relay:$VERSION}
 NAME=mwradar-relay
 PORT=${RELAY_PORT:-8080}
 PIDFILE="$ROOT/.tools/relay-mdns.pid"
@@ -51,11 +61,15 @@ advertise() {
     fi
 }
 
-need_image() { "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 || "$0" build; }
+need_image() {
+    "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 && return 0
+    if [ -n "${RELAY_IMAGE:-}" ]; then "$CTR" pull "$IMAGE"; else "$0" build; fi
+}
 
 cmd=${1:-run}; [ $# -gt 0 ] && shift
 case "$cmd" in
-    build) exec "$CTR" build -t "$IMAGE" --build-arg VERSION="$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)" "$ROOT/relay" ;;
+    build) [ -z "${RELAY_IMAGE:-}" ] || { echo "relay: RELAY_IMAGE is set; build makes local images only" >&2; exit 2; }
+           exec "$CTR" build -t "$IMAGE" --build-arg VERSION="$VERSION" "$ROOT/relay" ;;
     run)   need_image
            advertise
            trap unadvertise EXIT INT TERM
@@ -64,7 +78,8 @@ case "$cmd" in
            "$CTR" rm -f "$NAME" >/dev/null 2>&1 || true
            "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" \
                "$IMAGE" -listen :8080 -mdns=false "$@"
-           advertise ;;
+           advertise
+           echo "relay: $IMAGE" ;;
     stop)  unadvertise; "$CTR" rm -f "$NAME" ;;
     advertise) advertise ;;
     logs)  exec "$CTR" logs -f "$NAME" ;;

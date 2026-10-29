@@ -52,6 +52,11 @@ The relay's constants, encoder, route and mDNS strings are held to `src/arframe.
 | published image | `docker run -d --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` (amd64 + arm64, built by CI; host network so its mDNS reaches the LAN) |
 | container, background | `make relay-start` / `scripts/relay logs` / `make relay-stop` |
 
+Dev images are **local and versioned**: `scripts/relay` tags `mwradar-relay:<git describe>` (dirty trees add the first
+8 hex of a sha256 over `relay/`), and `run`/`start` build that tag if it's missing, so the relay always matches the
+checkout and its log names the real version. `RELAY_IMAGE=<published image>` runs a release instead (pulled, never built).
+A fixed `:latest` tag is avoided: it kept serving an image from an older commit.
+
 `relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
 cross-compiles a static binary (CGO off, `GOOS/GOARCH` from `TARGETOS/TARGETARCH`). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
 the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker

@@ -26,6 +26,8 @@ sequenceDiagram
 |---|---|
 | Published image (Linux) | `docker run -d --name mwradar-relay --restart unless-stopped --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
 | From this repo, container | `make relay-start` (detached; also registers the mDNS advertisement on the host), `make relay-run` (foreground), `make relay-stop`, `scripts/relay logs` |
+
+From the repo, the container is built from your checkout and tagged with its version (`mwradar-relay:v0.2.0-3-gabc1234`; a dirty tree adds a hash of `relay/`), so it's rebuilt whenever the code changes. To run a published release that way instead: `RELAY_IMAGE=ghcr.io/jfryman/mega-wifi-radar-relay:0.2.0 make relay-start`.
 | From this repo, native Go | `cd relay && go run . -listen :8080` |
 
 The image is distroless, runs as non-root, and is about 15 MB, built for linux/amd64 and
