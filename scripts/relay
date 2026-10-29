@@ -31,16 +31,19 @@ advertise() {
     [ "${RELAY_MDNS:-1}" = 0 ] && return 0
     unadvertise
     mkdir -p "$ROOT/.tools"
+    # TXT as the built-in responder sends it, from the contract (src/arframe.h: AR_VER, AR_FRAME_PATH)
+    ver=$(awk '$1 == "#define" && $2 == "AR_VER" {print $3}' "$ROOT/src/arframe.h")
+    path=$(awk -F'"' '/#define AR_FRAME_PATH/ {print $2}' "$ROOT/src/arframe.h")
     if command -v dns-sd >/dev/null 2>&1; then          # macOS: proxy record for this Mac's LAN IP
         iface=$(route -n get default 2>/dev/null | awk '/interface:/ {print $2}')
         ip=$(ipconfig getifaddr "${iface:-en0}" 2>/dev/null || true)
         [ -n "$ip" ] || { echo "relay: no LAN IP found; mDNS advertisement skipped" >&2; return 0; }
         nohup dns-sd -P "MegaWiFi Radar" _mwradar._tcp local "$PORT" mwradar-relay.local "$ip" \
-            v=1 path=/v1/frame >/dev/null 2>&1 &
+            "v=$ver" "path=$path" >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
         echo "relay: advertising _mwradar._tcp at $ip:$PORT (dns-sd, pid $(cat "$PIDFILE"))"
     elif command -v avahi-publish >/dev/null 2>&1; then  # Linux: avahi uses the host's addresses
-        nohup avahi-publish -s "MegaWiFi Radar" _mwradar._tcp "$PORT" v=1 path=/v1/frame >/dev/null 2>&1 &
+        nohup avahi-publish -s "MegaWiFi Radar" _mwradar._tcp "$PORT" "v=$ver" "path=$path" >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
         echo "relay: advertising _mwradar._tcp on port $PORT (avahi-publish, pid $(cat "$PIDFILE"))"
     else
