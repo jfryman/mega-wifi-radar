@@ -63,8 +63,8 @@ Use it whenever the radar ROM can't detect the module: it separates hardware/fir
 
 ## Emulator workflow (no cart needed)
 `make sim` builds `out/sim.bin` with `-DFAKE_FEED` (16 recorded KBNA frames from `res/fake/kbna_seq.bin`,
-made by `relay -pack`). `make sim-run SNAP=6,12` runs it headless in MAME (the mw-cart bring-up image,
-`mw-bringup-rom:fedora42`) and writes PNGs to `out/snap/genesis/`. `SIM_PRESS="9:P1 C,13:P1 Start"`
+made by `relay -pack`, plus their pop-up details from `relay -pack-detail`; `make fake-feed` rebuilds both). `make sim-run SNAP=6,12` runs it headless in MAME (the mw-cart bring-up image,
+`mw-bringup-rom:fedora42`) and writes PNGs to `out/snap/genesis/`. `SIM_PRESS="9:P1 C,13:P1 Start"` (append `/secs` to hold longer, e.g. `12:P1 C/1` for hold-C)
 presses buttons (MAME field names: `P1 A/B/C`, `P1 Start`, `P1 Up`...). Generated data:
 `cd tools && go run ./scopegen -o ../res/scope` and `go run ./airportgen -o ../src/airports.c`.
 

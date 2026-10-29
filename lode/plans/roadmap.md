@@ -17,7 +17,9 @@ flowchart TD
 ## Status (current)
 - **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes),
   v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
-  join fixes). The cart runs the v0.1.3 release ROM (CRC32 `3A9DEF3C`). 0.2.0 is open in `CHANGELOG.md`. **Verified on the cart (2026-10-28):**
+  join fixes). **0.2.0** (unreleased, `CHANGELOG.md`, plan [v0.2.0-radar-ux.md](v0.2.0-radar-ux.md)) is built: traffic list,
+new controls, detail pop-up + `/v1/detail`, setup CONTROLS, contract v2 with version lock-step; verified in MAME, and
+the cart is flashed with it (CRC32 `A708FAE9`, `main` at `3d9a6f8`) against the rebuilt dev relay. **Verified on the cart (2026-10-28):**
   RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
   keeps it. **Verified on the cart (2026-10-29), v0.1.3 ROM:** AUTO re-discovery mid-session (`make relay-stop` while
   the radar runs, then `make relay-start`: the cart searches again after 3 failed polls and recovers without a reboot),
@@ -31,7 +33,10 @@ flowchart TD
   `scripts/relay start`.
 
 ## Not yet checked on hardware
-- Nothing outstanding.
+- 0.2.0 on the cart: the traffic list, ▲▼ selection, hold-C sort, ◀▶ tags, the pop-up (open, detail from the real relay,
+  ▲▼ while open, C/B close), X on a 6-button pad, setup CONTROLS.
+- The mismatch path: a 0.2.0 cart against a 0.1.3 relay (`ghcr.io/jfryman/mega-wifi-radar-relay:0.1.3`) should hold at
+  boot with `RELAY MISMATCH: RUN RELAY v0.2.0`.
 
 ```sh
 make flash                     # cart ROM (FlashKit); then cold-boot
@@ -43,11 +48,14 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
 - [ ] Persist the host mDNS advertisement across reboots (launchd / systemd unit); today it's `scripts/relay advertise`.
-- [ ] STARS polish: data blocks with leader lines, pan indicator; aircraft type in frame v2 (28-byte record).
+- [ ] STARS polish: data blocks with leader lines.
+- [ ] Y / Z on 6-button pads (reserved).
+- [ ] Persist the sort order (RAM only today; adding it to `struct settings` would invalidate saved `MWR1` records).
 - [ ] Sound (PSG engine noise on the splash), non-KBNA fake feeds for emulator demos.
 
 ## Decided
-SGDK master `9a78a44` in a container; V-Int renderer, so blocking polls never stall the sweep; frame v1 over HTTP GET
-once per sweep with Content-Length; relay in Go (stdlib); screen layout and thin-line sweep; settings record `MWR1` in
+SGDK master `9a78a44` in a container; V-Int renderer, so blocking polls never stall the sweep; compact frame over HTTP GET
+once per sweep with Content-Length; relay and cart in lock-step (contract version, 409 on mismatch); no pan, a traffic
+list and detail pop-up instead (0.2.0); relay in Go (stdlib); screen layout and thin-line sweep; settings record `MWR1` in
 user_data sector 0; OurAirports large + scheduled airports; print assets in Typst; boot splash driven by boot steps;
 relay discovery by mDNS legacy unicast with AUTO default.

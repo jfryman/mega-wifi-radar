@@ -11,7 +11,7 @@
 - mw-fw-rtos - the ESP32 firmware; the owner's fork has the `rev-c-1250k` release.
 - wflash - the MegaWiFi bootloader; the stock build doesn't fit Rev.C clocks.
 - User task - SGDK's cooperative task (`TSK_userSet`) that runs `mw_process()`; it must never touch the VDP.
-- Compact frame - the big-endian binary aircraft snapshot the console consumes (`"AR"` v1, `src/arframe.h`).
+- Compact frame - the big-endian binary aircraft snapshot the console consumes (`"AR"`, `src/arframe.h`).
 - Record - one 24-byte aircraft entry in a frame (v2 adds the type → 28).
 - 1/32 nm - frame position unit (~58 m); x east, y north of home.
 - Stale - position older than 15 s (flagged); older than 60 s means dropped by the relay.
@@ -38,3 +38,11 @@
 - AUTO - RELAY setting left empty: the cart finds the relay over mDNS at every boot (`_mwradar._tcp`).
 - Legacy unicast query - an mDNS query sent from a port other than 5353; responders must answer it directly to that port (RFC 6762 §6.7).
 - Reuse mode - a MegaWiFi UDP socket opened with only a local port: packets carry a 6-byte peer address prefix.
+- Contract version - `AR_VER` in `src/arframe.h` (= relay `frameVer`); sent as `v=` on every request and in the mDNS TXT. Any contract change bumps it.
+- Lock-step - relay vX serves only cart vX (same release, same `AR_VER`); a mismatch is a 409 and an on-screen `RELAY MISMATCH` / `RELAY VER?`.
+- Contract lock - `relay/contract.lock`: `AR_VER` + a hash of `arframe.h`, so the header can't change without a bump (`make contract-lock`).
+- Traffic list - the side panel's sortable callsign + distance list; ▲▼ select in it (`tlist.c`).
+- Sort order - the list's order, cycled by holding C: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT (emergencies always first).
+- Detail pop-up - the full-height panel over the scope (tap C) with everything about the selected aircraft (`popup.c`).
+- Detail record - `struct ar_detail`, 96 bytes from `GET /v1/detail`: registration, type, model, operator, year, GPS/selected altitude, selected heading, QNH, last seen.
+- Opaque font - a copy of the SGDK font with its transparent background made black (index 14), so window-plane text hides the scope.

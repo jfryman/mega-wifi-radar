@@ -1,6 +1,6 @@
 # Instruction manual (`print/manual.typ`, `print/manual/*.typ`)
 
-16 pages at 121×171 mm, laid out like a 1989 Sega manual: white pages, a black heading bar with a red
+20 pages at 121×171 mm, laid out like a 1989 Sega manual: white pages, a black heading bar with a red
 rule, the page number in a small black box, and red numbered discs for callouts. All the text is our own.
 
 ```mermaid
@@ -16,15 +16,19 @@ flowchart LR
 | 2 | handling | care, seizure warning, projection/plasma burn-in, not-for-navigation note |
 | 3 | contents | `outline(depth: 1)`, thank-you line |
 | 4–5 | starting-up | Model 1 top + front with callouts, 3 steps, first time, if nothing appears, what you need |
-| 6 | controls | pad drawing + 5 keys, range steps |
-| 7 | relay | what the relay is, docker command, URL rules, adsb.fi fair use |
-| 8–9 | setup | `setup` shot + 5 keys, `keyboard` shot, persistence, airport count |
-| 10–11 | scope | `radar` shot + 7 keys, tag colours table, stale/drop |
-| 12 | themes | Classic + STARS shots |
-| 13 | troubleshooting | boot/panel messages table, Wi-Fi sleep note |
-| 14 | credits | credits grid, version, URL, disclaimer |
-| 15 | (pad) | Notes |
-| 16 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
+| 6–7 | controls | pad drawing + 5 keys, six-button note; range steps + `zoom` shot (page 7) |
+| 8 | relay | what the relay is, docker command, same-release rule, URL rules, adsb.fi fair use |
+| 9–10 | setup | `setup` shot + 7 keys (CONTROLS, RESET), `keyboard` shot, persistence, airport count |
+| 11–12 | scope | `radar` shot + 7 keys (traffic list, theme/tags/data), tag colours table, stale/drop |
+| 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position) |
+| 14 | themes | Classic + STARS shots |
+| 15 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?), Wi-Fi sleep note |
+| 16 | credits | credits grid, version, URL, disclaimer |
+| 17–19 | (pad) | Notes |
+| 20 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
+
+Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
+don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps.
 
 ## Building blocks (`print/manual/lib.typ`)
 ```typst

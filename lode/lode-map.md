@@ -15,12 +15,14 @@
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: endpoint contract, conversion rules, caching, DNS discovery
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame + /v1/detail, version check, conversion rules, caching, discovery
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
   - [radar-renderer.md](ui/radar-renderer.md) - V-Int renderer, shared state, measured costs, perf lessons
   - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, layers, art pipeline, motion
+  - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
+  - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence, airports
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
@@ -29,8 +31,8 @@
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
-  - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h as source of truth, contract_test.go, make contract
-  - [frame-format.md](architecture/frame-format.md) - v1 binary frame: header, record, flags, transport, versioning
+  - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v2): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [v0.2.0-radar-ux.md](plans/v0.2.0-radar-ux.md) - 0.2.0 build plan: traffic list, detail pop-up, controls, version lock-step

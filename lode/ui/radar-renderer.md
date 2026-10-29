@@ -8,19 +8,23 @@ After `radar_start()` the renderer **owns the VDP and runs entirely in the V-Int
 flowchart LR
   subgraph main[main loop]
     P[poll on each north pass] --> I[traffic_ingest: next, tag text, bearing]
-    J[pad: zoom/select/pan/START] --> R[radar_* requests]
+    J[pad: zoom/list/tags/sort/theme/pop-up/START] --> R[radar_* requests]
   end
   subgraph vint[V-Int, every frame]
     U[V-Blank: CPU-copy dirty tiles + sprite DMA + glow palette] --> A[scope_advance]
     A --> X[apply tracks whose bearing == sweep step]
-    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows]
+    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows] --> Q[<= 3 pop-up rows]
   end
   I -. tr_state / tr_brg / track.next .-> X
 ```
 
 ## Contracts
 - Shared state: main writes `track.next*`, `tr_state`, `tr_brg` under `SYS_disableInts()`. The
-  V-Int owns `cur`, trails, tags and sprites. `radar_panel()` copies text under ints-off.
+  V-Int owns `cur`, trails, tags and sprites. `radar_panel_pal()` / `radar_popup_row()` copy text and a
+  palette per row under ints-off, and skip rows that didn't change.
+- The pop-up ([detail-popup.md](detail-popup.md)) is the window plane over cols 0–27 with an opaque font copy
+  (`t_ofont`, built by `opaque_font()` in `radar_init`); it appears once all its rows are written and hides the
+  sprites. VRAM after the scope: 5 blip tiles, 4 box tiles, 96 opaque-font tiles.
 - **Updates follow the sweep**: a track's new data applies when `scope_step() == tr_brg[i]`, which
   also pushes a trail dot (incremental: add the newest, drop the oldest). One poll per rotation.
 - **Late-frame guard**: if the handler starts outside V-Blank (`GET_VDP_STATUS(VDP_VBLANK_FLAG)`),
