@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract contract-lock fake-feed
 
 all: release
 
@@ -24,6 +24,15 @@ contract:
 	@if command -v go >/dev/null 2>&1; then \
 		cd relay && go test -count=1 -run Contract ./... >/dev/null || { echo "contract: relay and src/arframe.h disagree:" >&2; go test -count=1 -run Contract ./... >&2; exit 1; }; \
 	else echo "contract: go not found, skipping the relay <-> cartridge check (CI still runs it)" >&2; fi
+
+# Emulator feed from the recorded KBNA snapshots: frames + pop-up details (res/fake/, embedded by make sim).
+fake-feed:
+	cd relay && go run . -pack ../res/fake/kbna_seq.bin testdata/kbna-seq/*.json \
+		&& go run . -pack-detail ../res/fake/kbna_detail.bin testdata/kbna-seq/*.json
+
+# After bumping AR_VER in src/arframe.h: record the new contract in relay/contract.lock.
+contract-lock:
+	cd relay && CONTRACT_LOCK=update go test -count=1 -run ContractLock ./... && cat contract.lock
 
 release: version contract
 	rm -f out/release/src/devcfg.o

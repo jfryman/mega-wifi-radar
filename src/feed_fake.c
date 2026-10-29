@@ -1,5 +1,6 @@
 /* Fake feed for emulators (build with FAKE_FEED): cycles through frames
- * recorded around KBNA (res/fake/kbna_seq.bin, made by `relay -pack`). */
+ * recorded around KBNA (res/fake/kbna_seq.bin, made by `relay -pack`), with their aircraft's
+ * pop-up details (res/fake/kbna_detail.bin). */
 #include "feed.h"
 
 #ifdef FAKE_FEED
@@ -23,7 +24,21 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     *hdr = h;
     return FEED_OK;
 }
-bool feed_find_relay(void) { return TRUE; }
+/* "FD", u16 count, then count x struct ar_detail (res/fake/kbna_detail.bin, `relay -pack-detail`). */
+enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d)
+{
+    const u8 *pack = fake_detail_rom;
+    u16 count = *(const u16 *)(pack + 2);
+    const struct ar_detail *r = (const struct ar_detail *)(pack + 4);
+
+    for (u16 i = 0; i < count; i++, r++)
+        if (r->icao[0] == icao[0] && r->icao[1] == icao[1] && r->icao[2] == icao[2]) {
+            *d = r;
+            return FEED_OK;
+        }
+    return FEED_ERR_HTTP;
+}
+enum feed_err feed_find_relay(void) { return FEED_OK; }
 const char *feed_relay_url(void) { return ""; }
 const char *feed_relay_host(void) { return ""; }
 

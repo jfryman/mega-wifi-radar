@@ -5,6 +5,10 @@ BACKWARDS INCOMPATIBILITIES:
   * **radar:** new controls. The D-pad no longer pans the scope: UP/DOWN select aircraft in the
     traffic list, LEFT/RIGHT cycle the tags (all / selected / off), and holding C changes the
     list's sort order instead of the tags.
+  * **relay:** the relay and the cartridge now come as a pair: use the relay from the same release
+    as your cartridge. A 0.2.0 cartridge won't use a 0.1.x relay (or the other way round), and it
+    says so at boot (*RELAY MISMATCH: RUN RELAY v0.2.0*) or on the radar (`RELAY VER?`) instead of
+    failing with a generic error. Update the relay image along with the cartridge.
 
 FEATURES:
 
@@ -14,6 +18,19 @@ FEATURES:
   * **radar:** X on a 6-button pad cycles the theme. It's a shortcut only: the theme is also in
     Setup, so nothing needs a 6-button pad.
   * **setup:** a CONTROLS page lists the radar and setup controls.
+  * **radar:** tap C for a detail pop-up on the selected aircraft: registration, type, model,
+    operator and year, altitude, vertical speed, GPS and selected altitude, selected heading,
+    altimeter setting, speed, track, squawk (with its meaning), category, distance and bearing.
+    It updates every sweep, follows UP/DOWN, and C or B closes it.
+  * **relay:** `GET /v1/detail?icao=…` serves one aircraft's details for the pop-up, from the
+    latest upstream snapshot (or a single-aircraft upstream request).
+
+IMPROVEMENTS:
+
+  * **build:** `relay/contract.lock` ties `src/arframe.h` to its contract version, so the build
+    fails if the contract changes without a version bump (`make contract-lock` records a new one).
+  * **relay:** logs its release and contract version at start-up, and logs requests from a
+    cartridge at another version.
 
 ## 0.1.3 (October 29, 2026)
 

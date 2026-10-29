@@ -8,6 +8,7 @@
 #include "fmt.h"
 #include "geo.h"
 #include "net.h"
+#include "popup.h"
 #include "radar.h"
 #include "setup.h"
 #include "splash.h"
@@ -28,13 +29,24 @@ static void wait_frames(u16 n)
     while (vtimer - t < n) {}
 }
 
+/* One frame from the relay before takeoff, so a relay from another release (lock-step: relay vX
+ * serves cart vX) is reported at boot rather than as an error on the radar. Typed URLs too. */
+static enum feed_err relay_probe(void)
+{
+    const struct ar_hdr *h;
+    struct feed_stats st;
+    enum feed_err e = feed_fetch(&h, &st);
+
+    return e == FEED_ERR_VERSION ? e : FEED_OK;     /* other errors: the radar shows and retries them */
+}
+
 /* Detect the module, load saved settings, join Wi-Fi, narrated by the splash: each step is an
  * ATC call (lode/ui/boot-splash.md). Falls back to the setup screen when there's no working
  * network or no relay configured; the splash then resumes at the hold line. */
 static void boot_network(void)
 {
     struct net_module_info mod;
-    char buf[41];
+    char buf[80];                   /* app_version can be long (git describe -dirty); splash cuts lines */
     u8 ip[4];
 
     splash_start(SP_GATE);
@@ -56,11 +68,15 @@ static void boot_network(void)
         if (!setup) {
             splash_phase(SP_HOLD, NULL);
             bool joined = net_join(ip) == NET_OK;
+            enum feed_err fe = FEED_ERR_CONFIG;
             if (joined) {
                 if (!settings.relay[0]) splash_phase(SP_RELAY, NULL);   /* AUTO: mDNS */
-                if (feed_find_relay()) break;
+                if ((fe = feed_find_relay()) == FEED_OK) fe = relay_probe();
+                if (fe == FEED_OK) break;
             }
-            splash_phase(SP_HOLD_POS, !joined ? "WI-FI FAILED: OPENING SETUP" : "NO RELAY FOUND: OPENING SETUP");
+            if (fe == FEED_ERR_VERSION) sprintf(buf, "RELAY MISMATCH: RUN RELAY %s", app_version);
+            splash_phase(SP_HOLD_POS, !joined ? "WI-FI FAILED: OPENING SETUP" :
+                         fe == FEED_ERR_VERSION ? buf : "NO RELAY FOUND: OPENING SETUP");
             wait_frames(120);
         }
         splash_stop();
@@ -142,7 +158,11 @@ static void handle_input(void)
     u16 j = radar_joy(), pressed = j & ~prev;
 
     prev = j;
-    if (pressed & (BUTTON_A | BUTTON_B)) {
+    if (popup_is_open() && (pressed & BUTTON_B)) {
+        popup_close();
+        pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also zoom out */
+    }
+    if ((pressed & (BUTTON_A | BUTTON_B)) && !popup_is_open()) {
         s16 r = settings.range_idx + ((pressed & BUTTON_A) ? -1 : 1);
         if (r >= 0 && r < RANGE_COUNT) {
             char buf[16];
@@ -152,15 +172,22 @@ static void handle_input(void)
             radar_rescale();
         }
     }
+    /* C: a tap (released before HOLD_FRAMES) opens / closes the pop-up; a hold changes the sort */
     if (j & BUTTON_C) {
         if (++c_held == HOLD_FRAMES) tlist_sort_next();
     } else {
+        if (c_held && c_held < HOLD_FRAMES) {
+            if (popup_is_open()) popup_close();
+            else popup_open();
+        }
         c_held = 0;
     }
     /* up/down: list selection, auto-repeating while held */
     u16 ud = j & (BUTTON_UP | BUTTON_DOWN);
-    if (ud && (ud & pressed || (++dir_held >= REPEAT_DELAY && !((dir_held - REPEAT_DELAY) % REPEAT_RATE))))
+    if (ud && (ud & pressed || (++dir_held >= REPEAT_DELAY && !((dir_held - REPEAT_DELAY) % REPEAT_RATE)))) {
         tlist_move((ud & BUTTON_UP) ? -1 : 1);
+        popup_selection_changed();
+    }
     if (!ud) dir_held = 0;
     if (pressed & (BUTTON_LEFT | BUTTON_RIGHT)) {
         settings.tag_mode = (settings.tag_mode + ((pressed & BUTTON_RIGHT) ? 1 : TAGS_MODES - 1)) % TAGS_MODES;
@@ -197,8 +224,10 @@ static void poll(void)
         radar_panel(ROW_NET, (h->hflags & AR_H_UPSTREAM_ERR) ? "UPSTRM ERR" : "NET OK");
         radar_panel(ROW_DATA2, source_name(h->source));
         tlist_rebuild();
+        popup_after_poll();
     } else {
         radar_panel(ROW_NET, feed_err_str(e));
+        popup_after_poll();
     }
 }
 
@@ -254,8 +283,10 @@ int main(bool hard)
         frame = vtimer;
         main_beat++;
         handle_input();
+        popup_tick();
         if (want_setup) {
             want_setup = FALSE;
+            popup_close();
             radar_stop();
             setup_run(FALSE);
 #ifndef FAKE_FEED

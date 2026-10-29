@@ -236,6 +236,7 @@ enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
 #define DISC_TOUT       MW_MS_TO_FRAMES(1000)
 #define DNS_SRV         33
 #define DNS_A           1
+#define DNS_TXT         16
 
 /* The query (contract: AR_MDNS_* in arframe.h): the 6-byte reuse-mode prefix for 224.0.0.251:5353,
  * a DNS header with one question, AR_MDNS_SERVICE as labels, then PTR / IN (QM). */
@@ -275,12 +276,29 @@ static u16 skip_name(const u8 *m, u16 len, u16 off)
     return 0;
 }
 
-/* Parse a reply: first SRV gives the port, first A the address. */
-static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port)
+/* TXT "v=<n>": the relay's contract version (AR_VER), or -1 if the record has none. */
+static s16 txt_version(const u8 *p, u16 len)
+{
+    for (u16 off = 0; off < len; off += 1 + p[off]) {
+        const u8 *t = p + off + 1;
+        u8 n = p[off];
+        if (off + 1 + n > len) break;
+        if (n >= 3 && t[0] == 'v' && t[1] == '=') {
+            s16 v = 0;
+            for (u16 i = 2; i < n && t[i] >= '0' && t[i] <= '9'; i++) v = v * 10 + t[i] - '0';
+            return v;
+        }
+    }
+    return -1;
+}
+
+/* Parse a reply: first SRV gives the port, first A the address, TXT the version (-1 if none). */
+static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port, s16 *ver)
 {
     bool have_ip = FALSE;
 
     *port = 0;
+    *ver = -1;
     if (len < 12 || be16(m) != AR_MDNS_QUERY_ID || !(m[2] & 0x80)) return FALSE;
     u16 nq = be16(m + 4), nrr = be16(m + 6) + be16(m + 8) + be16(m + 10);
     u16 off = 12;
@@ -294,6 +312,7 @@ static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port)
         if (off + rdlen > len) return FALSE;
         if (type == DNS_SRV && rdlen >= 6 && !*port) *port = be16(m + off + 4);
         if (type == DNS_A && rdlen == 4 && !have_ip) { memcpy(ip, m + off, 4); have_ip = TRUE; }
+        if (type == DNS_TXT && *ver < 0) *ver = txt_version(m + off, rdlen);
         off += rdlen;
     }
     return *port != 0 && (have_ip || ip[0]);
@@ -304,11 +323,12 @@ enum net_err net_discover(char *url)
     enum net_err e = NET_ERR_NOT_FOUND;
     u8 ip[4], query[64];
     u16 port = 0, qlen = build_query(query);
+    s16 ver;
     char src_port[6];
 
     sprintf(src_port, "%u", AR_MDNS_SRC_PORT);
     if (mw_udp_set(DISC_CH, NULL, NULL, src_port) != MW_ERR_NONE) return NET_ERR_UDP;
-    for (u16 t = 0; t < DISC_TRIES && e != NET_OK; t++) {
+    for (u16 t = 0; t < DISC_TRIES && e == NET_ERR_NOT_FOUND; t++) {
         if (mw_send_sync(DISC_CH, (const char *)query, qlen, DISC_TOUT) != MW_ERR_NONE) {
             e = NET_ERR_UDP;
             break;
@@ -320,7 +340,11 @@ enum net_err net_discover(char *url)
             if (ch != DISC_CH || len <= 6) continue;
             const u8 *p = (const u8 *)cmd_buf;
             memcpy(ip, p, 4);               /* sender: used if the reply has no A record */
-            if (parse_reply(p + 6, len - 6, ip, &port)) { e = NET_OK; break; }
+            if (parse_reply(p + 6, len - 6, ip, &port, &ver)) {
+                /* lock-step: only a relay at our contract version will serve us (no TXT: let HTTP tell) */
+                e = ver < 0 || ver == AR_VER ? NET_OK : NET_ERR_VERSION;
+                break;
+            }
         }
     }
     mw_close(DISC_CH);

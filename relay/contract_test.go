@@ -2,12 +2,14 @@ package main
 
 // Contract test: src/arframe.h is the single source of truth for what the relay and the cartridge
 // agree on (lode/architecture/contract.md). This test parses it and checks the relay against every
-// AR_* item: constants, the frame layout (each field at its AR_AT offset), the HTTP path and query,
-// and the mDNS discovery strings. Any AR_* item the test doesn't know about fails it, so a new
-// contract item can't slip past.
+// AR_* item: constants, the frame and detail layouts (each field at its AR_AT offset), the HTTP
+// paths, queries and version check, and the mDNS discovery strings. Any AR_* item or struct the
+// test doesn't know about fails it, so a new contract item can't slip past. contract.lock pins a
+// hash of the header to AR_VER, so the header can't change without a version bump.
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -18,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 const headerPath = "../src/arframe.h"
@@ -101,6 +104,9 @@ var relayInts = map[string]int64{
 	"AR_F_GROUND": fGround, "AR_F_EMERG": fEmerg, "AR_F_STALE": fStale, "AR_F_ALT_UNK": fAltUnk,
 	"AR_F_GS_UNK": fGSUnk, "AR_F_TRK_UNK": fTrkUnk, "AR_F_VR_UNK": fVRUnk,
 	"AR_SQUAWK_NONE": squawkNone, "AR_CAT_NONE": catNone,
+	"AR_HTTP_MISMATCH": httpMismatch, "AR_DETAIL_SIZE": detailSize,
+	"AR_D_FOUND": dFound, "AR_D_GEOM_ALT": dGeomAlt, "AR_D_SEL_ALT": dSelAlt, "AR_D_SEL_HDG": dSelHdg,
+	"AR_D_QNH": dQNH, "AR_D_YEAR": dYear, "AR_D_SEEN": dSeen,
 }
 
 // Items checked by their own tests below, or reserved values the relay never emits.
@@ -110,6 +116,8 @@ var checkedElsewhere = map[string]string{
 	"AR_FRAME_MAX":     "TestContractConstants (derived)",
 	"AR_FRAME_PATH":    "TestContractHTTP",
 	"AR_FRAME_QUERY":   "TestContractHTTP",
+	"AR_DETAIL_PATH":   "TestContractHTTP",
+	"AR_DETAIL_QUERY":  "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
 	"AR_MDNS_SRC_PORT": "TestContractDiscovery",
@@ -163,6 +171,13 @@ func TestContractLayout(t *testing.T) {
 		gs: 0xC3, track: 0x3C, vrate: -5, cat: 0x11, cs: [8]byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}}
 	f := frame{seq: 0x1234, time: 0x89ABCDEF, rangeNM: 0x0102, source: 0x5A, hflags: 0xA5, recs: []record{r}}
 	enc := f.encode()
+	d := detail{flags: 0x7F, icao: 0x0D0E0F, cat: 0x15, geomAlt: -0x1357, selAlt: 0x2468, selHdg: 271,
+		qnh: 10264, year: 2017, seen: 0x0A0B}
+	padASCII(d.reg[:], "N8713M")
+	padASCII(d.typ[:], "B38M")
+	padASCII(d.desc[:], "BOEING 737 MAX 8")
+	padASCII(d.owner[:], "SOUTHWEST AIRLINES CO")
+	encD := d.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
 	want := map[string]map[string]func(size int) []byte{
@@ -190,13 +205,46 @@ func TestContractLayout(t *testing.T) {
 			"cat":    func(n int) []byte { return be(uint64(r.cat), n) },
 			"cs":     func(int) []byte { return r.cs[:] },
 		},
+		"ar_detail": {
+			"magic":    func(int) []byte { return []byte("AD") },
+			"ver":      func(n int) []byte { return be(frameVer, n) },
+			"dflags":   func(n int) []byte { return be(uint64(d.flags), n) },
+			"icao":     func(n int) []byte { return be(uint64(d.icao), n) },
+			"cat":      func(n int) []byte { return be(uint64(d.cat), n) },
+			"geom_alt": func(n int) []byte { return be(uint64(uint16(d.geomAlt)), n) },
+			"sel_alt":  func(n int) []byte { return be(uint64(uint16(d.selAlt)), n) },
+			"sel_hdg":  func(n int) []byte { return be(uint64(d.selHdg), n) },
+			"qnh":      func(n int) []byte { return be(uint64(d.qnh), n) },
+			"year":     func(n int) []byte { return be(uint64(d.year), n) },
+			"reg":      func(int) []byte { return d.reg[:] },
+			"type":     func(int) []byte { return d.typ[:] },
+			"seen":     func(n int) []byte { return be(uint64(d.seen), n) },
+			"desc":     func(int) []byte { return d.desc[:] },
+			"owner":    func(int) []byte { return d.owner[:] },
+		},
 	}
-	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize}
-	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"])}
+	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD}
+	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0}
+	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
+		"ar_detail": int(h.ints["AR_DETAIL_SIZE"])}
 
-	for _, st := range []string{"ar_hdr", "ar_rec"} {
+	var structs []string
+	for st := range h.order {
+		structs = append(structs, st)
+		if _, ok := want[st]; !ok {
+			t.Errorf("struct %s is new in arframe.h: encode it in the relay and map it in contract_test.go", st)
+		}
+	}
+	sort.Strings(structs)
+	for st := range want {
 		if len(h.order[st]) == 0 {
-			t.Fatalf("struct %s not found in arframe.h", st)
+			t.Errorf("struct %s: relay encodes it but arframe.h no longer has it", st)
+		}
+	}
+	for _, st := range structs {
+		enc := encs[st]
+		if enc == nil {
+			continue
 		}
 		end := 0
 		for _, field := range h.order[st] {
@@ -230,23 +278,93 @@ func TestContractLayout(t *testing.T) {
 	}
 }
 
+// cFormat turns a C printf format into a Go one (%u -> %d; %s and %02x are the same).
+func cFormat(f string) string { return strings.ReplaceAll(f, "%u", "%d") }
+
 func TestContractHTTP(t *testing.T) {
 	h := loadHeader(t)
+	ver := h.ints["AR_VER"]
 	if h.strs["AR_FRAME_PATH"] != framePath {
 		t.Errorf("AR_FRAME_PATH %q, relay serves %q", h.strs["AR_FRAME_PATH"], framePath)
 	}
-	// Build the query exactly as the cart does (sprintf with AR_FRAME_QUERY), then parse it.
-	format := h.strs["AR_FRAME_QUERY"]
-	if strings.Count(format, "%") != 4 {
-		t.Fatalf("AR_FRAME_QUERY %q: expected lat, lon, range, max", format)
+	if h.strs["AR_DETAIL_PATH"] != detailPath {
+		t.Errorf("AR_DETAIL_PATH %q, relay serves %q", h.strs["AR_DETAIL_PATH"], detailPath)
 	}
-	q := fmt.Sprintf(strings.ReplaceAll(format, "%u", "%d"), "36.1245", "-86.6782", 50, 40)
-	got, err := parseQuery(httptest.NewRequest("GET", framePath+q, nil))
+	// Build the queries exactly as the cart does (sprintf with the AR_*_QUERY formats), then serve them.
+	format := h.strs["AR_FRAME_QUERY"]
+	if strings.Count(format, "%") != 5 {
+		t.Fatalf("AR_FRAME_QUERY %q: expected lat, lon, range, max, version", format)
+	}
+	q := fmt.Sprintf(cFormat(format), "36.1245", "-86.6782", 50, 40, ver)
+	req := httptest.NewRequest("GET", framePath+q, nil)
+	got, err := parseQuery(req)
 	if err != nil {
 		t.Fatalf("relay rejects the cart's query %q: %v", q, err)
 	}
 	if got.lat != 36.1245 || got.lon != -86.6782 || got.rangeNM != 50 || got.max != 40 {
 		t.Errorf("relay read %q as %+v", q, got)
+	}
+	if !versionOK(httptest.NewRecorder(), req) {
+		t.Errorf("relay refuses the cart's version in %q", q)
+	}
+	old := httptest.NewRecorder()
+	if versionOK(old, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format), "1", "1", 5, 5, ver+1), nil)) ||
+		old.Code != int(h.ints["AR_HTTP_MISMATCH"]) {
+		t.Errorf("a cart at another version gets %d, want AR_HTTP_MISMATCH", old.Code)
+	}
+
+	dq := h.strs["AR_DETAIL_QUERY"]
+	if strings.Count(dq, "%") != 4 {
+		t.Fatalf("AR_DETAIL_QUERY %q: expected 3 icao bytes, version", dq)
+	}
+	src := newSource("http://upstream.invalid", time.Second)
+	src.last, src.lastAt = &upstreamResp{AC: []upstreamAC{{Hex: "abfcda", Reg: "N8713M"}}}, time.Now()
+	rec := httptest.NewRecorder()
+	detailHandler(src).ServeHTTP(rec, httptest.NewRequest("GET", detailPath+fmt.Sprintf(cFormat(dq), 0xab, 0xfc, 0xda, ver), nil))
+	body := rec.Body.Bytes()
+	if rec.Code != 200 || len(body) != int(h.ints["AR_DETAIL_SIZE"]) || body[3]&byte(h.ints["AR_D_FOUND"]) == 0 {
+		t.Errorf("detail for the cart's query: status %d, %d bytes % x", rec.Code, len(body), body)
+	}
+}
+
+// contract.lock: "AR_VER <n> <sha256 of arframe.h without comments and whitespace>".
+const lockPath = "contract.lock"
+
+func headerHash(t *testing.T) string {
+	src, err := os.ReadFile(headerPath)
+	if err != nil {
+		t.Skip("no header")
+	}
+	s := regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(string(src), "")
+	s = strings.Join(strings.Fields(s), " ")
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+}
+
+// TestContractLock: arframe.h can't change without an AR_VER bump. After bumping it, record the
+// new hash with `make contract-lock` (CONTRACT_LOCK=update).
+func TestContractLock(t *testing.T) {
+	h := loadHeader(t)
+	ver, sum := h.ints["AR_VER"], headerHash(t)
+	line := fmt.Sprintf("AR_VER %d %s\n", ver, sum)
+	if os.Getenv("CONTRACT_LOCK") == "update" {
+		if err := os.WriteFile(lockPath, []byte(line), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	data, err := os.ReadFile(lockPath)
+	if err != nil {
+		t.Fatalf("%s missing: run make contract-lock", lockPath)
+	}
+	var lockVer int64
+	var lockSum string
+	fmt.Sscanf(string(data), "AR_VER %d %s", &lockVer, &lockSum)
+	switch {
+	case lockSum == sum && lockVer == ver:
+	case lockVer == ver:
+		t.Errorf("arframe.h changed but AR_VER is still %d: bump AR_VER (relay and cart must change together), then make contract-lock", ver)
+	default:
+		t.Errorf("AR_VER is now %d (lock has %d): run make contract-lock to record the new contract", ver, lockVer)
 	}
 }
 

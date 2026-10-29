@@ -1,6 +1,6 @@
 package main
 
-// Compact frame v1. Spec: lode/architecture/frame-format.md; console side: src/arframe.h.
+// Compact frame (contract version frameVer). Spec: lode/architecture/frame-format.md; console side: src/arframe.h.
 
 import (
 	"encoding/binary"
@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	frameVer     = 1
+	frameVer     = 2 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
 	recSize      = 24
 	maxRecs      = 96
@@ -23,6 +23,8 @@ const (
 	squawkNone   = 0xFFFF
 	catNone      = 0xFF
 	framePath    = "/v1/frame"
+	detailPath   = "/v1/detail"
+	httpMismatch = 409 // AR_HTTP_MISMATCH: the request's v= isn't frameVer
 )
 
 // These constants mirror src/arframe.h, the relay <-> cartridge contract; contract_test.go
@@ -61,6 +63,17 @@ type upstreamAC struct {
 	Emergency string   `json:"emergency"`
 	Category  string   `json:"category"`
 	SeenPos   *float64 `json:"seen_pos"`
+	Seen      *float64 `json:"seen"`
+
+	// Detail only (detail.go).
+	Type    string   `json:"t"`
+	Desc    string   `json:"desc"`
+	OwnOp   string   `json:"ownOp"`
+	Year    string   `json:"year"`
+	AltGeom *float64 `json:"alt_geom"`
+	NavAlt  *float64 `json:"nav_altitude_mcp"`
+	NavHdg  *float64 `json:"nav_heading"`
+	NavQNH  *float64 `json:"nav_qnh"`
 }
 
 type upstreamResp struct {
@@ -170,12 +183,16 @@ func convert(a *upstreamAC, homeLat, homeLon, rangeNM float64) (record, bool) {
 	if a.SeenPos != nil && *a.SeenPos > staleSec {
 		r.flags |= fStale
 	}
-	r.cat = catNone
-	if c := a.Category; len(c) == 2 && c[0] >= 'A' && c[0] <= 'P' && c[1] >= '0' && c[1] <= '9' {
-		r.cat = (c[0]-'A')<<4 | (c[1] - '0')
-	}
+	r.cat = category(a.Category)
 	r.cs = callsign(a)
 	return r, true
+}
+
+func category(c string) uint8 {
+	if len(c) == 2 && c[0] >= 'A' && c[0] <= 'P' && c[1] >= '0' && c[1] <= '9' {
+		return (c[0]-'A')<<4 | (c[1] - '0')
+	}
+	return catNone
 }
 
 func callsign(a *upstreamAC) [8]byte {
@@ -186,15 +203,22 @@ func callsign(a *upstreamAC) [8]byte {
 	if s == "" {
 		s = strings.TrimPrefix(a.Hex, "~")
 	}
-	s = strings.ToUpper(s)
 	var cs [8]byte
-	for i := range cs {
-		cs[i] = ' '
-		if i < len(s) && s[i] >= 0x20 && s[i] < 0x7F {
-			cs[i] = s[i]
+	padASCII(cs[:], strings.ToUpper(s))
+	return cs
+}
+
+// padASCII fills dst with s, space padded; bytes the console font lacks become '?'.
+func padASCII(dst []byte, s string) {
+	for i := range dst {
+		dst[i] = ' '
+		if i < len(s) {
+			dst[i] = s[i]
+			if s[i] < 0x20 || s[i] >= 0x7F {
+				dst[i] = '?'
+			}
 		}
 	}
-	return cs
 }
 
 // encode writes the frame big-endian, exactly as src/arframe.h lays it out.

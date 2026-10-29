@@ -16,6 +16,7 @@ enum net_err {
     NET_ERR_RECV,
     NET_ERR_UDP,       /* couldn't open/send on the discovery socket */
     NET_ERR_NOT_FOUND, /* no relay answered the mDNS query */
+    NET_ERR_VERSION,   /* a relay answered, but at another contract version (TXT v= != AR_VER) */
 };
 
 struct net_module_info {
