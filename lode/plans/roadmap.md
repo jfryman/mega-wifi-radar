@@ -18,7 +18,7 @@ flowchart TD
 - **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash, label/tag bug fixes),
   v0.1.3 (mDNS relay discovery / AUTO RELAY, setup RESET, relay ↔ cart contract check, Wi-Fi save / first-boot
   join fixes), v0.2.0 (traffic list, new controls, detail pop-up + `/v1/detail`, setup CONTROLS, contract v2 with
-version lock-step, start-up RAM check). 0.2.1 is open in `CHANGELOG.md`. The cart runs 0.2.0 (CRC32 `4F89B902`) and
+version lock-step, start-up RAM check). 0.2.1 is open in `CHANGELOG.md`. The cart runs the v0.2.0 release ROM (CRC32 `DA73BCE4`) and
 boots (the first 0.2.0 flash booted to black: [../build/ram-budget.md](../build/ram-budget.md)). **Verified on the cart (2026-10-28):**
   RESET → Everything → first-boot Wi-Fi page → SAVED + CONNECTED → SAVE & EXIT → AUTO relay → radar, and a power cycle
   keeps it. **Verified on the cart (2026-10-29), v0.1.3 ROM:** AUTO re-discovery mid-session (`make relay-stop` while
@@ -29,14 +29,14 @@ boots (the first 0.2.0 flash booted to black: [../build/ram-budget.md](../build/
 - Verified on the cart: cold-boot detect, Wi-Fi join, relay polling once per sweep, renderer timing, setup + flash
   persistence, the splash, mDNS discovery, setup RESET, first-boot Wi-Fi save + join,
   AUTO relay re-discovery mid-session, and the Wi-Fi scan + rejoin from the radar's setup.
+- Verified on the cart (2026-10-29), 0.2.0: the traffic list, ▲▼ selection, hold-C sort, ◀▶ tags, the detail
+  pop-up against the real relay (▲▼ while open, C/B close), X on a 6-button pad, setup CONTROLS, and the
+  relay-mismatch message.
 - The dev relay runs as the `mwradar-relay` container on the dev Mac (:8080), advertised by `dns-sd -P` from
   `scripts/relay start`.
 
 ## Not yet checked on hardware
-- 0.2.0 on the cart: the traffic list, ▲▼ selection, hold-C sort, ◀▶ tags, the pop-up (open, detail from the real relay,
-  ▲▼ while open, C/B close), X on a 6-button pad, setup CONTROLS.
-- The mismatch path: a 0.2.0 cart against a 0.1.3 relay (`ghcr.io/jfryman/mega-wifi-radar-relay:0.1.3`) should hold at
-  boot with `RELAY MISMATCH: RUN RELAY v0.2.0`.
+- Nothing outstanding.
 
 ```sh
 make flash                     # cart ROM (FlashKit); then cold-boot
