@@ -10,6 +10,7 @@ package main
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -44,7 +45,7 @@ func newAdvert(hostname string, port uint16) advert {
 		instance: "MegaWiFi Radar." + serviceName,
 		host:     h + ".local.",
 		port:     port,
-		txt:      []string{"v=1", "path=/v1/frame"},
+		txt:      []string{fmt.Sprintf("v=%d", frameVer), "path=" + framePath},
 	}
 }
 

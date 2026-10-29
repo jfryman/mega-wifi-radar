@@ -11,6 +11,9 @@
   (format: [build/ci-release.md](build/ci-release.md)).
 - A change to what the player sees or does also updates its manual section in `print/manual/` and, if the
   screen changed, `print/shots.txt` + `make print-shots`, in the same commit ([print/print-assets.md](print/print-assets.md)).
+- Contract changes (frame layout, constants, HTTP path/query, mDNS strings) start in `src/arframe.h`; then the
+  relay, then the mapping in `relay/contract_test.go`. `make contract` (run before every ROM build) and CI enforce it
+  ([architecture/contract.md](architecture/contract.md)).
 - Printed pieces copy Sega's 1989 *style*, never its marks: no SEGA logo, Genesis wordmark or seal.
 
 ## Hard rules for 68k code

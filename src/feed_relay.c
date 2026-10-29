@@ -59,7 +59,7 @@ static bool build_url(char *url, u16 size)
     fmt_deg_e4(lat, settings.lat_e4);
     fmt_deg_e4(lon, settings.lon_e4);
     /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96" (<= 56) */
-    sprintf(url, "%s/v1/frame?lat=%s&lon=%s&range=%u&max=%u", relay_url,
+    sprintf(url, "%s" AR_FRAME_PATH AR_FRAME_QUERY, relay_url,
             lat, lon, settings_range_nm(), AR_MAX_RECS);
     return TRUE;
 }

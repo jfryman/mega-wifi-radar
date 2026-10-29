@@ -20,7 +20,13 @@ const (
 	dropSec      = 60
 	posPerNM     = 32 // 1/32 nm
 	sourceADSBfi = 1
+	squawkNone   = 0xFFFF
+	catNone      = 0xFF
+	framePath    = "/v1/frame"
 )
+
+// These constants mirror src/arframe.h, the relay <-> cartridge contract; contract_test.go
+// fails if they drift (lode/architecture/contract.md).
 
 // Header flags.
 const (
@@ -151,7 +157,7 @@ func convert(a *upstreamAC, homeLat, homeLon, rangeNM float64) (record, bool) {
 	} else {
 		r.flags |= fVRUnk
 	}
-	r.squawk = 0xFFFF
+	r.squawk = squawkNone
 	if len(a.Squawk) == 4 {
 		if v, err := strconv.ParseUint(a.Squawk, 16, 16); err == nil {
 			r.squawk = uint16(v)
@@ -164,7 +170,7 @@ func convert(a *upstreamAC, homeLat, homeLon, rangeNM float64) (record, bool) {
 	if a.SeenPos != nil && *a.SeenPos > staleSec {
 		r.flags |= fStale
 	}
-	r.cat = 0xFF
+	r.cat = catNone
 	if c := a.Category; len(c) == 2 && c[0] >= 'A' && c[0] <= 'P' && c[1] >= '0' && c[1] <= '9' {
 		r.cat = (c[0]-'A')<<4 | (c[1] - '0')
 	}

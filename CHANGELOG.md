@@ -10,6 +10,12 @@ FEATURES:
     in Setup goes back to AUTO. The boot adds a *request radar service* call, and the status line
     shows the relay in use.
 
+IMPROVEMENTS:
+
+  * **build:** a relay ↔ cartridge contract check. `src/arframe.h` defines the frame layout,
+    constants, HTTP query and mDNS strings, and `relay/contract_test.go` fails CI and `make release`
+    if the relay disagrees with any of it, or if either side adds an item the other doesn't know.
+
 BACKWARDS INCOMPATIBILITIES:
 
   * **cartridge:** an empty RELAY setting now means AUTO (it used to mean "not set"). Saved

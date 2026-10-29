@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract
 
 all: release
 
@@ -18,7 +18,14 @@ version:
 
 # devcfg.o is always rebuilt: it includes the optional src/dev_config.h, which
 # SGDK's dependency tracking can't see appear (see src/devcfg.c).
-release: version
+# Relay <-> cartridge contract (lode/architecture/contract.md): src/arframe.h vs the relay.
+# Runs before every ROM build; needs Go on the host (warns and continues without it).
+contract:
+	@if command -v go >/dev/null 2>&1; then \
+		cd relay && go test -count=1 -run Contract ./... >/dev/null || { echo "contract: relay and src/arframe.h disagree:" >&2; go test -count=1 -run Contract ./... >&2; exit 1; }; \
+	else echo "contract: go not found, skipping the relay <-> cartridge check (CI still runs it)" >&2; fi
+
+release: version contract
 	rm -f out/release/src/devcfg.o
 	$(MD) $(SGDKMK) release
 
@@ -31,7 +38,7 @@ clean:
 
 # Emulator build: fake feed (no MegaWiFi), out/sim.bin. Objects are wiped
 # before and after so flags never mix with the cart build.
-sim: version
+sim: version contract
 	rm -rf out/release
 	$(MD) $(SGDKMK) release EXTRA_FLAGS=-DFAKE_FEED
 	cp out/rom.bin out/sim.bin

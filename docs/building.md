@@ -53,6 +53,7 @@ flowchart LR
 | `print` | Label, cover and manual PDFs in `out/print/` ([print.md](print.md)) |
 | `print-shots` | Recapture the manual's screenshots in MAME |
 | `splash-art` | Regenerate the boot splash data from `res/splash/src/art.typ` |
+| `contract` | Check the relay against `src/arframe.h` (frame layout, constants, HTTP query, mDNS); runs before `release` and `sim` |
 | `clean` | |
 
 The boot screen shows the version from `git describe --tags --always --dirty`. `make` writes it to the
@@ -75,9 +76,18 @@ make splash-art                                               # boot splash: Typ
 cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json
 ```
 
+## The relay ↔ cartridge contract
+
+`src/arframe.h` is the single definition of everything the relay and the cartridge must agree on: the frame layout
+(`AR_AT` offsets, which the C compiler also checks), the version and flag constants, the HTTP path and query, and the mDNS
+service. `relay/contract_test.go` parses it and checks the relay against every item. It also fails on any `AR_*` item it
+doesn't recognise, so a change on either side that isn't mirrored can't pass `make release` or CI. To change the contract,
+edit `arframe.h` first, then the relay, then the mapping in the test.
+
 ## Tests
 
 ```sh
+make contract                     # relay <-> cartridge contract (also runs before every ROM build)
 cd relay && go vet ./... && go test ./...
 cd tools && go vet ./...
 ```

@@ -25,6 +25,9 @@ flowchart LR
 - See "Running it" below. The console URL is
   found over mDNS (AUTO) or typed as `http://<relay-host-fqdn>:8080` (see "Discovery" below).
 
+The relay's constants, encoder, route and mDNS strings are held to `src/arframe.h` by `contract_test.go`
+([../architecture/contract.md](../architecture/contract.md)).
+
 ## Running it
 | How | Command |
 |---|---|

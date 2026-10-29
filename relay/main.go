@@ -174,7 +174,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /v1/frame", frameHandler(newSource(*upstream, *interval)))
+	mux.Handle("GET "+framePath, frameHandler(newSource(*upstream, *interval)))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	if *mdns {
 		_, p, err := net.SplitHostPort(*listen)

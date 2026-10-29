@@ -29,6 +29,7 @@
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
+  - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h as source of truth, contract_test.go, make contract
   - [frame-format.md](architecture/frame-format.md) - v1 binary frame: header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions

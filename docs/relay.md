@@ -89,7 +89,8 @@ east/north offsets from the home point in 1/32 nm. The records are sorted neares
 | range (nm) | 2 | vertical rate (64 fpm), category | 1+1 |
 | source, header flags | 1+1 | callsign (8 chars, space padded) | 8 |
 
-The authoritative spec, with exact offsets, flag bits and versioning rules, is
+The C header [src/arframe.h](../src/arframe.h) is the machine-checked definition: `relay/contract_test.go` fails the
+build if the relay drifts from it. The prose spec, with exact offsets, flag bits and versioning rules, is
 [lode/architecture/frame-format.md](../lode/architecture/frame-format.md). The console-side
 structs (with offset static asserts) are in [src/arframe.h](../src/arframe.h).
 

@@ -31,7 +31,8 @@ sequenceDiagram
 enum net_err net_discover(char *url);   /* src/net.c: ch 1, port 5354, 3 tries x 1 s; "http://a.b.c.d:port" */
 bool feed_find_relay(void);             /* src/feed_relay.c: typed settings.relay, else net_discover */
 ```
-The query is a const byte array with the 6-byte reuse prefix (`224.0.0.251:5353`). `parse_reply` checks id `0x4D57`
+`build_query()` assembles the query from the contract defines (`AR_MDNS_SERVICE`, `AR_MDNS_QUERY_ID`, `AR_MDNS_SRC_PORT`
+in `arframe.h`) behind the 6-byte reuse prefix (`224.0.0.251:5353`). `parse_reply` checks id `0x4D57`
 and the QR bit, skips questions and names (pointers included), and takes the first SRV port and A address. If there's
 no A record, the sender IP from the reuse prefix is used. Boot runs it as splash phase SP_RELAY.
 

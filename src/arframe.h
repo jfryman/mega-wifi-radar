@@ -1,7 +1,10 @@
 #ifndef ARFRAME_H
 #define ARFRAME_H
 
-/* Compact traffic frame, v1. Spec: lode/architecture/frame-format.md.
+/* The relay <-> cartridge contract (lode/architecture/contract.md): compact traffic frame v1
+ * (spec: lode/architecture/frame-format.md), the HTTP request, and mDNS discovery.
+ * relay/contract_test.go parses this file and checks the relay against every AR_* item here,
+ * so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
@@ -31,6 +34,15 @@
 
 #define AR_SQUAWK_NONE  0xFFFF
 #define AR_CAT_NONE     0xFF
+
+/* HTTP: GET <relay base URL> AR_FRAME_PATH AR_FRAME_QUERY (lat, lon as degrees; range nm; max records) */
+#define AR_FRAME_PATH   "/v1/frame"
+#define AR_FRAME_QUERY  "?lat=%s&lon=%s&range=%u&max=%u"
+
+/* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
+#define AR_MDNS_SERVICE  "_mwradar._tcp.local"
+#define AR_MDNS_QUERY_ID 0x4D57
+#define AR_MDNS_SRC_PORT 5354
 
 struct ar_hdr {
     char magic[2];      /* "AR" */
@@ -62,9 +74,10 @@ struct ar_rec {
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
 _Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE_V1, "ar_rec must be 24 bytes");
+AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
 AR_AT(ar_hdr, range_nm, 12); AR_AT(ar_hdr, source, 14); AR_AT(ar_hdr, hflags, 15);
-AR_AT(ar_rec, flags, 3); AR_AT(ar_rec, x, 4); AR_AT(ar_rec, y, 6); AR_AT(ar_rec, alt, 8);
+AR_AT(ar_rec, icao, 0); AR_AT(ar_rec, flags, 3); AR_AT(ar_rec, x, 4); AR_AT(ar_rec, y, 6); AR_AT(ar_rec, alt, 8);
 AR_AT(ar_rec, squawk, 10); AR_AT(ar_rec, gs, 12); AR_AT(ar_rec, track, 13);
 AR_AT(ar_rec, vrate, 14); AR_AT(ar_rec, cat, 15); AR_AT(ar_rec, cs, 16);
 #undef AR_AT

@@ -89,5 +89,8 @@ MSS chunks. The console's frame buffer is 2,320 B.
 `magic == "AR"`, `ver == 1`, `rec_size >= 24`, `rec_size` even, and
 `16 + count × rec_size == content_len`. Otherwise the snapshot is discarded and the previous one kept.
 
+The machine-checked form of this spec is `src/arframe.h`; `relay/contract_test.go` holds the relay to it
+([contract.md](contract.md)).
+
 Related: [data-path-options.md](data-path-options.md), [../data/adsb-sources.md](../data/adsb-sources.md),
 [../net/net-layer.md](../net/net-layer.md).

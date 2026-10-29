@@ -1,4 +1,5 @@
 #include "net.h"
+#include "arframe.h"
 
 /* Command buffer shared with the MegaWiFi driver; also reused for HTTP body
  * chunks, which is safe because body reception is the only call in flight. */
@@ -196,20 +197,34 @@ enum net_err net_http_get(const char *url, net_chunk_cb cb, void *ctx,
 /* ------------------------------------------------------------ relay discovery (mDNS) */
 
 #define DISC_CH         1               /* LSD socket channel 1 (HTTP uses MW_HTTP_CH) */
-#define DISC_PORT       "5354"          /* not 5353: makes it a legacy unicast query */
-#define DISC_ID         0x4D57          /* "MW" */
 #define DISC_TRIES      3
 #define DISC_TOUT       MW_MS_TO_FRAMES(1000)
 #define DNS_SRV         33
 #define DNS_A           1
 
-/* query: header + PTR _mwradar._tcp.local IN, after the 6-byte reuse-mode address prefix */
-static const u8 disc_query[] = {
-    224, 0, 0, 251, 0x14, 0xE9,                         /* to 224.0.0.251:5353 */
-    DISC_ID >> 8, DISC_ID & 0xFF, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    8, '_', 'm', 'w', 'r', 'a', 'd', 'a', 'r', 4, '_', 't', 'c', 'p', 5, 'l', 'o', 'c', 'a', 'l', 0,
-    0, 12, 0, 1,                                        /* PTR, IN (QM) */
-};
+/* The query (contract: AR_MDNS_* in arframe.h): the 6-byte reuse-mode prefix for 224.0.0.251:5353,
+ * a DNS header with one question, AR_MDNS_SERVICE as labels, then PTR / IN (QM). */
+static u16 build_query(u8 *q)
+{
+    static const u8 head[] = {
+        224, 0, 0, 251, 0x14, 0xE9,
+        AR_MDNS_QUERY_ID >> 8, AR_MDNS_QUERY_ID & 0xFF, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+    };
+    const char *s = AR_MDNS_SERVICE;
+    u16 n = sizeof(head);
+
+    memcpy(q, head, n);
+    while (*s) {
+        u16 len_at = n++, l = 0;
+        while (*s && *s != '.') { q[n++] = *s++; l++; }
+        q[len_at] = l;
+        if (*s) s++;
+    }
+    q[n++] = 0;
+    q[n++] = 0; q[n++] = 12;                /* PTR */
+    q[n++] = 0; q[n++] = 1;                 /* IN, QM */
+    return n;
+}
 
 static inline u16 be16(const u8 *p) { return p[0] << 8 | p[1]; }
 
@@ -231,7 +246,7 @@ static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port)
     bool have_ip = FALSE;
 
     *port = 0;
-    if (len < 12 || be16(m) != DISC_ID || !(m[2] & 0x80)) return FALSE;
+    if (len < 12 || be16(m) != AR_MDNS_QUERY_ID || !(m[2] & 0x80)) return FALSE;
     u16 nq = be16(m + 4), nrr = be16(m + 6) + be16(m + 8) + be16(m + 10);
     u16 off = 12;
     while (nq--) {
@@ -252,12 +267,14 @@ static bool parse_reply(const u8 *m, u16 len, u8 ip[4], u16 *port)
 enum net_err net_discover(char *url)
 {
     enum net_err e = NET_ERR_NOT_FOUND;
-    u8 ip[4];
-    u16 port = 0;
+    u8 ip[4], query[64];
+    u16 port = 0, qlen = build_query(query);
+    char src_port[6];
 
-    if (mw_udp_set(DISC_CH, NULL, NULL, DISC_PORT) != MW_ERR_NONE) return NET_ERR_UDP;
+    sprintf(src_port, "%u", AR_MDNS_SRC_PORT);
+    if (mw_udp_set(DISC_CH, NULL, NULL, src_port) != MW_ERR_NONE) return NET_ERR_UDP;
     for (u16 t = 0; t < DISC_TRIES && e != NET_OK; t++) {
-        if (mw_send_sync(DISC_CH, (const char *)disc_query, sizeof(disc_query), DISC_TOUT) != MW_ERR_NONE) {
+        if (mw_send_sync(DISC_CH, (const char *)query, qlen, DISC_TOUT) != MW_ERR_NONE) {
             e = NET_ERR_UDP;
             break;
         }
