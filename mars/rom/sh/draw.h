@@ -12,7 +12,8 @@
 #define FB_OVW      ((volatile u16 *)0x24020200)
 
 void fb_init(void);                         /* 256-colour mode, line tables in both buffers */
-void fb_flip(void);                         /* show the back buffer at the next vblank, wait for it */
+void fb_flip(void);                         /* show the back buffer at the next vblank, wait for it, load the palette */
+void fb_ints_on(void);                      /* V-Int on for the master (sh/start.s m_vint) */
 void fb_clear(u8 c);                        /* whole screen, by the 32X's fill hardware */
 void fb_fill_rows(u16 y, u16 h, u8 c);      /* full-width rows, by the fill hardware */
 void fb_rect(s16 x, s16 y, s16 w, s16 h, u8 c);

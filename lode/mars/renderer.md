@@ -46,5 +46,25 @@ rebuilds the palette.
 - Text: 8x8 font (doragasu's, MPL), 4 word writes per glyph row from a 4-entry LUT; transparent text goes through
   the overwrite image (`$24020000`), where 0 bytes leave the pixel alone.
 - `fb_flip()` requests the swap and waits for `FS` to change: drawing never starts on the visible buffer.
+- **Palette: `pal_set()` never touches CRAM.** It writes a 256-entry copy in SDRAM and widens a dirty range;
+  `fb_flip()` copies the dirty range to CRAM after waiting for `FBCTL` VBLK, so a view's palette lands with its
+  first frame. (Hardware may drop CRAM writes outside blanking, FBCTL PEN; MAME takes them any time. The spike
+  wrote CRAM mid-frame on the tower and it showed, so this is caution, not a measured fix.)
+
+```c
+void pal_set(u16 i, u16 rgb) { pal[i] = rgb; /* widen pal_lo..pal_hi */ }
+void fb_flip(void) { MARS_FBCTL = fb_cur ^ 1; while ((MARS_FBCTL & FB_FS) == fb_cur) {} fb_cur ^= 1; pal_flush(); }
+```
+
+## MARS_DEBUG build (`EXTRA=-DMARS_DEBUG`)
+Start-up stages show as colours that stay put if that step hangs. The Mega Drive backdrop (border) is visible
+even with the 32X picture on.
+
+| Who | Where | Colour = reached |
+|---|---|---|
+| 68000 | `md/boot.s` `stage` macro (`--defsym MARS_DEBUG`) | magenta `_start`, yellow waiting M_OK, cyan waiting S_OK, white both boot ROMs done |
+| 68000 | `md/main.c` `backdrop()` | blue `main()`, green after serving `LK_HELLO` |
+| master | `sh/draw.c` `stage()`: all 256 CRAM entries, in V-Blank | red DISPMODE on, yellow line table, magenta first fill, cyan first flip, white V-Int on (`fb_ints_on`) |
+| master | `sh/render.c` loop | bottom line: `V` frames, `W` view, `C` cmd/stage, `L`, COMM0, COMM8, COMM14 (top nibble = `md_stage`) |
 
 Related: [summary.md](summary.md), [link.md](link.md), [../ui/cockpit.md](../ui/cockpit.md).

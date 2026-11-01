@@ -182,9 +182,21 @@ static void serve(u8 cmd, u16 n)
     }
 }
 
+/* MARS_DEBUG: the Mega Drive backdrop, visible until the master SH-2 turns the 32X picture on */
+static void backdrop(u16 bgr)
+{
+#ifdef MARS_DEBUG
+    *(volatile u32 *)0xC00004 = 0xC0000000;
+    *(volatile u16 *)0xC00000 = bgr;
+#else
+    (void)bgr;
+#endif
+}
+
 int main(void)
 {
     vdp_init();
+    backdrop(0xE00);                        /* blue: the 68000 is running */
     lk_init();
     for (;;) {
         u8 cmd;
@@ -194,6 +206,7 @@ int main(void)
         u16 n = lk_recv(&cmd, req, sizeof(req));
         md_stage = 4;
         serve(cmd, n);
+        if (cmd == LK_HELLO) backdrop(0x0E0);   /* green: the slave SH-2 got through */
     }
 }
 

@@ -14,7 +14,9 @@ void text_palette(const u16 rgb[4])
 
 static void blank_enter(void)
 {
+    static const u16 white[4] = { RGB(31, 31, 31), RGB(31, 31, 31), RGB(31, 31, 31), RGB(31, 31, 31) };
     pal_set(0, 0);
+    text_palette(white);                    /* CRAM powers up black on hardware: the debug line needs it */
 }
 
 void m_main(void)
@@ -23,9 +25,9 @@ void m_main(void)
     u16 frames = 0;
     u8 view = VIEW_BLANK;
 
+    blank_enter();
     fb_init();
-    MARS_INTMASK = 0x08;                    /* V-Int on this CPU */
-    __asm__ volatile("ldc %0, sr" : : "r"(0x00));
+    fb_ints_on();
     for (;;) {
         if (sh.view_seq != seen) {
             seen = sh.view_seq;

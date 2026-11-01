@@ -36,7 +36,7 @@ $(OUT)/md/%.o: $(MW)/src/%.c $(MDDEPS) | $(OUT)/md ; $(MDCC)
 
 $(OUT)/md/boot.o: md/boot.s | $(OUT)/md
 	@test -f "$(BOOT)/mars_security.inc" || { echo "mars: no 32X boot code (run inside scripts/mars)" >&2; exit 1; }
-	$(MD)as -m68000 -I$(BOOT) $< -o $@
+	$(MD)as -m68000 -I$(BOOT) $(if $(filter -DMARS_DEBUG,$(EXTRA)),--defsym MARS_DEBUG=1) $< -o $@
 
 $(OUT)/md/fakedata.o: md/fakedata.s $(wildcard $(TOP)/res/fake/*.bin) | $(OUT)/md
 	$(MD)as -m68000 -I$(TOP) $< -o $@

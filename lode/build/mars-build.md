@@ -96,6 +96,11 @@ buffer shows behind the VDP text. Rows 4+ fail by design (no MegaWiFi in MAME: S
 - Put the build on screen (`BUILD=$(VERSION)`, git describe): photos of a cart run must say which ROM ran.
 - SH-2 cartridge reads while the 68000 talks to the UART drop and corrupt UART bytes (tower: drop 51 / bad 658 per
   8 KiB). Keep the SH-2s off the cart during networking ([../plans/32x.md](../plans/32x.md) rule 2).
+- **The 32X ROM's boot is unreliable on the tower (open, 2026-11-01).** The 68000 code is byte-identical between
+  builds, yet one build boots 3 of 4 power-ups and another 0 of 4: the border stays black, so the 68000 never
+  reaches `main()`. What gates it is the SH-2 boot ROMs' M_OK/S_OK, so the SH-2 image (about 97 KB that the boot ROM
+  copies from the cart while the 68000 polls from the cart) is the suspect. Diagnose with the MARS_DEBUG boot
+  stages ([../mars/renderer.md](../mars/renderer.md)); the spike (740 B image, code run from ROM) booted.
 - `MW_CMD_IP_CURRENT` replies `cfg_slot, reserved[3]`, then the address: the IP is at data + 4.
 - MAME returns `0000` for a 68000 **word** read of `$A15100`; byte reads give `80 80`. The spike reads bytes and
   treats "running at `$88xxxx`" as the ADEN proof.

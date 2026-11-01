@@ -5,16 +5,60 @@
 
 static u16 fb_cur;
 
+/* CRAM takes SH-2 writes only in blanking (FBCTL PEN) on hardware; MAME takes them any time. pal_set() writes
+ * this copy and fb_flip() copies the changed range in during the V-Blank it returns in. */
+static u16 pal[256];
+static u16 pal_lo = 256, pal_hi;
+
+static void vblank_wait(void)
+{
+    while (!(MARS_FBCTL & FB_VBLK)) {}
+}
+
+static void pal_flush(void)
+{
+    if (pal_lo >= pal_hi) return;
+    vblank_wait();
+    for (u16 i = pal_lo; i < pal_hi; i++) MARS_CRAM[i] = pal[i];
+    pal_lo = 256;
+    pal_hi = 0;
+}
+
+/* MARS_DEBUG: the whole CRAM one colour, so the screen shows it whatever the frame buffer holds */
+static void stage(u16 rgb)
+{
+#ifdef MARS_DEBUG
+    while (MARS_FBCTL & FB_VBLK) {}
+    vblank_wait();
+    for (u16 i = 0; i < 256; i++) MARS_CRAM[i] = rgb;
+    pal_lo = 0;                             /* the next flip puts the real palette back */
+    pal_hi = 256;
+#else
+    (void)rgb;
+#endif
+}
+
 void fb_init(void)
 {
     while (!(MARS_ADAPTER & 0x8000)) {}     /* FM: the 68000 has handed us the 32X VDP */
     MARS_DISPMODE = MODE_256;               /* 224 lines; Mega Drive layer in front where it isn't backdrop */
+    stage(RGB(31, 0, 0));                   /* red: display on */
     fb_cur = MARS_FBCTL & FB_FS;
     for (u16 b = 0; b < 2; b++) {
         for (u16 y = 0; y < 256; y++) MARS_FB[y] = 0x100 + (y < FB_H ? y : FB_H - 1) * 160;
+        if (!b) stage(RGB(31, 31, 0));      /* yellow: line table written */
         fb_clear(0);
+        if (!b) stage(RGB(31, 0, 31));      /* magenta: fill done */
         fb_flip();
+        if (!b) stage(RGB(0, 31, 31));      /* cyan: first flip done */
     }
+}
+
+void fb_ints_on(void)
+{
+    MARS_INTMASK = 0x08;                    /* V-Int on this CPU */
+    __asm__ volatile("ldc %0, sr" : : "r"(0x00));
+    stage(RGB(31, 31, 31));                 /* white: interrupts on */
 }
 
 void fb_flip(void)
@@ -22,6 +66,7 @@ void fb_flip(void)
     MARS_FBCTL = fb_cur ^ 1;
     while ((MARS_FBCTL & FB_FS) == fb_cur) {}
     fb_cur ^= 1;
+    pal_flush();
 }
 
 static void fill(u16 word, u16 n, u8 c)
@@ -171,7 +216,12 @@ void fb_text_big(s16 x, s16 y, const char *s, u16 scale, u8 fg, u8 shadow)
         }
 }
 
-void pal_set(u16 i, u16 rgb) { MARS_CRAM[i] = rgb; }
+void pal_set(u16 i, u16 rgb)
+{
+    pal[i] = rgb;
+    if (i < pal_lo) pal_lo = i;
+    if (i >= pal_hi) pal_hi = i + 1;
+}
 
 u16 rgb_mix(u16 a, u16 b, u16 t, u16 n)
 {

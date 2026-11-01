@@ -5,6 +5,14 @@
 
         .section .text.keepboot, "ax"
 
+| MARS_DEBUG (--defsym): paint the Mega Drive backdrop, 0BGR; the border shows it even with the 32X picture on
+        .macro  stage col
+        .ifdef  MARS_DEBUG
+        move.l  #0xC0000000, 0xC00004
+        move.w  #\col, 0xC00000
+        .endif
+        .endm
+
 | Sega's 68000 security/boot code (1040 bytes). It enables the adapter, waits for the SH-2 boot
 | ROMs, and jumps to the hot-start entry below via the jump table in the ROM header ($200).
 | Fetched from pinned marsdev by the build image ($MARS_BOOT), not kept in this repo.
@@ -25,6 +33,7 @@ _irq_jmptab:
         .globl  _start
 _start:
         move.w  #0x2700, %sr            | interrupts off for good
+        stage   0x0E0E                  | magenta: past Sega's boot code
         lea     __bss_start, %a0        | clear .bss
         lea     __bss_end, %a1
 1:      cmpa.l  %a1, %a0
@@ -41,10 +50,13 @@ _start:
         bra.s   3b
 4:
         move.b  #0, 0xA15107            | RV = 0: the SH-2s may read the cart ROM
+        stage   0x00EE                  | yellow: waiting for M_OK
 5:      cmpi.l  #0x4D5F4F4B, 0xA15120   | wait for "M_OK" from the master SH-2 boot ROM
         bne.s   5b
+        stage   0x0EE0                  | cyan: waiting for S_OK
 6:      cmpi.l  #0x535F4F4B, 0xA15124   | and "S_OK" from the slave
         bne.s   6b
+        stage   0x0EEE                  | white: both SH-2 boot ROMs done
         ori.w   #0x8000, 0xA15100       | FM = 1: the SH-2s own the 32X VDP
         move.w  #0x5A00, 0xA15128       | COMM8: link ready, sequence 0 (lode/mars/link.md)
         move.w  #0, 0xA1512E            | COMM14: no buttons

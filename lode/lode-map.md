@@ -11,7 +11,7 @@
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, GHCR pull, Rev.C guard, make targets
   - [ram-budget.md](build/ram-budget.md) - static RAM vs SGDK's start-up heap, ram-check, the mode overlay, the 2 KiB DMA buffer patch
   - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
-  - [mars-build.md](build/mars-build.md) - 32X: mwradar-mars image (m68k + sh-elf), Sega boot code from pinned marsdev, spike ROM layout, romcheck, MAME + bios/, CI job
+  - [mars-build.md](build/mars-build.md) - 32X: mwradar-mars image (m68k + sh-elf), Sega boot code from pinned marsdev, spike ROM layout, romcheck, MAME + bios/, CI job, open tower boot issue
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
@@ -20,7 +20,7 @@
 - mars/
   - [summary.md](mars/summary.md) - 32X ROM architecture: 68000 I/O processor, slave SH-2 app (shared src/), master SH-2 renderer; compat layers, shared memory, make targets
   - [link.md](mars/link.md) - COMM-register RPC link 68000 <-> slave: blocks, ack rule, commands
-  - [renderer.md](mars/renderer.md) - master SH-2 views: splash, radar, text, Voxel Space cockpit; palettes, fill-page rule, camera
+  - [renderer.md](mars/renderer.md) - master SH-2 views: splash, radar, text, Voxel Space cockpit; palettes (shadow + V-Blank flush), fill-page rule, camera, MARS_DEBUG stage colours
 - relay/
   - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery
 - ui/
