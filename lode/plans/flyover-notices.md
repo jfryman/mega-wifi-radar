@@ -26,7 +26,7 @@ flowchart LR
 | 6 | Docs, manual, CHANGELOG, lode; 0.4.0 tagged | docs/manual/CHANGELOG/lode ✓; **tag: after the cart check** |
 
 ## Left to do
-1. ~~Flash the cart~~ (done: `a81f738`, CRC32 `85958703`). Test on it; the dev relay on the Mac already runs v4 with the
+1. ~~Flash the cart~~ (done: `721b1f7`, CRC32 `0908E350`, with the ticker). Test on it; the dev relay on the Mac already runs v4 with the
    local broker (`make mqtt-start relay-start`). On the cart: `make mqtt-pub` → banner + chime (KBNA lick at home);
    C on the banner; B; a notice during cockpit mode; setup CHIME OFF / ON (preview); settings survive the update
    (the `MWR1` → `MWR2` migration).
