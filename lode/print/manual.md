@@ -32,6 +32,12 @@ Every page is full: the details, cockpit and troubleshooting pages have no spare
 each onto a new page, and the manual to 24 pages). Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
 don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps.
 
+### 32X edition (`EDITION=32x`, `make print-32x` → `out/print/32x/`)
+Adds the `edition32x` section after starting-up, uses `print/shots-32x/` (`make print-shots-32x`) and runs to
+**24 pages**. Open layout issue: **pages 5 and 8 carry only a spilled line or two** (the end of starting-up,
+"...the radar starts sweeping", and the end of edition32x, "...Without a 32X, this edition shows nothing").
+Trimming each section by a line or two frees both pages (fewer Notes pages, or room for content).
+
 ## Building blocks (`print/manual/lib.typ`)
 ```typst
 #shot("radar", width: 80%, callouts: ((1, 85, 40),))   // callouts in 320x224 screen pixels
