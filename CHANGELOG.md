@@ -1,5 +1,14 @@
 ## 0.2.2 (Unreleased)
 
+BUG FIXES:
+
+  * **radar:** the cartridge now recovers when the relay's computer goes away mid-session (lid closed,
+    power lost) and comes back. Before, the module's replies fell out of step with the console and the
+    panel stayed on `STALE` until a power cycle. After three failed polls the cartridge restarts the
+    module, rejoins Wi-Fi and finds the relay again (`RECONNECT` on the panel), retrying every 15–60 s
+    while the relay stays away. Typed relay addresses recover too.
+  * **net:** a failed request now really resets the module's HTTP client (SGDK sent the wrong command).
+
 ## 0.2.1 (October 29, 2026)
 
 IMPROVEMENTS:

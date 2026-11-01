@@ -36,8 +36,10 @@ Ordering, units, `GND` and stale flags match the relay's output.
   `FEED_ERR_VERSION` (the only relay found is at another contract version). Boot calls it after joining Wi-Fi,
   then probes one `feed_fetch`, so a mismatched relay (typed or found) holds the 787 with
   `RELAY MISMATCH: RUN RELAY <app_version>` and opens setup. `feed_fetch` calls it when
-  `relay_url` is empty, and in AUTO after `RELAY_RETRIES` (3) consecutive failed polls, so a moved relay is found
-  again (each rediscovery blocks ≤ ~3 s; the V-Int radar keeps sweeping). `feed_relay_host()` is the URL without
+  `relay_url` is empty (each rediscovery blocks ≤ ~3 s; the V-Int radar keeps sweeping).
+- **Reconnect:** after `RELAY_RETRIES` (3) failed requests in a row (any error but a mismatch), `feed_reconnect_due()`
+  turns true and `poll()` runs `feed_reconnect()`: module reset, rejoin, `feed_find_relay()`, with a 15/30/60 s back-off.
+  Typed and AUTO alike; see [reconnect.md](reconnect.md). `feed_relay_host()` is the URL without
   `http://`, for display. The fake feed stubs all three.
 - **Blocking.** `feed_fetch` runs a whole HTTP request (`net_http_get`) and blocks the main loop for
   ~0.3 s. That's fine: the radar renders in the V-Int, so the sweep never stalls during a poll.
@@ -48,11 +50,11 @@ Ordering, units, `GND` and stale flags match the relay's output.
 - Validation (`check()`, as in [../architecture/frame-format.md](../architecture/frame-format.md)): magic `AR`
   (else `FEED_ERR_FORMAT`), `ver == AR_VER` (else `FEED_ERR_VERSION`: an older relay that ignores `v=`),
   `rec_size >= 24` and even, `16 + count·rec_size == bytes`. A body over 2,320 B → `FEED_ERR_SIZE`.
-  HTTP `AR_HTTP_MISMATCH` (409) → `FEED_ERR_VERSION` (panel `RELAY VER?`); it doesn't count as a failed poll.
+  HTTP `AR_HTTP_MISMATCH` (409) → `FEED_ERR_VERSION` (panel `RELAY VER?`); it doesn't count as a failed request.
 - URL: `<relay_url>/v1/frame?lat=<e4>&lon=<e4>&range=<nm>&max=96&v=<AR_VER>`, built in a `RELAY_LEN + 64`
   buffer. No relay found (AUTO) and none typed: `FEED_ERR_CONFIG` (panel `NO RELAY`).
 - **Detail:** `feed_detail(icao, &d)`: `<relay_url>/v1/detail?icao=%02x%02x%02x&v=<AR_VER>` into its own
   128-byte buffer; must be exactly `AR_DETAIL_SIZE` with magic `AD` and `ver == AR_VER`. Valid until the next
-  `feed_detail`. Both requests share one `get()` (status, AUTO failure counting, mismatch).
+  `feed_detail`. Both requests share one `get()` (status, failure counting, mismatch).
 
 Related: [net-layer.md](net-layer.md), [../relay/relay.md](../relay/relay.md).

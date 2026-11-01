@@ -36,11 +36,16 @@ static void collect_chunk(const u8 *data, u16 len, void *ctx)
 }
 
 static char relay_url[RELAY_LEN + 1];   /* base URL in use: typed, or found over mDNS */
-static u16 failures;
+
+/* Reconnect policy (lode/net/reconnect.md) */
+#define BACKOFF_MIN     15              /* seconds between reconnect attempts, doubling */
+#define BACKOFF_MAX     60
+static u16 failures;                    /* failed requests in a row */
+static u16 backoff = BACKOFF_MIN;
+static u32 next_at;                     /* vtimer: no reconnect before this */
 
 enum feed_err feed_find_relay(void)
 {
-    failures = 0;
     if (settings.relay[0]) {
         strcpy(relay_url, settings.relay);
         return FEED_OK;
@@ -58,11 +63,35 @@ const char *feed_relay_host(void)
     return memcmp(relay_url, "http://", 7) ? relay_url : relay_url + 7;   /* buffer is RELAY_LEN + 1 */
 }
 
+bool feed_reconnect_due(void)
+{
+    return failures >= RELAY_RETRIES && (s32)(vtimer - next_at) >= 0;
+}
+
+enum feed_err feed_reconnect(void)
+{
+    enum feed_err e;
+    u8 ip[4];
+
+    next_at = vtimer + backoff * 60UL;
+    if ((backoff *= 2) > BACKOFF_MAX) backoff = BACKOFF_MAX;
+    relay_url[0] = 0;
+    if (net_restart(ip) != NET_OK) e = FEED_ERR_WIFI;
+    else e = feed_find_relay();
+    /* failed: due again once next_at passes; ok: the next request decides */
+    failures = e == FEED_OK ? 0 : RELAY_RETRIES;
+    return e;
+}
+
 static bool build_url(char *url, u16 size)
 {
     char lat[12], lon[12];
 
-    if (!relay_url[0] && feed_find_relay() != FEED_OK) return FALSE;
+    if (!relay_url[0]) {
+        enum feed_err e = feed_find_relay();
+        if (e == FEED_ERR_CONFIG) failures++;           /* a desynced link can't run mDNS either */
+        if (e != FEED_OK) return FALSE;
+    }
     fmt_deg_e4(lat, settings.lat_e4);
     fmt_deg_e4(lon, settings.lon_e4);
     /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96&v=2" (<= 60) */
@@ -81,7 +110,7 @@ static enum feed_err check(const struct ar_hdr *h, u16 len)
     return FEED_OK;
 }
 
-/* GET url into buf. Counts failures for AUTO re-discovery; AR_HTTP_MISMATCH -> FEED_ERR_VERSION. */
+/* GET url into buf. Counts failures for the reconnect; AR_HTTP_MISMATCH -> FEED_ERR_VERSION. */
 static enum feed_err get(const char *url, struct collect_to *t, struct feed_stats *st)
 {
     struct net_http_result res;
@@ -95,12 +124,26 @@ static enum feed_err get(const char *url, struct collect_to *t, struct feed_stat
     }
     if (res.status == AR_HTTP_MISMATCH) return FEED_ERR_VERSION;
     if (e != NET_OK || res.status != 200) {
-        /* AUTO: the relay may have moved (new DHCP lease, restarted elsewhere): find it again */
-        if (!settings.relay[0] && ++failures >= RELAY_RETRIES) feed_find_relay();
+        failures++;
         return e == NET_ERR_RECV ? FEED_ERR_RECV : FEED_ERR_HTTP;
     }
-    failures = 0;
-    return t->c.overflow ? FEED_ERR_SIZE : FEED_OK;
+    if (t->c.overflow) {
+        failures++;
+        return FEED_ERR_SIZE;
+    }
+    return FEED_OK;
+}
+
+/* A body that arrived but makes no sense is a link symptom too; a good one ends the failure run. */
+static enum feed_err counted(enum feed_err e)
+{
+    if (e == FEED_OK) {
+        failures = 0;
+        backoff = BACKOFF_MIN;
+    } else if (e != FEED_ERR_VERSION) {
+        failures++;
+    }
+    return e;
 }
 
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
@@ -112,7 +155,7 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     memset(st, 0, sizeof(*st));
     if (!build_url(url, sizeof(url))) return FEED_ERR_CONFIG;
     if ((e = get(url, &t, st)) != FEED_OK) return e;
-    if ((e = check((const struct ar_hdr *)frame_buf, t.c.len)) != FEED_OK) return e;
+    if ((e = counted(check((const struct ar_hdr *)frame_buf, t.c.len))) != FEED_OK) return e;
     *hdr = (const struct ar_hdr *)frame_buf;
     return FEED_OK;
 }
@@ -128,8 +171,9 @@ enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d)
     /* base (<= RELAY_LEN) + "/v1/detail?icao=abfcda&v=2" (<= 28) */
     sprintf(url, "%s" AR_DETAIL_PATH AR_DETAIL_QUERY, relay_url, icao[0], icao[1], icao[2], AR_VER);
     if ((e = get(url, &t, NULL)) != FEED_OK) return e;
-    if (t.c.len != AR_DETAIL_SIZE || r->magic[0] != 'A' || r->magic[1] != 'D') return FEED_ERR_FORMAT;
-    if (r->ver != AR_VER) return FEED_ERR_VERSION;
+    if (t.c.len != AR_DETAIL_SIZE || r->magic[0] != 'A' || r->magic[1] != 'D') return counted(FEED_ERR_FORMAT);
+    if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    counted(FEED_OK);
     *d = r;
     return FEED_OK;
 }

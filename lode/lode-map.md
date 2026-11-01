@@ -15,6 +15,7 @@
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
+  - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
   - [relay.md](relay/relay.md) - Go relay: /v1/frame + /v1/detail, version check, conversion rules, caching, discovery
 - ui/

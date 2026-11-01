@@ -46,3 +46,5 @@
 - Detail pop-up - the full-height panel over the scope (tap C) with everything about the selected aircraft (`popup.c`).
 - Detail record - `struct ar_detail`, 96 bytes from `GET /v1/detail`: registration, type, model, operator, year, GPS/selected altitude, selected heading, QNH, last seen.
 - Opaque font - a copy of the SGDK font with its transparent background made black (index 14), so window-plane text hides the scope.
+- Desync - SGDK pairs each command with the next channel-0 reply; after a timeout the firmware's late replies shift every later pairing, for good.
+- Reconnect - module reset (`mw_init`) + detect + join + relay lookup after 3 failed requests in a row, backing off 15/30/60 s (`feed_reconnect`).

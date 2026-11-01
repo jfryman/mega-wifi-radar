@@ -39,6 +39,9 @@ struct net_http_result {
 
 /* mw_init + the user task that runs mw_process(). Call once, first. */
 void net_init(void);
+/* Reset the module (mw_init), detect it and rejoin the default AP: the way out of a link whose
+ * command replies are out of step (lode/net/reconnect.md). Blocks ~2-5 s. */
+enum net_err net_restart(u8 ip_out[4]);
 /* mw_detect: up to 5 VERSION requests, 2 s each. */
 enum net_err net_detect(struct net_module_info *info);
 /* If ssid != NULL and slot 0 doesn't already hold it, store ssid/pass with DHCP

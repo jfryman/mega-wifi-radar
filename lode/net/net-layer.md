@@ -6,6 +6,7 @@ the non-blocking path (async API or `mw_send`/`mw_recv`) is still to be designed
 ```c
 net_init();                                   /* mw_init(cmd_buf, MW_BUFLEN) + TSK_userSet(user_tsk) */
 net_detect(&mod);                             /* mw_detect -> fw major.minor + variant (5 tries x 2 s) */
+net_restart(ip);                              /* mw_init again (ESP32 reset) + detect + join: reconnect.md */
 net_ensure_ap(ssid, pass);                    /* slot 0, DHCP, default, mw_cfg_save; no-op if unchanged */
 net_join(ip);                                 /* mw_ap_assoc(def slot) + wait 30 s + mw_ip_current */
 net_http_get(url, chunk_cb, ctx, &res);       /* url/method/open(0)/finish, then recv chunks on MW_HTTP_CH */
@@ -62,8 +63,10 @@ sequenceDiagram
   on `MW_HTTP_CH`, so the loop stops there (`res.chunked`). Without that, chunked bodies (example.com
   sends 577 B chunked) hang until the 10 s receive timeout. The relay still always sends
   `Content-Length`, so the console can check the frame size before parsing.
-- Timeouts: assoc 30 s, HTTP finish 20 s, per-chunk receive 10 s (`MW_MS_TO_FRAMES`).
-- Any failed request ends with `mw_http_cleanup()`. Otherwise the firmware's client stays in a busy
+- Timeouts: assoc 30 s, HTTP finish 20 s, per-chunk receive 10 s (`MW_MS_TO_FRAMES`); SGDK's own: commands 2 s,
+  `mw_http_open` 10 s. All are shorter than the firmware's 60 s HTTP timeout, and SGDK pairs each command with the
+  next reply, so one timeout desyncs the link until a reset ([reconnect.md](reconnect.md)).
+- Any failed request ends with `mw_http_cleanup()` (patched: stock SGDK sent HTTP_FINISH, see [reconnect.md](reconnect.md)). Otherwise the firmware's client stays in a busy
   state (e.g. `FINISH_CONTENT_WAIT`) and refuses the next `mw_http_url_set`. After a successful request
   it's back to `IDLE` and is reused as-is (firmware `main/http.c`).
 - `res.frames` (VBlanks from open to last byte) is the latency/throughput metric.

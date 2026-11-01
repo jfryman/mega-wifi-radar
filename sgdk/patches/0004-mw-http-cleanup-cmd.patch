@@ -1,0 +1,14 @@
+diff --git a/src/ext/mw/megawifi.c b/src/ext/mw/megawifi.c
+--- a/src/ext/mw/megawifi.c
++++ b/src/ext/mw/megawifi.c
+@@ -1181,7 +1181,9 @@
+ 		return MW_ERR_NOT_READY;
+ 	}
+ 
+-	d.cmd->cmd = MW_CMD_HTTP_FINISH;
++	// mega_wifi_radar: stock sends MW_CMD_HTTP_FINISH here, so "cleanup" never reached the
++	// firmware's http_cleanup() (lode/net/reconnect.md).
++	d.cmd->cmd = MW_CMD_HTTP_CLEANUP;
+ 	d.cmd->data_len = 0;
+ 	err = mw_command(MW_COMMAND_TOUT);
+ 	lsd_ch_disable(MW_HTTP_CH);

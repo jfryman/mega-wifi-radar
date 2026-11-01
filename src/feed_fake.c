@@ -39,6 +39,8 @@ enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d)
     return FEED_ERR_HTTP;
 }
 enum feed_err feed_find_relay(void) { return FEED_OK; }
+bool feed_reconnect_due(void) { return FALSE; }
+enum feed_err feed_reconnect(void) { return FEED_OK; }
 const char *feed_relay_url(void) { return ""; }
 const char *feed_relay_host(void) { return ""; }
 

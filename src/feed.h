@@ -15,6 +15,7 @@ enum feed_err {
     FEED_ERR_SIZE,       /* body larger than AR_FRAME_MAX */
     FEED_ERR_FORMAT,     /* bad magic / record size / length */
     FEED_ERR_VERSION,    /* the relay is at another contract version (AR_VER): not this cart's release */
+    FEED_ERR_WIFI,       /* reconnect: module not found or Wi-Fi join failed */
 };
 
 struct feed_stats {
@@ -34,9 +35,13 @@ enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d);
 
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
- * (none found) or FEED_ERR_VERSION (found one at another contract version). feed_fetch() also re-runs
- * discovery after RELAY_RETRIES failed polls in AUTO, so a relay that moves is found again. */
+ * (none found) or FEED_ERR_VERSION (found one at another contract version). */
 enum feed_err feed_find_relay(void);
+/* Recovery (lode/net/reconnect.md): due after RELAY_RETRIES failed requests in a row (any error but a
+ * mismatch), with back-off between attempts. feed_reconnect() resets the module, rejoins Wi-Fi and finds
+ * the relay again (blocking, ~3-8 s): FEED_OK, FEED_ERR_WIFI, or feed_find_relay()'s errors. */
+bool feed_reconnect_due(void);
+enum feed_err feed_reconnect(void);
 const char *feed_relay_url(void);       /* "" until found */
 const char *feed_relay_host(void);      /* the same without "http://", for display */
 #define RELAY_RETRIES 3

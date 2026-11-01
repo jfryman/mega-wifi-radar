@@ -149,7 +149,6 @@ static void panel_static(void)
 /* ------------------------------------------------------------ input */
 
 static bool want_setup;
-
 /* Radar controls (lode/ui/screen-layout.md). X is a 6-button shortcut: everything it does is
  * also in setup, so a 3-button pad loses nothing. */
 static void handle_input(void)
@@ -212,8 +211,16 @@ static void poll(void)
     const struct ar_hdr *h;
     struct feed_stats st;
     char buf[16];
-    enum feed_err e = feed_fetch(&h, &st);
+    enum feed_err e;
 
+    if (feed_reconnect_due()) {             /* the link is wedged: reset the module (lode/net/reconnect.md) */
+        radar_panel(ROW_NET, "RECONNECT");
+        if ((e = feed_reconnect()) != FEED_OK) {
+            radar_panel(ROW_NET, feed_err_str(e));
+            return;
+        }
+    }
+    e = feed_fetch(&h, &st);
     if (e == FEED_OK) {
         traffic_ingest(h);
         snap_time = h->time;

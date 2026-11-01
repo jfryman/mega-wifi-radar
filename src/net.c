@@ -54,6 +54,20 @@ void net_init(void)
     mw_up = TRUE;
 }
 
+/* A timed-out command leaves the firmware's late replies queued, and SGDK pairs each command with the
+ * next reply, so the link stays out of step for good. Only a reset clears it (lode/net/reconnect.md). */
+enum net_err net_restart(u8 ip_out[4])
+{
+    struct net_module_info mod;
+    enum net_err e;
+
+    mw_up = FALSE;                  /* the user task must not pump half-reset lsd state */
+    mw_init(cmd_buf, MW_BUFLEN);    /* pulses the ESP32 reset, resets lsd/comm */
+    mw_up = TRUE;
+    if ((e = net_detect(&mod)) != NET_OK) return e;     /* also stops the firmware's 30 s sleep timer */
+    return net_join(ip_out);
+}
+
 enum net_err net_detect(struct net_module_info *info)
 {
     char *variant = NULL;
