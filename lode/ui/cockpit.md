@@ -104,7 +104,7 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 ## HUD (window rows 16-27)
 Row 17 callsign (PAL2 cyan) + status (`LIVE`, amber `NO SIGNAL` / `TERRAIN...` / `SIGNAL LOST`); 19 altitude, ground
 speed; 21 vertical speed, heading, bank; 23 `B  BACK TO RADAR` + fps (col 30); 25 the elevation credit
-(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages and a flyover notice's lines borrow it, then
+(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages and a flyover notice's ticker borrow it, then
 it comes back). One line per frame. On return, the radar selects the same aircraft once the first poll has it.
 A flyover notice ([notices.md](notices.md)) is fetched in a strip's slot and shows `OVERHEAD!` in the status slot;
 the cockpit loop also runs `chime_tick()`.

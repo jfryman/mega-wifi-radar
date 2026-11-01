@@ -34,9 +34,12 @@ sequenceDiagram
   (`main.c` takes B before zoom); C selects the banner's aircraft and opens the detail pop-up, which takes the
   window over and ends the banner. Pending notices wait while the pop-up is open, up to `WAIT_SECS` (30).
   Cockpit entry closes the banner; setup drops any notice.
-- **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), the three lines take turns on row 25
-  (the credit row, `secs / 3` each, line 1 amber), then the credit comes back. Riding the notice's aircraft:
-  `OVER HOME!` / `YOU ARE OVER HOME!`. Pages, not a marquee: the HUD runs at 16-22 fps, too slow to scroll 80 chars.
+- **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), and a **ticker** on row 25 (the credit
+  row, amber): the three lines joined (space runs squeezed, three spaces between lines) scroll in from the right and
+  across once, then the credit comes back (`secs` doesn't apply: a pass takes (len + 38) / 12 s, ~7 s). The window
+  plane can't scroll, so it steps a character every `TICKER_FRAMES` (5) by `vtimer`: even speed at 16-22 fps, and
+  the row is only redrawn when the position changes. Riding the notice's aircraft: `OVER HOME!` / `YOU ARE OVER HOME!`
+  as the first line. (Owner's call, 2026-11-01: a scrolling ticker, not pages.)
 
 ```
 row 0  (blank: overscan)

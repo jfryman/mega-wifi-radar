@@ -95,7 +95,7 @@ passes: a headline and the callsign, the airline and aircraft type, then the rou
 they're known. When the relay finds the aircraft in its feed, it's selected on the radar and C opens its details.
 B dismisses the banner. If the detail pop-up is open, the banner waits until it closes. A chime plays as it
 arrives (setup's CHIME turns it off); some home airports have a tune of their own. In the cockpit view the notice
-never covers the view: `OVERHEAD!` shows next to the callsign and the three lines take turns on the bottom row.
+never covers the view: `OVERHEAD!` shows next to the callsign and the notice scrolls across the bottom row once.
 
 ## What's on screen
 

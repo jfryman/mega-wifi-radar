@@ -5,7 +5,7 @@
  * patch only when its height leaves the patch's scale, or streaming has fallen far behind. All requests
  * block, so the view pauses while one runs (a strip ~0.2 s, a patch ~2.5 s); the camera catches up by
  * elapsed time afterwards. A flyover notice (lode/ui/notices.md) never takes the view over: OVERHEAD! in the
- * status slot and its three lines in turn on the credit row, fetched in a strip's slot. */
+ * status slot and its three lines scrolling across the credit row, fetched in a strip's slot. */
 #include "cockpit.h"
 #include "chime.h"
 #include "feed.h"
@@ -21,6 +21,8 @@
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
 #define HUD_COL         1
+#define HUD_W           38                  /* HUD text columns (1..38) */
+#define TICKER_FRAMES   5                   /* a flyover notice scrolls a character every 5 frames: 12 a second */
 #define CREDIT          "ELEVATION DATA: AWS TERRAIN TILES"     /* attribution, as the radar credits adsb.fi */
 
 enum { ST_LIVE, ST_STALE, ST_LOADING, ST_LOST };
@@ -44,7 +46,7 @@ static u16 fps10;
 static const struct ar_notice *nt;          /* the notice on the HUD */
 static u16 nt_id;
 static u32 nt_at;
-static s8 nt_page;                          /* line on the credit row; -1 before the first */
+static s16 nt_pos;                          /* ticker: characters scrolled in; -1 before the first */
 
 /* ------------------------------------------------------------ HUD (window plane, rows 16-27) */
 
@@ -70,36 +72,50 @@ static void hud_status(u8 st)
     VDP_setTextPalette(PAL1);
 }
 
-/* Every frame: start a new notice, turn its page (secs / 3 each), then give the credit row back. */
+/* Every frame: start a new notice, scroll it across the credit row once, then give the row back. The window
+ * plane can't scroll, so it steps a character at a time, timed by vtimer (even at any frame rate). */
 static void hud_notice(void)
 {
-    char s[AR_NOTICE_COLS + 1];
+    static char text[3 * (AR_NOTICE_COLS + 3) + 1];
+    static u16 len;
+    char row[HUD_W + 1];
 
     if (!nt || nt->id != nt_id) {           /* none yet, or a newer one replaced it */
         if (!(nt = notice_current())) return;
         nt_id = nt->id;
         nt_at = vtimer;
-        nt_page = -1;
+        nt_pos = -1;
+        /* the three lines on one row: runs of spaces squeezed to one, three between lines */
+        len = 0;
+        for (u16 l = 0; l < 3; l++) {
+            const char *src = nt->text + l * AR_NOTICE_COLS;
+            if (l == 0 && riding()) src = "YOU ARE OVER HOME!                ";
+            u16 start = len;
+            for (u16 i = 0; i < AR_NOTICE_COLS; i++)
+                if (src[i] != ' ' || (len > start && text[len - 1] != ' ')) text[len++] = src[i];
+            while (len > start && text[len - 1] == ' ') len--;
+            if (len > start && l < 2) { text[len++] = ' '; text[len++] = ' '; text[len++] = ' '; }
+        }
+        while (len && text[len - 1] == ' ') len--;
         hud_status(status);
     }
-    u32 span = nt->secs * 20UL, t = vtimer - nt_at;
-    s8 page = t >= 3 * span ? 3 : t / span;
-    if (page == nt_page) return;
-    nt_page = page;
-    if (page == 3) {
+    s16 pos = (s16)((vtimer - nt_at) / TICKER_FRAMES);  /* characters scrolled in from the right */
+    if (pos == nt_pos) return;
+    nt_pos = pos;
+    if (pos >= (s16)(len + HUD_W)) {         /* all the way across: done */
         notice_done();
         nt = NULL;
         hud_text(25, CREDIT);
         hud_status(status);
         return;
     }
-    if (page == 0 && riding()) strcpy(s, "YOU ARE OVER HOME!");
-    else {
-        memcpy(s, nt->text + page * AR_NOTICE_COLS, AR_NOTICE_COLS);
-        s[AR_NOTICE_COLS] = 0;
+    for (s16 i = 0; i < HUD_W; i++) {
+        s16 k = pos - HUD_W + i;
+        row[i] = k >= 0 && k < (s16)len ? text[k] : ' ';
     }
-    VDP_setTextPalette(page == 0 ? PAL3 : PAL1);
-    hud_text(25, s);
+    row[HUD_W] = 0;
+    VDP_setTextPalette(PAL3);
+    VDP_drawText(row, HUD_COL, 25);
     VDP_setTextPalette(PAL1);
 }
 

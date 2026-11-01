@@ -14,4 +14,4 @@ flyover feed, a service that announces planes overhead (see the relay's document
   15 seconds.]
 
 A chime plays as it arrives (*CHIME* in Setup turns it off). Some home airports have a tune of their
-own. In the Cockpit View, *OVERHEAD!* shows next to the callsign and the lines take turns at the bottom.
+own. In the Cockpit View, *OVERHEAD!* shows next to the callsign and the notice scrolls along the bottom.

@@ -13,7 +13,7 @@ FEATURES:
     `atc-mqtt` service's `atc/status`), a banner drops over the top of the scope for 15 seconds when a plane
     passes over home: a headline and callsign, airline and type, route, altitude and speed. When the relay
     finds the aircraft in its feed, it's selected and C opens its details; B dismisses the banner. In the
-    cockpit view the notice shows on the HUD without covering the view.
+    cockpit view it scrolls along the bottom of the HUD instead, without covering the view.
   * **notices:** a chime on the Genesis's FM sound chip plays as a notice arrives; setup's new CHIME row turns
     it off. Some home airports have a tune of their own.
   * **relay:** subscribes to an MQTT broker (`MQTT_BROKER_HOST`, `MQTT_TOPIC`...), turns entering flights into

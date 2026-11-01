@@ -18,8 +18,8 @@ flowchart LR
 ## Done when
 | # | Criterion | State |
 |---|---|---|
-| 1 | Radar banner within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | emulator ✓ (fake notice), relay ✓; **real cart: to do** |
-| 2 | Cockpit: `OVERHEAD!` + the lines on the HUD, the view never stops | emulator ✓; **real cart: to do** |
+| 1 | Radar banner within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | emulator ✓, relay ✓, cart ✓ |
+| 2 | Cockpit: `OVERHEAD!` + a ticker along the bottom, the view never stops | emulator ✓; cart ✓ with pages, **ticker: to check** |
 | 3 | Generic chime; KBNA plays the Nashville lick; `CHIME OFF` silences it | WAV pitch check ✓ both; **owner signs off the lick by ear** |
 | 4 | A relay without a broker behaves as 0.3.x (apart from v4); idle polling adds no requests | ✓ (the flag rides on existing polls) |
 | 5 | `go test`, contract test + lock, `make release` + ram-check, `make sim`, cart ROM boots in MAME | ✓ |
@@ -38,7 +38,7 @@ flowchart LR
 ## Decisions (2026-11-01)
 Banner at the top of the scope; the relay composes the text; one generic chime for every airport plus a KBNA
 easter egg (no public list of airport chimes exists); FM (YM2612) voice; minimal stdlib MQTT client; env config
-with atc-mqtt's variable names; contract v4 with `n=` + a notice flag (no extra request when idle); cockpit shows
-the lines as pages, not a marquee (the HUD is too slow to scroll).
+with atc-mqtt's variable names; contract v4 with `n=` + a notice flag (no extra request when idle); cockpit scrolls
+the notice as a ticker along the bottom row (the owner's choice after seeing pages on the cart).
 
 Related: [roadmap.md](roadmap.md).
