@@ -19,12 +19,12 @@ flowchart TD
   setup RESET, contract check, Wi-Fi fixes), **v0.2.0** (traffic list, new controls, detail pop-up + `/v1/detail`, setup
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet).
   **0.3.0** is open in `CHANGELOG.md`: cockpit mode ([cockpit-mode.md](cockpit-mode.md), contract v3) and the
-  reconnect after a lost relay host. Neither is committed yet.
-- **The cart** runs a dev build of the reconnect work (CRC32 `F3A9F012`, contract v2), not yet tested; before that the
-  v0.2.0 release ROM (CRC32 `DA73BCE4`). A cockpit build needs the relay from the same checkout (contract v3). The dev file (`src/dev_config.h`) is gone, so dev builds are
+  reconnect after a lost relay host, both committed; cockpit mode works on the cart, the manual page is left.
+- **The cart** runs the cockpit streaming build (`6b4cf8f`, CRC32 `0459FBA2`, contract v3) with the dev relay from
+  the same commit (a cockpit build needs the relay from the same checkout). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version (`mwradar-relay:v0.2.0-2-ga93cd63`), advertised by `dns-sd -P` from `scripts/relay start`.
+  version (`mwradar-relay:v0.2.1-4-g6b4cf8f-dirty.…`), advertised by `dns-sd -P` from `scripts/relay start`.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
@@ -33,7 +33,6 @@ flowchart TD
   the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message.
 
 ## Not yet checked on hardware
-- Cockpit terrain streaming ([cockpit-mode.md](cockpit-mode.md) "Left before 0.3.0"); cockpit mode itself is verified.
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
   close the Mac's lid ~2 min, open it; expect `STALE` → `RECONNECT` → `NET OK` within ≤ 60 s. Also confirm the
   patched `mw_http_cleanup` doesn't upset normal polling.

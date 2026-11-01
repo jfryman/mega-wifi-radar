@@ -1,21 +1,20 @@
 # Plan: cockpit mode (0.3.0)
 
-**Status:** working on the cart (2026-11-01, live aircraft near KBNA): solid colours, ~20 fps, tracks every 2 s,
-B back to the radar with the aircraft selected. Terrain streaming (`/v1/strip`, replacing whole-patch reloads that
-froze the view ~2.5 s) is built and checked against the live relay and in the emulator, **not yet on the cart**. The design, as built, is in [../ui/cockpit.md](../ui/cockpit.md); this file holds what's left and
+**Status:** working on the cart, streaming included (2026-11-01, live aircraft near KBNA): solid colours,
+16-22 fps, smooth, no visible stutter. One `/v1/terrain` on entry, then `/v1/strip` as the aircraft moves (a
+climbing departure at ~330 kt and 682 m cells: one strip in its first 30 s, exactly when it was 8 cells off
+centre), tracks every 2 s. The patch's 3 s lead put the aircraft at cell 64.0, 64.2. Left: the manual and the
+release. The design, as built, is in [../ui/cockpit.md](../ui/cockpit.md); this file holds what's left and
 the speed spike's measurements.
 
 ## Left before 0.3.0
-1. **Streaming on the cart** (`make flash`, relay from this checkout `make relay-start`): the relay log should
-   show one `/v1/strip` every ~8 s for a slow aircraft and no `/v1/terrain` after entry; the view shouldn't
-   freeze for seconds any more (a strip is ~0.2 s), and no wrong terrain should appear ahead.
-2. **Manual + docs:** a cockpit page in `print/manual/`, `docs/` done; credit the elevation sources (AWS Terrain
+1. **Manual + docs:** a cockpit page in `print/manual/`, `docs/` done; credit the elevation sources (AWS Terrain
    Tiles: SRTM, 3DEP, GMTED2010, ETOPO1...) in the manual and docs as their terms ask.
-3. **Release 0.3.0** (contract v3: relay and cart together).
+2. **Release 0.3.0** (contract v3: relay and cart together).
 
 ## Done on the cart
-Byte writes to the VDP duplicate the byte (solid colours). ~20 fps. A whole patch takes ~2.5 s (~13 KB/s). Tracks
-every 2.0 s. The radar is intact after a round trip.
+Byte writes to the VDP duplicate the byte (solid colours). 16-22 fps. A whole patch takes ~2.5 s (~13 KB/s); strips
+stream without visible stutter. Tracks every 2.0 s. The radar is intact after a round trip.
 
 ## Next improvements (after 0.3.0, not committed)
 - **Land cover colours:** rivers, lakes and towns aren't in elevation data, so Nashville reads as plain green. OSM
