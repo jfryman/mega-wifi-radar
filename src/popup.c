@@ -20,24 +20,6 @@ static u16 settle;
 
 /* ------------------------------------------------------------ formatting */
 
-/* 11250 -> "11,250"; negative values keep their sign. */
-static void thousands(char *buf, s32 v)
-{
-    char tmp[12];
-    u16 n = 0, len;
-    bool neg = v < 0;
-    u32 u = neg ? -v : v;
-
-    do { tmp[n++] = '0' + u % 10; u /= 10; } while (u);
-    len = 0;
-    if (neg) buf[len++] = '-';
-    while (n) {
-        buf[len++] = tmp[--n];
-        if (n && !(n % 3)) buf[len++] = ',';
-    }
-    buf[len] = 0;
-}
-
 /* Copy a space-padded field and trim it. */
 static void field(char *out, const char *in, u16 n)
 {
@@ -116,18 +98,18 @@ static void draw(void)
     /* live: from the frame */
     if (r->flags & AR_F_GROUND) strcpy(v, "ON GROUND");
     else if (r->flags & AR_F_ALT_UNK) strcpy(v, "--");
-    else { thousands(w, (s32)r->alt * 25); sprintf(v, "%s FT", w); }
+    else { fmt_thousands(w, (s32)r->alt * 25); sprintf(v, "%s FT", w); }
     row(7, PAL0, "ALTITUDE", v);
 
     if (r->flags & AR_F_VR_UNK) strcpy(v, "--");
     else if (r->vrate > -2 && r->vrate < 2) strcpy(v, "LEVEL");
-    else { thousands(w, (s32)r->vrate * 64); sprintf(v, "%s%s FPM", r->vrate > 0 ? "+" : "", w); }
+    else { fmt_thousands(w, (s32)r->vrate * 64); sprintf(v, "%s%s FPM", r->vrate > 0 ? "+" : "", w); }
     row(8, PAL0, "VERT SPEED", v);
 
-    if (have && (det.dflags & AR_D_GEOM_ALT)) { thousands(w, (s32)det.geom_alt * 25); sprintf(v, "%s FT", w); }
+    if (have && (det.dflags & AR_D_GEOM_ALT)) { fmt_thousands(w, (s32)det.geom_alt * 25); sprintf(v, "%s FT", w); }
     else strcpy(v, "--");
     row(9, PAL0, "GPS ALT", v);
-    if (have && (det.dflags & AR_D_SEL_ALT)) { thousands(w, (s32)det.sel_alt * 25); sprintf(v, "%s FT", w); }
+    if (have && (det.dflags & AR_D_SEL_ALT)) { fmt_thousands(w, (s32)det.sel_alt * 25); sprintf(v, "%s FT", w); }
     else strcpy(v, "--");
     row(10, PAL0, "SEL ALT", v);
     if (have && (det.dflags & AR_D_SEL_HDG)) sprintf(v, "%03u", det.sel_hdg);
@@ -170,7 +152,7 @@ static void draw(void)
     else strcpy(v, "--");
     row(23, PAL0, "LAST SEEN", v);
 
-    radar_popup_row(25, " UP/DOWN NEXT   C/B CLOSE", PAL1);
+    radar_popup_row(25, " A COCKPIT       C/B CLOSE", PAL1);
 }
 
 /* ------------------------------------------------------------ detail */

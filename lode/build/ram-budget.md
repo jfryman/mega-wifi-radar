@@ -7,7 +7,7 @@ those allocations fails, the console hangs on a **black screen before the splash
 
 ```mermaid
 flowchart LR
-  S[".data + .bss<br/>0xFF0000 .. _bend<br/>(cart 0.2.0: 0xFFC836, ~50 KiB)"] --> H["heap _bend .. 0xFFF600<br/>(11.7 KiB): DMA queue,<br/>DMA buffer 2 KiB, font unpack"]
+  S[".data + .bss<br/>0xFF0000 .. _bend<br/>(cart: 0xFFCC80, ~51 KiB)"] --> H["heap _bend .. 0xFFF600<br/>(10.6 KiB): DMA queue,<br/>DMA buffer 2 KiB, font unpack"]
   H --> K["stack 0xFFF600 .. 0x1000000<br/>(2.5 KiB)"]
 ```
 
@@ -21,12 +21,20 @@ flowchart LR
   boot the cart ROM in MAME: `scripts/sim out/rom.bin 2,5` must show the 787 *AT GATE* (no MegaWiFi there, so it
   stops at the radio check). A black frame means start-up ran out of heap.
 
-## Largest static users (cart build, 0.2.0)
+## The mode overlay (`src/overlay.h`)
+`overlay_ram` (36,736 B) belongs to one screen mode at a time. The radar keeps its three big arrays there; cockpit
+mode ([../ui/cockpit.md](../ui/cockpit.md)) puts its terrain patch and render state (`struct vox_ram`, 34,624 B)
+in the same bytes. Entering a mode initialises its part (`radar_init`, `cockpit_run`); nothing survives a switch.
+Users reach their arrays through constant addresses, so the code is the same as for static arrays:
+```c
+#define tracks ((struct track *)(overlay_ram + OV_TRACKS))   /* traffic.h; never sizeof(tracks) */
+```
+`overlay.c` sizes the block to the larger mode. A new mode borrows it instead of adding static RAM.
+
+## Largest static users (cart build)
 | Symbol | Bytes | What |
 |---|---|---|
-| `tiles` (scope.c) | 18,176 | RAM copy of the scope's 568 tiles, for the sweep |
-| `tracks` | 14,016 | 96 × `struct track` (146 B: next/cur records, tags, trails, sprite words) |
-| `trail_bits` | 4,544 | scope trail-dot bitmaps |
+| `overlay_ram` | 36,736 | radar: scope tiles 18,176 (568 tiles, for the sweep), trail bitmaps 4,544, `tracks` 14,016 (96 × 146 B); or cockpit: `struct vox_ram` |
 | `frame_buf` | 2,322 | one compact frame (cart only) |
 | `cmd_buf` | 1,500 | MegaWiFi command buffer (cart only) |
 | `cell_tile`, `dirty_q` | 1,352, 1,136 | scope tile bookkeeping |
@@ -34,6 +42,7 @@ flowchart LR
 
 List them with: `python3` over `out/release/symbol.txt` (sort the `b`/`B`/`d`/`D` symbols by address, diff
 neighbours). Lesson (2026-10-29): the 0.2.0 pop-up added ~1.2 KiB of static RAM; with the stock 8 KiB DMA buffer the
-font unpack no longer fitted and the cart booted to black, while `make sim` looked fine.
+font unpack no longer fitted and the cart booted to black, while `make sim` looked fine. `make sim` also deletes
+`out/rom.bin`: run `make` again before booting the cart ROM.
 
 Related: [container-build.md](container-build.md), [../ui/detail-popup.md](../ui/detail-popup.md), [../practices.md](../practices.md).

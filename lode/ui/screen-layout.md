@@ -61,11 +61,13 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
   | ▲ / ▼ | previous / next aircraft in the traffic list (auto-repeat: 16 frames, then every 5) |
   | ◀ / ▶ | tags: all / selected / off |
   | C tap | detail pop-up open / close (acts on release) |
+  | A (pop-up open) | cockpit mode for that aircraft ([cockpit.md](cockpit.md)); B there goes back |
   | C hold (40 frames) | next sort order: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT |
-  | X (6-button) | next theme; a shortcut only (Y, Z unused) |
+  | X (6-button) | next theme; a shortcut only |
+  | Y (6-button) | cockpit mode for the selected aircraft (the first in the list if none); a shortcut only (Z unused) |
   | START | setup |
 
-  A 3-button pad must reach everything: 6-button buttons only duplicate setup options. There is no pan:
+  A 3-button pad must reach everything: 6-button buttons only duplicate setup options or pop-up actions. There is no pan:
   the scope is fixed on the home airport (it scrolled the planes but helped nobody, so 0.2.0 removed it).
 
 ```mermaid

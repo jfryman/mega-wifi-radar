@@ -33,6 +33,12 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st);
  * *d is valid until the next feed_detail(); without AR_D_FOUND the relay doesn't know it. */
 enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d);
 
+/* Cockpit mode (lode/ui/cockpit.md), blocking. feed_terrain() streams /v1/terrain into hdr, h and c
+ * (AR_TN * AR_TN bytes each, e.g. in the mode overlay): a patch centred on the aircraft. feed_track() places
+ * the aircraft in the patch with that key; without AR_K_FOUND the relay doesn't know it. */
+enum feed_err feed_terrain(const u8 icao[3], struct ar_terrain *hdr, u8 *h, u8 *c);
+enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *t);
+
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
  * (none found) or FEED_ERR_VERSION (found one at another contract version). */

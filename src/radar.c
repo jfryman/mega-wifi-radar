@@ -510,7 +510,7 @@ void radar_init(void)
     t_ofont = t_box + 4;
     opaque_font(t_ofont);
 
-    memset(tracks, 0, sizeof(tracks));
+    memset(tracks, 0, TR_MAX * sizeof(struct track));
     memset((void *)tr_state, 0, sizeof(tr_state));
     for (u16 i = 0; i < TR_MAX; i++) tracks[i].tag_x = tracks[i].tag_y = -1;
     memset(grid, 0, sizeof(grid));

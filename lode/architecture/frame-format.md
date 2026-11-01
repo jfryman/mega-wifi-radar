@@ -1,4 +1,4 @@
-# Compact frame format (contract v2)
+# Compact frame format (contract v3)
 
 The binary snapshot of nearby traffic that the console consumes. The digester produces it: the relay
 (option A) now, possibly the ESP32 firmware (option B) later, in byte-identical form. The console
@@ -80,7 +80,8 @@ Sizing: 16 + 96 × 24 = **2,320 B maximum**. KORD at 25 nm (~74 aircraft) = 1,79
 MSS chunks. The console's frame buffer is 2,320 B.
 
 ## Versioning
-- `ver` is the contract version `AR_VER` (2 since 0.2.0, when `v=`, the 409 mismatch and `/v1/detail` came in).
+- `ver` is the contract version `AR_VER`: 3 since 0.3.0 (cockpit mode's `/v1/terrain` and `/v1/track`); 2 in 0.2.x,
+  when `v=`, the 409 mismatch and `/v1/detail` came in. The frame itself is unchanged since v2.
   The relay and the cart are released together and must match exactly: **any** change to `src/arframe.h`
   bumps it (enforced by `relay/contract.lock`, [contract.md](contract.md)). The console rejects any other `ver`
   (`FEED_ERR_VERSION`, panel `RELAY VER?`).

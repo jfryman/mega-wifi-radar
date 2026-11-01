@@ -1,7 +1,8 @@
 # Detail pop-up (`src/popup.c`, renderer side in `src/radar.c`)
 
 Tap C on the radar: a full-height panel over the scope with everything known about the selected aircraft.
-The radar keeps running underneath, the side panel stays visible, ▲/▼ step the selection, and C or B closes it.
+The radar keeps running underneath, the side panel stays visible, ▲/▼ step the selection, C or B closes it, and
+A opens cockpit mode for the aircraft ([cockpit.md](cockpit.md)).
 
 ```
 row 1  SWA692            AC379A     callsign (PAL2, red if emergency), ICAO address
@@ -11,7 +12,7 @@ row 5  SOUTHWEST AIRLINES CO        detail: owner (PAL1)
 rows 7-13   ALTITUDE / VERT SPEED (frame) · GPS ALT / SEL ALT / SEL HDG / ALTIMETER (inHg) / QNH (hPa) (detail)
 rows 15-18  SPEED / TRACK / SQUAWK + meaning / CATEGORY + name (frame)
 rows 20-23  DISTANCE / BEARING FROM <icao> / STATUS / LAST SEEN (detail)
-row 25 UP/DOWN NEXT   C/B CLOSE
+row 25 A COCKPIT       C/B CLOSE
 ```
 Labels ≤ 10 chars (`LABEL_W` 11 with the pad), values from col 12 to col 26. `--` = not reported.
 Row 3 shows `LOADING DETAILS...` until the fetch returns, or `NO DETAILS FROM THE RELAY`.
@@ -52,7 +53,7 @@ sequenceDiagram
 
 ## Input (main.c `handle_input`)
 C acts on **release** before `HOLD_FRAMES` (40): tap toggles the pop-up; reaching 40 frames held cycles the sort
-instead. While open, B closes and does **not** zoom (A/B zoom is off while it's up).
+instead. While open, B closes and does **not** zoom (A/B zoom is off while it's up); A asks `main.c` for cockpit mode.
 
 Related: [traffic-list.md](traffic-list.md), [radar-renderer.md](radar-renderer.md), [../net/feed.md](../net/feed.md),
 [../relay/relay.md](../relay/relay.md).

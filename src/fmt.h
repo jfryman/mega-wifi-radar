@@ -5,6 +5,8 @@
 
 /* "36.1245" / "-86.6782" from 1e-4 degree fixed point (no floats). Returns length. */
 u16 fmt_deg_e4(char *out, s32 v);
+/* 11250 -> "11,250"; negative values keep their sign. buf >= 15 bytes. */
+void fmt_thousands(char *buf, s32 v);
 /* floor(sqrt(v)), bitwise; no division, fine for per-poll use. */
 u16 isqrt32(u32 v);
 

@@ -1,4 +1,19 @@
-## 0.2.2 (Unreleased)
+## 0.3.0 (Unreleased)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **relay:** the contract is now version 3. A 0.3.0 cartridge needs the 0.3.0 relay (and the other way
+    round); a mismatch is reported at boot or as `RELAY VER?`, as before.
+
+FEATURES:
+
+  * **cockpit:** a cockpit view. Press A in the detail pop-up (or Y on a 6-button pad) to ride along with
+    that aircraft: the console draws the real terrain around it, flying smoothly between position updates
+    and banking and pitching with the aircraft, with its callsign, altitude, speeds, heading and bank
+    underneath. B goes back to the radar with the aircraft still selected.
+  * **relay:** `/v1/terrain` and `/v1/track` serve the cockpit view: a terrain patch around the aircraft,
+    built from public elevation tiles (AWS Terrain Tiles), and the aircraft's position in it. The relay
+    needs HTTPS access to `s3.amazonaws.com` for terrain; without it the view shows flat ground.
 
 BUG FIXES:
 

@@ -3,6 +3,7 @@
  * in the V-Int (radar.c) while this loop polls the feed once per sweep and
  * handles the pad. After radar_start() this file must not touch the VDP. */
 #include <genesis.h>
+#include "cockpit.h"
 #include "devcfg.h"
 #include "feed.h"
 #include "fmt.h"
@@ -149,14 +150,43 @@ static void panel_static(void)
 /* ------------------------------------------------------------ input */
 
 static bool want_setup;
-/* Radar controls (lode/ui/screen-layout.md). X is a 6-button shortcut: everything it does is
- * also in setup, so a 3-button pad loses nothing. */
+static bool want_cockpit;
+static u8 cockpit_icao[3];
+
+/* Cockpit mode for the selected aircraft (the first in the list if none is). */
+static void ask_cockpit(void)
+{
+    if (radar_selected() < 0) tlist_move(0);
+    s16 sel = radar_selected();
+    if (sel < 0) return;
+    memcpy(cockpit_icao, tracks[sel].next.icao, 3);
+    want_cockpit = TRUE;
+}
+
+/* Back from cockpit mode: select that aircraft again if the first poll has it. */
+static void reselect(const u8 icao[3])
+{
+    for (u16 i = 0; i < TR_MAX; i++)
+        if (tracks[i].used && !memcmp(tracks[i].next.icao, icao, 3)) {
+            radar_select(i);
+            tlist_rebuild();
+            return;
+        }
+}
+
+/* Radar controls (lode/ui/screen-layout.md). X and Y are 6-button shortcuts: what X does is also in setup,
+ * and Y's cockpit mode is A in the detail pop-up, so a 3-button pad loses nothing. */
 static void handle_input(void)
 {
     static u16 prev, c_held, dir_held;
     u16 j = radar_joy(), pressed = j & ~prev;
 
     prev = j;
+    if (popup_is_open() && (pressed & BUTTON_A)) {
+        ask_cockpit();                      /* A in the pop-up: cockpit mode (lode/ui/cockpit.md) */
+        pressed &= ~BUTTON_A;
+    }
+    if (pressed & BUTTON_Y) ask_cockpit();
     if (popup_is_open() && (pressed & BUTTON_B)) {
         popup_close();
         pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also zoom out */
@@ -291,6 +321,16 @@ int main(bool hard)
         main_beat++;
         handle_input();
         popup_tick();
+        if (want_cockpit) {
+            want_cockpit = FALSE;
+            popup_close();
+            radar_stop();
+            cockpit_run(cockpit_icao);
+            radar_up();
+            poll();                 /* refill the track table the cockpit's terrain overwrote */
+            reselect(cockpit_icao);
+            rot = radar_rotations();
+        }
         if (want_setup) {
             want_setup = FALSE;
             popup_close();

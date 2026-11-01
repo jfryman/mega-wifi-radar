@@ -56,5 +56,11 @@ Ordering, units, `GND` and stale flags match the relay's output.
 - **Detail:** `feed_detail(icao, &d)`: `<relay_url>/v1/detail?icao=%02x%02x%02x&v=<AR_VER>` into its own
   128-byte buffer; must be exactly `AR_DETAIL_SIZE` with magic `AD` and `ver == AR_VER`. Valid until the next
   `feed_detail`. Both requests share one `get()` (status, failure counting, mismatch).
+- **Cockpit** ([../ui/cockpit.md](../ui/cockpit.md)): `feed_terrain(icao, &hdr, h, c)` streams `/v1/terrain` as it
+  arrives: the 104-byte header into `hdr`, then 16 KB each into `h` and `c` (the mode overlay), through
+  `get_cb()` with its own chunk sink (the body is bigger than `struct collect`'s u16 count). Must be exactly
+  `AR_TERRAIN_SIZE`, magic `AT`, `n == AR_TN`, `ver == AR_VER`. `feed_track(icao, key, &t)`:
+  `/v1/track?icao=&p=<key>&v=` into a 48-byte buffer, exactly `AR_TRACK_SIZE`, magic `AK`. Both count failures
+  for the reconnect like the others. The fake feed serves `res/fake/kbna_cockpit.bin`, the track played in real time.
 
 Related: [net-layer.md](net-layer.md), [../relay/relay.md](../relay/relay.md).

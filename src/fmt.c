@@ -22,3 +22,20 @@ u16 isqrt32(u32 v)
     }
     return res;
 }
+
+void fmt_thousands(char *buf, s32 v)
+{
+    char tmp[12];
+    u16 n = 0, len;
+    bool neg = v < 0;
+    u32 u = neg ? -v : v;
+
+    do { tmp[n++] = '0' + u % 10; u /= 10; } while (u);
+    len = 0;
+    if (neg) buf[len++] = '-';
+    while (n) {
+        buf[len++] = tmp[--n];
+        if (n && !(n % 3)) buf[len++] = ',';
+    }
+    buf[len] = 0;
+}

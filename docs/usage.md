@@ -63,9 +63,11 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 | A / B | zoom in / out (5 to 100 nm) |
 | up / down | select the previous / next aircraft in the traffic list (hold to scroll) |
 | C | open the detail pop-up for the selected aircraft; C or B closes it |
+| A (in the pop-up) | cockpit view from that aircraft; B goes back to the radar |
 | hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude |
 | left / right | tags: all, selected only, off |
-| X (6-button pad) | next theme. Optional: Y and Z are unused, and everything works on a 3-button pad |
+| X (6-button pad) | next theme |
+| Y (6-button pad) | cockpit view from the selected aircraft. X and Y are shortcuts: Z is unused, and everything works on a 3-button pad |
 | START | setup |
 
 **Detail pop-up:** covers the scope (which keeps running) with the selected aircraft's callsign and ICAO
@@ -74,6 +76,15 @@ autopilot-selected altitude and heading, altimeter setting (inHg and hPa), speed
 meaning, category, distance and bearing, status and time since last heard. The live values come from the
 frame; the rest from the relay's `/v1/detail`, refreshed once per sweep. Up/down move the selection
 without closing it. `--` means the aircraft doesn't report that value.
+
+**Cockpit view:** A in the pop-up (or Y) puts you in the selected aircraft, looking ahead over the real terrain
+around it, drawn by the console as the aircraft flies. The relay sends a patch of terrain (elevation from the
+public AWS Terrain Tiles) centred on the aircraft, scaled to its height, and its position every 2 seconds; the
+console flies the camera smoothly in between, banking and pitching with the aircraft. The view pauses briefly
+while each update loads, and for a second or so when a new patch is needed. The bottom of the screen shows the
+callsign, altitude, ground speed, vertical speed, heading and bank. `NO SIGNAL` means updates have stopped; after
+20 seconds without one the cart goes back to the radar. B goes back at any time, with the aircraft still
+selected. Colours come from the terrain's height (water, low ground, forest, high ground, snow), not imagery.
 
 ## What's on screen
 

@@ -203,7 +203,19 @@ func main() {
 	lon := flag.Float64("lon", -86.6782, "home longitude for -convert")
 	rng := flag.Int("range", 25, "range in nm for -convert")
 	mdns := flag.Bool("mdns", true, "advertise the relay over mDNS as _mwradar._tcp (lode/net/discovery.md)")
+	demURL := flag.String("dem", "https://s3.amazonaws.com/elevation-tiles-prod/terrarium",
+		"Terrarium elevation tiles base URL, for cockpit mode's terrain")
+	packCockpit := flag.String("pack-cockpit", "", "pack a terrain patch at -lat/-lon with -cell metre cells, and every aircraft's track in it from the upstream JSON files given as arguments, and exit")
+	cell := flag.Int("cell", 750, "cell size in metres for -pack-cockpit")
 	flag.Parse()
+
+	el := newDEM(*demURL)
+	if *packCockpit != "" {
+		if err := packCockpitFile(*packCockpit, flag.Args(), el, *lat, *lon, *cell); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	if *packDetail != "" {
 		if err := packDetails(*packDetail, flag.Args()); err != nil {
@@ -228,6 +240,8 @@ func main() {
 	src := newSource(*upstream, *interval)
 	mux.Handle("GET "+framePath, frameHandler(src))
 	mux.Handle("GET "+detailPath, detailHandler(src))
+	mux.Handle("GET "+terrainPath, terrainHandler(src, el))
+	mux.Handle("GET "+trackPath, trackHandler(src, el, newTurns()))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	if *mdns {
 		_, p, err := net.SplitHostPort(*listen)
@@ -325,5 +339,60 @@ func packDetails(out string, ins []string) error {
 	}
 	binary.BigEndian.PutUint16(buf[2:], uint16((len(buf)-4)/detailSize))
 	log.Printf("%s: %d aircraft, %d bytes", out, (len(buf)-4)/detailSize, len(buf))
+	return os.WriteFile(out, buf, 0o644)
+}
+
+// packCockpitFile writes the emulator's cockpit pack (src/feed_fake.c): "FC", u16 frames, u16 0, the terrain
+// body for a patch centred on lat, lon (AR_TERRAIN_SIZE bytes), then per upstream file: u16 count,
+// u16 deciseconds since the first file, count x { u8 icao[3], u8 0, struct ar_track } placed in that patch.
+func packCockpitFile(out string, ins []string, el elevator, lat, lon float64, cellM int) error {
+	if len(ins) == 0 {
+		return fmt.Errorf("-pack-cockpit needs input JSON files")
+	}
+	ctx := context.Background()
+	p := buildPatch(ctx, el, lat, lon, 0, cellM)
+	buf := []byte{'F', 'C', 0, 0, 0, 0}
+	binary.BigEndian.PutUint16(buf[2:], uint16(len(ins)))
+	buf = append(buf, p.encode()...)
+	tr := newTurns()
+	var t0 float64
+	for i, in := range ins {
+		data, err := os.ReadFile(in)
+		if err != nil {
+			return err
+		}
+		var up upstreamResp
+		if err := json.Unmarshal(data, &up); err != nil {
+			return fmt.Errorf("%s: %w", in, err)
+		}
+		if i == 0 {
+			t0 = up.Now
+		}
+		at := time.UnixMilli(int64(up.Now))
+		var recs []byte
+		n := 0
+		for j := range up.AC {
+			a := &up.AC[j]
+			hex := strings.ToLower(strings.TrimPrefix(a.Hex, "~"))
+			if a.Lat == nil || a.Lon == nil {
+				continue
+			}
+			t := buildTrack(ctx, a, p.g, el, tr, hex, at)
+			icao, err := strconv.ParseUint(hex, 16, 24)
+			if err != nil {
+				continue
+			}
+			recs = append(recs, byte(icao>>16), byte(icao>>8), byte(icao), 0)
+			recs = append(recs, t.encode()...)
+			n++
+		}
+		hdr := make([]byte, 4)
+		binary.BigEndian.PutUint16(hdr, uint16(n))
+		binary.BigEndian.PutUint16(hdr[2:], uint16(math.Round((up.Now-t0)/100)))
+		buf = append(buf, hdr...)
+		buf = append(buf, recs...)
+	}
+	log.Printf("%s: %d m cells, %d cm levels, base %d m, hmax %d, flags %#x; %d frames, %d bytes", out,
+		p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, len(ins), len(buf))
 	return os.WriteFile(out, buf, 0o644)
 }

@@ -1,6 +1,6 @@
 package main
 
-// Aircraft detail for the cart's pop-up: GET /v1/detail?icao=abfcda&v=2 returns one fixed-size
+// Aircraft detail for the cart's pop-up: GET /v1/detail?icao=abfcda&v=3 returns one fixed-size
 // struct ar_detail (src/arframe.h; lode/ui/detail-popup.md). The live values (position, altitude,
 // speed) stay in the frame; this carries what the frame has no room for.
 
@@ -103,10 +103,10 @@ func (d *detail) encode() []byte {
 	return b
 }
 
-// aircraft finds one aircraft: in the newest cached snapshot if it's recent, else upstream.
-func (s *source) aircraft(ctx context.Context, hex string) (*upstreamAC, error) {
+// aircraft finds one aircraft: in the newest cached snapshot if it's younger than maxAge, else upstream.
+func (s *source) aircraft(ctx context.Context, hex string, maxAge time.Duration) (*upstreamAC, error) {
 	s.mu.Lock()
-	if s.last != nil && time.Since(s.lastAt) < detailMaxAge {
+	if s.last != nil && time.Since(s.lastAt) < maxAge {
 		for i := range s.last.AC {
 			if strings.EqualFold(strings.TrimPrefix(s.last.AC[i].Hex, "~"), hex) {
 				a := s.last.AC[i]
@@ -120,6 +120,11 @@ func (s *source) aircraft(ctx context.Context, hex string) (*upstreamAC, error) 
 	if err != nil {
 		return nil, err
 	}
+	s.mu.Lock()
+	if s.last == nil || len(s.last.AC) <= 1 { // no area snapshot to keep (cockpit mode): this one is newest
+		s.last, s.lastAt = up, time.Now()
+	}
+	s.mu.Unlock()
 	for i := range up.AC {
 		if strings.EqualFold(strings.TrimPrefix(up.AC[i].Hex, "~"), hex) {
 			return &up.AC[i], nil
@@ -139,7 +144,7 @@ func detailHandler(src *source) http.HandlerFunc {
 			http.Error(w, "icao must be 6 hex digits", http.StatusBadRequest)
 			return
 		}
-		a, err := src.aircraft(r.Context(), hex)
+		a, err := src.aircraft(r.Context(), hex, detailMaxAge)
 		if err != nil {
 			log.Printf("%s %s: %v", r.RemoteAddr, r.URL.RequestURI(), err)
 			http.Error(w, "upstream unavailable", http.StatusBadGateway)

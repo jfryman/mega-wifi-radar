@@ -20,24 +20,34 @@ flowchart LR
   S -- missing or > 30 s --> HX[adsb.fi /api/v2/hex/icao<br/>same rate limit]
   S --> DE[encode ar_detail, 96 B]
   HX --> DE
+  T[GET /v1/terrain, /v1/track] --> S
+  S -- missing or > 1.5 s --> HX
+  T --> DEM[(Terrarium tiles<br/>AWS, 48 kept)]
 ```
 
 ## Contract
 - **Version:** `version` (the release, `-ldflags -X main.version`; `VERSION` build arg from CI's semver tag or
-  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 2). Every route but `/healthz` needs
-  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v2: use the relay and cartridge
+  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 3). Every route but `/healthz` needs
+  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v3: use the relay and cartridge
   from the same release"*, logged with both versions. The start-up log names both.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=2`. `range` is clamped to 1–250 (the adsb.fi
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=3`. `range` is clamped to 1–250 (the adsb.fi
   limit) and `max` to 1–96. Missing or invalid `lat`/`lon` → `400`.
 - `200`, `application/octet-stream`, **explicit `Content-Length`**. Go's `net/http` would otherwise
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
-- `GET /v1/detail?icao=<6 hex>&v=2` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
+- `GET /v1/detail?icao=<6 hex>&v=3` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
   snapshot, any query) if it's < 30 s old and has the aircraft, else `/api/v2/hex/<icao>` through the same
-  1 req/s limiter. Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
+  1 req/s limiter (`aircraft(ctx, hex, maxAge)`; a hex answer becomes `source.last` when there's no area snapshot). Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
   other bytes become `?` (`padASCII`, shared with callsigns).
+- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=3` → a 32,872 B terrain patch
+  centred on the aircraft (`terrain.go`, elevation from `dem.go`; flat with `AR_T_FLAT` if the tiles can't be
+  fetched; 404 if the aircraft isn't in the feed), and `GET /v1/track?icao=&p=<patch key>&v=3` → a 40 B
+  `ar_track` placed in that patch (`track.go`). Both look the aircraft up with a 1.5 s snapshot age. Flag
+  `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
+- `-pack-cockpit OUT -lat -lon -cell M FILES...` writes the emulator's cockpit pack (`"FC"`, a terrain patch, then
+  every recorded aircraft's track in it per file; `make fake-feed`, needs the network for elevation).
 - See "Running it" below. The console URL is
   found over mDNS (AUTO) or typed as `http://<relay-host-fqdn>:8080` (see "Discovery" below).
 
@@ -103,12 +113,14 @@ resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `Meg
 
 ```sh
 scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
-dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=2 path=/v1/frame
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=3 path=/v1/frame
 cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ```
 
 ## Terms of use
 adsb.fi open data: personal non-commercial use, at most 1 req/s, attribution required. The relay sends
 `User-Agent: mega_wifi_radar-relay`, and `source = 1` makes the console show "Data: adsb.fi".
+AWS Terrain Tiles (Mapzen Terrarium, AWS Open Data): free, no key; attribution to its sources (SRTM, 3DEP,
+GMTED2010, ETOPO1 and others) is required where the data is shown. Not yet credited on screen or in the manual.
 
 Related: [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).

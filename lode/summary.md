@@ -14,7 +14,9 @@ Rev.C); see [build/container-build.md](build/container-build.md). The ROM boots 
 ([ui/boot-splash.md](ui/boot-splash.md)), then runs the full radar:
 a V-Int renderer (thin-line sweep, blips, trails, tags, Classic/STARS themes) fed once per sweep from the relay, a side
 panel with a sortable traffic list ([ui/traffic-list.md](ui/traffic-list.md)), a detail pop-up per aircraft fed by the relay's
-`/v1/detail` ([ui/detail-popup.md](ui/detail-popup.md)), and a setup screen (Wi-Fi, home airport, relay, controls, reset,
+`/v1/detail` ([ui/detail-popup.md](ui/detail-popup.md)), **cockpit mode**: the view from one aircraft over real terrain,
+Voxel Space drawn by the 68000 straight into VRAM from a relay terrain patch and live track
+([ui/cockpit.md](ui/cockpit.md)), and a setup screen (Wi-Fi, home airport, relay, controls, reset,
 saved to ESP32 flash). The cart finds the relay itself over mDNS
 (AUTO; [net/discovery.md](net/discovery.md)). The data path is a relay (option A) serving the compact frame
 ([architecture/frame-format.md](architecture/frame-format.md)). The relay is part of the product: relay vX serves cart vX,

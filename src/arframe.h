@@ -2,8 +2,8 @@
 #define ARFRAME_H
 
 /* The relay <-> cartridge contract (lode/architecture/contract.md): the compact traffic frame
- * (spec: lode/architecture/frame-format.md), the aircraft detail record, the HTTP requests, and
- * mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
+ * (spec: lode/architecture/frame-format.md), the aircraft detail record, cockpit mode's terrain patch
+ * and track (lode/ui/cockpit.md), the HTTP requests, and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
  * item here, so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Any change here must bump AR_VER (relay/contract.lock enforces it; `make contract-lock` after).
  * A relay and a cart only talk at the same AR_VER: the relay answers others with
@@ -11,7 +11,7 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          2
+#define AR_VER          3
 #define AR_REC_SIZE_V1  24
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
@@ -58,6 +58,33 @@
 #define AR_D_QNH        0x10
 #define AR_D_YEAR       0x20
 #define AR_D_SEEN       0x40
+
+/* Cockpit mode. GET <relay> AR_TERRAIN_PATH AR_TERRAIN_QUERY (icao, AR_VER): a terrain patch centred on
+ * the aircraft, its cell size picked from the aircraft's height above the ground. Body: struct ar_terrain,
+ * then AR_TN * AR_TN height levels (0..63, one byte each), then AR_TN * AR_TN palette indices (4..15),
+ * both row by row from the south edge, each row west to east (AR_TERRAIN_SIZE bytes in all). */
+#define AR_TERRAIN_PATH  "/v1/terrain"
+#define AR_TERRAIN_QUERY "?icao=%02x%02x%02x&v=%u"
+#define AR_TN            128
+#define AR_TERRAIN_HDR   104
+#define AR_TERRAIN_SIZE  (AR_TERRAIN_HDR + 2 * AR_TN * AR_TN)
+#define AR_LEVELS        64
+#define AR_KEY_LEN       56
+
+/* struct ar_terrain.tflags */
+#define AR_T_FLAT        0x01   /* no elevation data for this area: flat ground */
+
+/* GET <relay> AR_TRACK_PATH AR_TRACK_QUERY (icao, the patch's key, AR_VER): one struct ar_track, placed in
+ * that patch. An aircraft the relay doesn't know gets a record without AR_K_FOUND. */
+#define AR_TRACK_PATH    "/v1/track"
+#define AR_TRACK_QUERY   "?icao=%02x%02x%02x&p=%s&v=%u"
+#define AR_TRACK_SIZE    40
+
+/* struct ar_track.kflags */
+#define AR_K_FOUND       0x01
+#define AR_K_GROUND      0x02
+#define AR_K_EMERG       0x04
+#define AR_K_ALT_UNK     0x08   /* z is the ground under the aircraft */
 
 /* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
 #define AR_MDNS_SERVICE  "_mwradar._tcp.local"
@@ -109,11 +136,52 @@ struct ar_detail {
     char owner[32];     /* owner / operator */
 };
 
+/* Cockpit terrain patch header (lode/ui/cockpit.md). Cell (col, row) is centred cell_m * (col + 0.5) east and
+ * cell_m * (row + 0.5) north of the patch's south-west corner. Height level h is base_m + h * level_cm / 100
+ * metres above sea level. */
+struct ar_terrain {
+    char magic[2];      /* "AT" */
+    u8 ver;             /* AR_VER */
+    u8 tflags;          /* AR_T_* */
+    u16 n;              /* cells per side: AR_TN */
+    u16 cell_m;         /* metres per cell */
+    u16 level_cm;       /* centimetres per height level */
+    s16 base_m;         /* elevation of level 0 */
+    u8 hmax;            /* highest level in the patch */
+    u8 rsv;
+    u16 pal[16];        /* the terrain palette (0x0BGR): 1-3 sky, deep to pale; 4-15 ground */
+    char key[56];       /* AR_KEY_LEN: the patch, for /v1/track's p= (NUL-terminated, URL-safe) */
+    u8 pad[2];
+};
+
+/* One aircraft, placed in a terrain patch: for the cart's camera, plus a few values for its HUD. */
+struct ar_track {
+    char magic[2];      /* "AK" */
+    u8 ver;             /* AR_VER */
+    u8 kflags;          /* AR_K_* */
+    s32 x;              /* east of the patch's west edge, 1/256 cell */
+    s32 y;              /* north of the patch's south edge, 1/256 cell */
+    s32 z;              /* above the patch's level 0, 1/256 level */
+    s16 vx;             /* 1/256 cell per second */
+    s16 vy;
+    s16 vz;             /* 1/256 level per second */
+    u16 heading;        /* true heading (or track), 65536 per turn */
+    s8 bank;            /* degrees, right wing down positive (reported or estimated) */
+    u8 age;             /* seconds since the position was reported */
+    s16 alt;            /* 25 ft units, as ar_rec.alt */
+    u16 gs;             /* knots */
+    s16 vrate;          /* ft/min */
+    char cs[8];         /* space padded */
+};
+
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
 _Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE_V1, "ar_rec must be 24 bytes");
 _Static_assert(sizeof(struct ar_detail) == AR_DETAIL_SIZE, "ar_detail must be 96 bytes");
+_Static_assert(sizeof(struct ar_terrain) == AR_TERRAIN_HDR, "ar_terrain must be 104 bytes");
+_Static_assert(sizeof(struct ar_track) == AR_TRACK_SIZE, "ar_track must be 40 bytes");
+_Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
 AR_AT(ar_hdr, range_nm, 12); AR_AT(ar_hdr, source, 14); AR_AT(ar_hdr, hflags, 15);
@@ -124,6 +192,14 @@ AR_AT(ar_detail, magic, 0); AR_AT(ar_detail, ver, 2); AR_AT(ar_detail, dflags, 3
 AR_AT(ar_detail, cat, 7); AR_AT(ar_detail, geom_alt, 8); AR_AT(ar_detail, sel_alt, 10);
 AR_AT(ar_detail, sel_hdg, 12); AR_AT(ar_detail, qnh, 14); AR_AT(ar_detail, year, 16); AR_AT(ar_detail, reg, 18);
 AR_AT(ar_detail, type, 26); AR_AT(ar_detail, seen, 30); AR_AT(ar_detail, desc, 32); AR_AT(ar_detail, owner, 64);
+AR_AT(ar_terrain, magic, 0); AR_AT(ar_terrain, ver, 2); AR_AT(ar_terrain, tflags, 3); AR_AT(ar_terrain, n, 4);
+AR_AT(ar_terrain, cell_m, 6); AR_AT(ar_terrain, level_cm, 8); AR_AT(ar_terrain, base_m, 10);
+AR_AT(ar_terrain, hmax, 12); AR_AT(ar_terrain, rsv, 13); AR_AT(ar_terrain, pal, 14); AR_AT(ar_terrain, key, 46);
+AR_AT(ar_terrain, pad, 102);
+AR_AT(ar_track, magic, 0); AR_AT(ar_track, ver, 2); AR_AT(ar_track, kflags, 3); AR_AT(ar_track, x, 4);
+AR_AT(ar_track, y, 8); AR_AT(ar_track, z, 12); AR_AT(ar_track, vx, 16); AR_AT(ar_track, vy, 18);
+AR_AT(ar_track, vz, 20); AR_AT(ar_track, heading, 22); AR_AT(ar_track, bank, 24); AR_AT(ar_track, age, 25);
+AR_AT(ar_track, alt, 26); AR_AT(ar_track, gs, 28); AR_AT(ar_track, vrate, 30); AR_AT(ar_track, cs, 32);
 #undef AR_AT
 
 #endif

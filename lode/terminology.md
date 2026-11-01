@@ -47,4 +47,11 @@
 - Detail record - `struct ar_detail`, 96 bytes from `GET /v1/detail`: registration, type, model, operator, year, GPS/selected altitude, selected heading, QNH, last seen.
 - Opaque font - a copy of the SGDK font with its transparent background made black (index 14), so window-plane text hides the scope.
 - Desync - SGDK pairs each command with the next channel-0 reply; after a timeout the firmware's late replies shift every later pairing, for good.
+- Cockpit mode - the view from one aircraft over real terrain, drawn by the cart (A in the pop-up, or Y); `cockpit.c`.
+- Voxel Space - the Comanche (1992) terrain technique: per screen column, march out in depth over a heightmap + colour map, drawing each column front to back; `voxel.c` + `vox.s`.
+- Terrain patch - 128×128 cells of height levels and palette indices from `GET /v1/terrain`, centred on the aircraft, cell size = height above ground / 5.
+- Patch key - `"lat,lon,cell,level,base"` in a patch's header; the cart sends it back as `p=` on `/v1/track`, so the relay stays stateless.
+- Height level - a patch's vertical unit (`level_cm`, normally cell / 16: true scale); 0..63 above `base_m`.
+- Mode overlay - `overlay_ram`: 36 KB that the radar (scope tiles, trails, tracks) or cockpit mode (`struct vox_ram`) owns at a time.
+- Sky delta - repaint only the sky rows a VRAM copy's terrain uncovered since that copy's last frame.
 - Reconnect - module reset (`mw_init`) + detect + join + relay lookup after 3 failed requests in a row, backing off 15/30/60 s (`feed_reconnect`).

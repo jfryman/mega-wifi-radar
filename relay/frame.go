@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	frameVer     = 2 // AR_VER: the relay and the cart only talk at the same version
+	frameVer     = 3 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
 	recSize      = 24
 	maxRecs      = 96
@@ -74,6 +74,11 @@ type upstreamAC struct {
 	NavAlt  *float64 `json:"nav_altitude_mcp"`
 	NavHdg  *float64 `json:"nav_heading"`
 	NavQNH  *float64 `json:"nav_qnh"`
+
+	// Cockpit only (track.go), when the aircraft reports them.
+	TrueHeading *float64 `json:"true_heading"`
+	Roll        *float64 `json:"roll"`
+	TrackRate   *float64 `json:"track_rate"`
 }
 
 type upstreamResp struct {

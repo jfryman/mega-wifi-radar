@@ -1,4 +1,5 @@
-/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&v and /v1/detail?icao&v over MegaWiFi.
+/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&v, /v1/detail?icao&v, and cockpit mode's
+ * /v1/terrain?icao&v and /v1/track?icao&p&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
 
@@ -110,15 +111,16 @@ static enum feed_err check(const struct ar_hdr *h, u16 len)
     return FEED_OK;
 }
 
-/* GET url into buf. Counts failures for the reconnect; AR_HTTP_MISMATCH -> FEED_ERR_VERSION. */
-static enum feed_err get(const char *url, struct collect_to *t, struct feed_stats *st)
+/* GET url through cb (its ctx starts with a struct collect). Counts failures for the reconnect;
+ * AR_HTTP_MISMATCH -> FEED_ERR_VERSION. */
+static enum feed_err get_cb(const char *url, net_chunk_cb cb, struct collect *c, struct feed_stats *st)
 {
     struct net_http_result res;
-    enum net_err e = net_http_get(url, collect_chunk, t, &res);
+    enum net_err e = net_http_get(url, cb, c, &res);
 
     if (st) {
         st->http_status = res.status;
-        st->bytes = t->c.len;
+        st->bytes = c->len;
         st->chunks = res.chunks;
         st->frames = res.frames;
     }
@@ -127,11 +129,16 @@ static enum feed_err get(const char *url, struct collect_to *t, struct feed_stat
         failures++;
         return e == NET_ERR_RECV ? FEED_ERR_RECV : FEED_ERR_HTTP;
     }
-    if (t->c.overflow) {
+    if (c->overflow) {
         failures++;
         return FEED_ERR_SIZE;
     }
     return FEED_OK;
+}
+
+static enum feed_err get(const char *url, struct collect_to *t, struct feed_stats *st)
+{
+    return get_cb(url, collect_chunk, &t->c, st);
 }
 
 /* A body that arrived but makes no sense is a link symptom too; a good one ends the failure run. */
@@ -176,6 +183,78 @@ enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d)
     counted(FEED_OK);
     *d = r;
     return FEED_OK;
+}
+
+/* /v1/terrain: the header, then the heights into h and the colours into c, as the bytes arrive. */
+struct terrain_sink {
+    struct collect c;               /* only .overflow: the body is bigger than c.len can count */
+    u32 total;                      /* bytes so far */
+    struct ar_terrain *hdr;
+    u8 *h, *col;
+};
+
+static void terrain_chunk(const u8 *data, u16 len, void *ctx)
+{
+    struct terrain_sink *t = ctx;
+
+    while (len) {
+        u32 at = t->total;
+        u8 *dst;
+        u32 room;
+        if (at < AR_TERRAIN_HDR) {
+            dst = (u8 *)t->hdr + at;
+            room = AR_TERRAIN_HDR - at;
+        } else if (at < AR_TERRAIN_HDR + AR_TN * AR_TN) {
+            dst = t->h + (at - AR_TERRAIN_HDR);
+            room = AR_TERRAIN_HDR + AR_TN * AR_TN - at;
+        } else if (at < AR_TERRAIN_SIZE) {
+            dst = t->col + (at - AR_TERRAIN_HDR - AR_TN * AR_TN);
+            room = AR_TERRAIN_SIZE - at;
+        } else {
+            t->c.overflow = TRUE;
+            return;
+        }
+        u16 n = len < room ? len : room;
+        memcpy(dst, data, n);
+        data += n;
+        len -= n;
+        t->total += n;
+    }
+}
+
+enum feed_err feed_terrain(const u8 icao[3], struct ar_terrain *hdr, u8 *h, u8 *c)
+{
+    static char url[RELAY_LEN + 40];
+    struct terrain_sink t = { { 0, FALSE }, 0, hdr, h, c };
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    /* base (<= RELAY_LEN) + "/v1/terrain?icao=abfcda&v=3" (<= 29) */
+    sprintf(url, "%s" AR_TERRAIN_PATH AR_TERRAIN_QUERY, relay_url, icao[0], icao[1], icao[2], AR_VER);
+    if ((e = get_cb(url, terrain_chunk, &t.c, NULL)) != FEED_OK) return e;
+    if (t.total != AR_TERRAIN_SIZE || hdr->magic[0] != 'A' || hdr->magic[1] != 'T' || hdr->n != AR_TN)
+        return counted(FEED_ERR_FORMAT);
+    if (hdr->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    hdr->key[AR_KEY_LEN - 1] = 0;
+    return counted(FEED_OK);
+}
+
+enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *out)
+{
+    static char url[RELAY_LEN + 32 + AR_KEY_LEN];
+    static u16 buf[AR_TRACK_SIZE / 2 + 4];          /* + room to spot an oversized body */
+    struct collect_to t = { { 0, FALSE }, (u8 *)buf, sizeof(buf) };
+    const struct ar_track *r = (const struct ar_track *)buf;
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    /* base (<= RELAY_LEN) + "/v1/track?icao=abfcda&p=<key>&v=3" (<= 27 + key) */
+    sprintf(url, "%s" AR_TRACK_PATH AR_TRACK_QUERY, relay_url, icao[0], icao[1], icao[2], key, AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    if (t.c.len != AR_TRACK_SIZE || r->magic[0] != 'A' || r->magic[1] != 'K') return counted(FEED_ERR_FORMAT);
+    if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    *out = *r;
+    return counted(FEED_OK);
 }
 
 #endif

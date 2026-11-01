@@ -9,7 +9,7 @@
   - [firmware.md](platform/firmware.md) - mw-fw-rtos rev-c-1250k, HTTPS cert behaviour
 - build/
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, GHCR pull, Rev.C guard, make targets
-  - [ram-budget.md](build/ram-budget.md) - static RAM vs SGDK's start-up heap, ram-check, the 2 KiB DMA buffer patch
+  - [ram-budget.md](build/ram-budget.md) - static RAM vs SGDK's start-up heap, ram-check, the mode overlay, the 2 KiB DMA buffer patch
   - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
@@ -17,7 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: /v1/frame + /v1/detail, version check, conversion rules, caching, discovery
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
@@ -25,6 +25,7 @@
   - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, layers, art pipeline, motion
   - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
+  - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, Voxel Space into VRAM, overlay RAM, camera, HUD
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence, airports
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
@@ -34,7 +35,8 @@
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
-  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v2): header, record, flags, transport, versioning
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v3): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
+  - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
 - tmp/ - git-ignored scratch

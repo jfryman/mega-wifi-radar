@@ -107,6 +107,9 @@ var relayInts = map[string]int64{
 	"AR_HTTP_MISMATCH": httpMismatch, "AR_DETAIL_SIZE": detailSize,
 	"AR_D_FOUND": dFound, "AR_D_GEOM_ALT": dGeomAlt, "AR_D_SEL_ALT": dSelAlt, "AR_D_SEL_HDG": dSelHdg,
 	"AR_D_QNH": dQNH, "AR_D_YEAR": dYear, "AR_D_SEEN": dSeen,
+	"AR_TN": tn, "AR_TERRAIN_HDR": terrainHdr, "AR_LEVELS": levels, "AR_KEY_LEN": keyLen, "AR_T_FLAT": tFlat,
+	"AR_TRACK_SIZE": trackSize, "AR_K_FOUND": kFound, "AR_K_GROUND": kGround, "AR_K_EMERG": kEmerg,
+	"AR_K_ALT_UNK": kAltUnk,
 }
 
 // Items checked by their own tests below, or reserved values the relay never emits.
@@ -118,6 +121,11 @@ var checkedElsewhere = map[string]string{
 	"AR_FRAME_QUERY":   "TestContractHTTP",
 	"AR_DETAIL_PATH":   "TestContractHTTP",
 	"AR_DETAIL_QUERY":  "TestContractHTTP",
+	"AR_TERRAIN_PATH":  "TestContractHTTP",
+	"AR_TERRAIN_QUERY": "TestContractHTTP",
+	"AR_TERRAIN_SIZE":  "TestContractConstants (derived)",
+	"AR_TRACK_PATH":    "TestContractHTTP",
+	"AR_TRACK_QUERY":   "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
 	"AR_MDNS_SRC_PORT": "TestContractDiscovery",
@@ -154,6 +162,10 @@ func TestContractConstants(t *testing.T) {
 		got != hdrSize+maxRecs*recSize {
 		t.Errorf("AR_FRAME_MAX: want hdr + max*rec = %d", hdrSize+maxRecs*recSize)
 	}
+	if h.exprs["AR_TERRAIN_SIZE"] != "(AR_TERRAIN_HDR + 2 * AR_TN * AR_TN)" || terrainSize != terrainHdr+2*tn*tn {
+		t.Errorf("AR_TERRAIN_SIZE: want (AR_TERRAIN_HDR + 2 * AR_TN * AR_TN) = %d, got %q", terrainSize,
+			h.exprs["AR_TERRAIN_SIZE"])
+	}
 }
 
 func be(v uint64, size int) []byte {
@@ -178,6 +190,15 @@ func TestContractLayout(t *testing.T) {
 	padASCII(d.desc[:], "BOEING 737 MAX 8")
 	padASCII(d.owner[:], "SOUTHWEST AIRLINES CO")
 	encD := d.encode()
+	var p patch
+	p.g = geom{lat: 36.12345, lon: -86.54321, cellM: 0x0123, levelCm: 0x0456, baseM: -0x0789}
+	p.flags, p.hmax = 0x81, 0x3F
+	p.height[0], p.colour[0] = 0x2A, 0x0B
+	encT := p.encode()
+	tk := trackRec{flags: 0x0F, x: 0x01020304, y: -0x05060708, z: 0x090A0B0C, vx: -0x1112, vy: 0x1314, vz: -0x1516,
+		heading: 0xC001, bank: -27, age: 0xC8, alt: -0x1718, gs: 0x191A, vrate: -0x1B1C,
+		cs: [8]byte{'S', 'W', 'A', '6', '9', '2', ' ', ' '}}
+	encK := tk.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
 	want := map[string]map[string]func(size int) []byte{
@@ -222,11 +243,58 @@ func TestContractLayout(t *testing.T) {
 			"desc":     func(int) []byte { return d.desc[:] },
 			"owner":    func(int) []byte { return d.owner[:] },
 		},
+		"ar_terrain": {
+			"magic":    func(int) []byte { return []byte("AT") },
+			"ver":      func(n int) []byte { return be(frameVer, n) },
+			"tflags":   func(n int) []byte { return be(uint64(p.flags), n) },
+			"n":        func(n int) []byte { return be(tn, n) },
+			"cell_m":   func(n int) []byte { return be(uint64(p.g.cellM), n) },
+			"level_cm": func(n int) []byte { return be(uint64(p.g.levelCm), n) },
+			"base_m":   func(n int) []byte { return be(uint64(uint16(int16(p.g.baseM))), n) },
+			"hmax":     func(n int) []byte { return be(uint64(p.hmax), n) },
+			"rsv":      func(n int) []byte { return be(0, n) },
+			"pal": func(n int) []byte {
+				var b []byte
+				for _, c := range terrainPal {
+					b = append(b, be(uint64(c), 2)...)
+				}
+				return b
+			},
+			"key": func(n int) []byte {
+				b := make([]byte, n)
+				copy(b, p.g.key())
+				return b
+			},
+			"pad": func(n int) []byte { return be(0, n) },
+		},
+		"ar_track": {
+			"magic":   func(int) []byte { return []byte("AK") },
+			"ver":     func(n int) []byte { return be(frameVer, n) },
+			"kflags":  func(n int) []byte { return be(uint64(tk.flags), n) },
+			"x":       func(n int) []byte { return be(uint64(uint32(tk.x)), n) },
+			"y":       func(n int) []byte { return be(uint64(uint32(tk.y)), n) },
+			"z":       func(n int) []byte { return be(uint64(uint32(tk.z)), n) },
+			"vx":      func(n int) []byte { return be(uint64(uint16(tk.vx)), n) },
+			"vy":      func(n int) []byte { return be(uint64(uint16(tk.vy)), n) },
+			"vz":      func(n int) []byte { return be(uint64(uint16(tk.vz)), n) },
+			"heading": func(n int) []byte { return be(uint64(tk.heading), n) },
+			"bank":    func(n int) []byte { return be(uint64(uint8(tk.bank)), n) },
+			"age":     func(n int) []byte { return be(uint64(tk.age), n) },
+			"alt":     func(n int) []byte { return be(uint64(uint16(tk.alt)), n) },
+			"gs":      func(n int) []byte { return be(uint64(tk.gs), n) },
+			"vrate":   func(n int) []byte { return be(uint64(uint16(tk.vrate)), n) },
+			"cs":      func(int) []byte { return tk.cs[:] },
+		},
 	}
-	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD}
-	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0}
+	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD, "ar_terrain": encT, "ar_track": encK}
+	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0}
 	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
-		"ar_detail": int(h.ints["AR_DETAIL_SIZE"])}
+		"ar_detail": int(h.ints["AR_DETAIL_SIZE"]), "ar_terrain": int(h.ints["AR_TERRAIN_HDR"]),
+		"ar_track": int(h.ints["AR_TRACK_SIZE"])}
+	// The maps follow the terrain header: heights, then colours.
+	if len(encT) != terrainSize || encT[terrainHdr] != p.height[0] || encT[terrainHdr+tn*tn] != p.colour[0] {
+		t.Errorf("terrain body: %d bytes, height[0] %#x, colour[0] %#x", len(encT), encT[terrainHdr], encT[terrainHdr+tn*tn])
+	}
 
 	var structs []string
 	for st := range h.order {
@@ -324,6 +392,43 @@ func TestContractHTTP(t *testing.T) {
 	body := rec.Body.Bytes()
 	if rec.Code != 200 || len(body) != int(h.ints["AR_DETAIL_SIZE"]) || body[3]&byte(h.ints["AR_D_FOUND"]) == 0 {
 		t.Errorf("detail for the cart's query: status %d, %d bytes % x", rec.Code, len(body), body)
+	}
+
+	// Cockpit: the terrain patch for an aircraft, then its track placed in that patch by the patch's key.
+	for _, k := range []string{"AR_TERRAIN_PATH", "AR_TRACK_PATH"} {
+		if want := map[string]string{"AR_TERRAIN_PATH": terrainPath, "AR_TRACK_PATH": trackPath}[k]; h.strs[k] != want {
+			t.Errorf("%s %q, relay serves %q", k, h.strs[k], want)
+		}
+	}
+	lat, lon, alt, gs, trk := 36.2, -86.7, 9000.0, 300.0, 90.0
+	src.last.AC[0].Lat, src.last.AC[0].Lon, src.last.AC[0].AltBaro = &lat, &lon, alt
+	src.last.AC[0].GS, src.last.AC[0].Track = &gs, &trk
+	el := flatDEM(150)
+	tq := h.strs["AR_TERRAIN_QUERY"]
+	if strings.Count(tq, "%") != 4 {
+		t.Fatalf("AR_TERRAIN_QUERY %q: expected 3 icao bytes, version", tq)
+	}
+	rec = httptest.NewRecorder()
+	terrainHandler(src, el).ServeHTTP(rec, httptest.NewRequest("GET", terrainPath+fmt.Sprintf(cFormat(tq), 0xab, 0xfc, 0xda, ver), nil))
+	body = rec.Body.Bytes()
+	if rec.Code != 200 || len(body) != terrainSize || string(body[:2]) != "AT" {
+		t.Fatalf("terrain for the cart's query: status %d, %d bytes", rec.Code, len(body))
+	}
+	key := string(bytes.TrimRight(body[46:46+keyLen], "\x00"))
+	kq := h.strs["AR_TRACK_QUERY"]
+	if strings.Count(kq, "%") != 5 {
+		t.Fatalf("AR_TRACK_QUERY %q: expected 3 icao bytes, key, version", kq)
+	}
+	rec = httptest.NewRecorder()
+	trackHandler(src, el, newTurns()).ServeHTTP(rec, httptest.NewRequest("GET", trackPath+fmt.Sprintf(cFormat(kq), 0xab, 0xfc, 0xda, key, ver), nil))
+	body = rec.Body.Bytes()
+	if rec.Code != 200 || len(body) != trackSize || body[3]&kFound == 0 {
+		t.Fatalf("track for the cart's query (key %q): status %d, % x", key, rec.Code, body)
+	}
+	// The patch is centred on the aircraft: it sits in the middle cell.
+	x, y := int32(binary.BigEndian.Uint32(body[4:])), int32(binary.BigEndian.Uint32(body[8:]))
+	if x < 63*256 || x > 65*256 || y < 63*256 || y > 65*256 {
+		t.Errorf("track at cell %.2f,%.2f, want the patch centre (64, 64)", float64(x)/256, float64(y)/256)
 	}
 }
 

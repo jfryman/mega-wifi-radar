@@ -38,7 +38,7 @@ Leave the cart's **RELAY** on **AUTO** and it finds the relay over mDNS. To pin 
 
 ## Discovery (mDNS)
 
-The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=2 path=/v1/frame`: the contract version and frame path) with a small built-in
+The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=3 path=/v1/frame`: the contract version and frame path) with a small built-in
 responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _mwradar._tcp` (Linux).
 
 | Where the relay runs | Who advertises |
@@ -65,26 +65,34 @@ ESP32 never joins the multicast group. Details: [lode/net/discovery.md](../lode/
 ## HTTP API
 
 - **Versions:** the relay and the cartridge ship together; use the relay from your cartridge's release.
-  Every request carries `v=<contract version>` (`AR_VER`, 2 in 0.2.0). Any other value, or none, gets
+  Every request carries `v=<contract version>` (`AR_VER`, 3 since 0.3.0). Any other value, or none, gets
   `409` with a message naming the relay's release, and the cart reports `RELAY MISMATCH` at boot or
   `RELAY VER?` on the radar. The relay logs its release and contract version at start-up.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=2` returns `200` with
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=3` returns `200` with
   `application/octet-stream` and an explicit `Content-Length`. `range` is clamped to 1–250 and `max` to 1–96.
   A missing or bad `lat`/`lon` gives `400`.
-- `GET /v1/detail?icao=<6 hex>&v=2` returns one 96-byte detail record for the pop-up (below), from the newest
+- `GET /v1/detail?icao=<6 hex>&v=3` returns one 96-byte detail record for the pop-up (below), from the newest
   upstream snapshot if it's under 30 s old, otherwise from a single-aircraft upstream request
   (`/api/v2/hex/<icao>`, inside the same rate limit). An unknown aircraft gets a record without the FOUND flag.
+- `GET /v1/terrain?icao=<6 hex>&v=3` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
+  and a patch key), then 128×128 height levels and 128×128 colour indices, centred on the aircraft with cells of
+  its height above ground / 5. Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
+  so the relay needs HTTPS out to `s3.amazonaws.com`; without it the patch is flat ground. `404` if the
+  aircraft isn't in the feed.
+- `GET /v1/track?icao=<6 hex>&p=<patch key>&v=3` returns 40 bytes: the aircraft placed in that patch (position,
+  height, velocity, heading, bank), for the cockpit camera.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
   (the cart shows `UPSTRM ERR`). If there's no previous frame, it returns `502`.
 - `GET /healthz` returns `ok`.
 
 Try it:
 ```sh
-curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&v=2' | xxd | head
-curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=2' | xxd
+curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&v=3' | xxd | head
+curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=3' | xxd
+curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=3' | head -c 104 | xxd
 ```
 
-## Frame format (contract v2)
+## Frame format (contract v3)
 
 Big-endian and word-aligned: a 16-byte header followed by `count` 24-byte records. Positions are
 east/north offsets from the home point in 1/32 nm. The records are sorted nearest first.

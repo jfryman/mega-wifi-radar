@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -112,7 +113,7 @@ func TestEncodeLayout(t *testing.T) {
 		recs: []record{{icao: 0xa46745, flags: fStale, x: -2, y: 320, alt: 840, squawk: 0x7700,
 			gs: 139, track: 90, vrate: -20, cat: 0x11, cs: [8]byte{'U', 'A', 'L', '1', ' ', ' ', ' ', ' '}}}}
 	b := f.encode()
-	wantHex := "4152020100181234010203040019010" + "1" +
+	wantHex := "4152" + fmt.Sprintf("%02x", frameVer) + "0100181234010203040019010" + "1" +
 		"a46745" + "04" + "fffe" + "0140" + "0348" + "7700" + "8b" + "5a" + "ec" + "11" + "55414c3120202020"
 	if got := fmt.Sprintf("%x", b); got != wantHex {
 		t.Fatalf("encoding\n got %s\nwant %s", got, wantHex)
@@ -164,7 +165,7 @@ func TestHTTP(t *testing.T) {
 	relay := httptest.NewServer(frameHandler(src))
 	defer relay.Close()
 
-	resp, err := http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=2")
+	resp, err := http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=" + strconv.Itoa(frameVer))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,20 +179,20 @@ func TestHTTP(t *testing.T) {
 		t.Fatalf("header % x", body[:16])
 	}
 	// A repeat inside min-interval is served from cache.
-	http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=2")
+	http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=" + strconv.Itoa(frameVer))
 	if calls != 1 {
 		t.Fatalf("%d upstream calls, want 1", calls)
 	}
 
 	// A cart at another contract version (or one that sends none) is told so.
-	for _, q := range []string{"", "&v=1", "&v=3"} {
+	for _, q := range []string{"", "&v=1", "&v=" + strconv.Itoa(frameVer+1)} {
 		resp, _ = http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782" + q)
 		if resp.StatusCode != httpMismatch {
 			t.Fatalf("version %q: status %d, want %d", q, resp.StatusCode, httpMismatch)
 		}
 	}
 
-	resp, _ = http.Get(relay.URL + "/v1/frame?lon=1&v=2")
+	resp, _ = http.Get(relay.URL + "/v1/frame?lon=1&v=" + strconv.Itoa(frameVer))
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("missing lat: status %d", resp.StatusCode)
 	}
@@ -199,7 +200,7 @@ func TestHTTP(t *testing.T) {
 	// Upstream down: serve the last good frame flagged UPSTREAM_ERR.
 	up.Close()
 	time.Sleep(60 * time.Millisecond)
-	resp, err = http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=2")
+	resp, err = http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=" + strconv.Itoa(frameVer))
 	if err != nil {
 		t.Fatal(err)
 	}

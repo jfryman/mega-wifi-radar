@@ -5,7 +5,6 @@
 
 #define MISS_DROP   2           /* polls absent before an aircraft is removed */
 
-struct track tracks[TR_MAX];
 volatile u8 tr_state[TR_MAX];
 volatile u8 tr_brg[TR_MAX];
 

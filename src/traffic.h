@@ -38,7 +38,9 @@ struct track {
     s16 dot_x[TRAIL_N], dot_y[TRAIL_N];  /* [vint] block px of trail[n]'s dot, NO_DOT if none */
 };
 
-extern struct track tracks[TR_MAX];
+/* In the mode overlay (overlay.h): the radar's while it runs, emptied by radar_init. */
+#include "overlay.h"
+#define tracks ((struct track *)(overlay_ram + OV_TRACKS))
 
 /* Compact mirror of the flags the V-Int scans every frame. */
 #define TS_USED     0x01

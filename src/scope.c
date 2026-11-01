@@ -1,16 +1,18 @@
 #include "scope.h"
+#include "overlay.h"
 #include "resources.h"
 
 #define CELLS       26
-#define NTILES      568             /* must match tools/scopegen output */
+#define NTILES      SCOPE_NTILES
 #define GLOW_Q      3               /* frames per glow slot */
 #define TAIL        ((GLOW_SLOTS - 1) * GLOW_Q)  /* steps; retired before slot reuse */
 #define FLUSH_MAX   48              /* dirty tiles uploaded per frame */
 
 _Static_assert(sizeof(scope_tiles_rom) == NTILES * 32, "scope tiles != NTILES (rerun scopegen?)");
 
-static u32 tiles[NTILES * 8];               /* RAM copy of the disc tiles (18 KB) */
-static u8 trail_bits[NTILES * 8];           /* 1 bit per pixel: trail dot here */
+/* In the mode overlay (overlay.h): the radar's while it runs, refilled by scope_init. */
+#define tiles       ((u32 *)(overlay_ram + OV_SCOPE_TILES))  /* RAM copy of the disc tiles (18 KB) */
+#define trail_bits  (overlay_ram + OV_TRAIL_BITS)           /* 1 bit per pixel: trail dot here */
 static u8 trail_cnt[NTILES];                /* trail pixels per tile (fast path when 0) */
 static const u8 bitmask[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 static u8 dirty_flag[NTILES];
@@ -79,8 +81,8 @@ void scope_init(const struct theme *t, u16 base)
     const u16 *map = (const u16 *)scope_map_rom;
 
     vram_base = base;
-    memcpy(tiles, scope_tiles_rom, sizeof(tiles));
-    memset(trail_bits, 0, sizeof(trail_bits));
+    memcpy(tiles, scope_tiles_rom, NTILES * 32);
+    memset(trail_bits, 0, NTILES * 8);
     memset(trail_cnt, 0, sizeof(trail_cnt));
     memset(dirty_flag, 0, sizeof(dirty_flag));
     dirty_n = 0;
