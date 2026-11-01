@@ -40,5 +40,4 @@
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
-  - [flyover-notices.md](plans/flyover-notices.md) - 0.4.0 flyover notices: goal, done-criteria status, what's left (cart check, tag)
 - tmp/ - git-ignored scratch

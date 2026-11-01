@@ -4,7 +4,9 @@ A live, ATC-style radar scope for the **Sega Mega Drive / Genesis**, running on 
 **MegaWiFi Rev.C** Wi-Fi cartridge. It shows range rings, a rotating thin-line sweep with
 phosphor afterglow, and aircraft blips with history trails and data tags (callsign, altitude,
 ground speed). The traffic is real ADS-B traffic around an airport you choose. It boots with a
-787 departure in which every ATC radio call is a real boot step.
+787 departure in which every ATC radio call is a real boot step. Pick any aircraft to ride along in a
+**cockpit view** over the real terrain beneath it, and, with an MQTT feed of planes passing over your house,
+get a **flyover notice** (and a chime) the moment one goes over ([docs/flyover.md](docs/flyover.md)).
 
 <p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, the traffic list with SWA692 selected"></p>
 

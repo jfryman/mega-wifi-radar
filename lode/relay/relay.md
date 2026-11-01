@@ -195,4 +195,4 @@ Austria, Canada, EU-DEM, ETOPO1, Mexico INEGI, LINZ, Kartverket, UK EA, USGS 3DE
 reasonable to the medium". Credited: the cockpit HUD (`ELEVATION DATA: AWS TERRAIN TILES`), the full list in the
 manual's credits (small print), `docs/relay.md` "Data terms", and the README.
 
-Related: [../plans/flyover-notices.md](../plans/flyover-notices.md), [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).
+Related: [../ui/notices.md](../ui/notices.md), [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).

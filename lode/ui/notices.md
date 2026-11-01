@@ -19,6 +19,12 @@ sequenceDiagram
   C->>C: chime_play; notice box (radar) or ticker (cockpit)
 ```
 
+## Decisions (owner, 2026-11-01)
+A centred box on the radar (ToeJam & Earl style; a top banner came first), a ticker in cockpit mode (pages came
+first), 24-character lines composed by the relay, one generic chime plus a KBNA easter egg (no public catalogue of
+airport chimes exists), FM voice, a stdlib MQTT client with atc-mqtt's variable names, `n=` + a flag instead of an
+extra poll. Shipped in 0.4.0.
+
 ## Contract (v4, [../architecture/contract.md](../architecture/contract.md))
 - `n=` on `/v1/frame` and `/v1/track` = the last notice id seen (0 = none yet). The relay sets the flag when a
   live notice is newer (ids are u16 from a random start, wrap, never 0: newer means `(s16)(id - seen) > 0`).
@@ -96,5 +102,5 @@ static const struct tune generic = { &bell, 4, { { 0, 45, 12 }, { 9, 45, 16 }, {
 - Relay end to end: `make mqtt-start relay-start mqtt-pub`, then `curl '/v1/frame?...&n=0&v=4'` (hflags 0x04) and
   `curl '/v1/notice?after=0&v=4' | xxd`.
 
-Related: [../plans/flyover-notices.md](../plans/flyover-notices.md), [screen-layout.md](screen-layout.md),
+Related: [../relay/relay.md](../relay/relay.md), [screen-layout.md](screen-layout.md),
 [detail-popup.md](detail-popup.md), [cockpit.md](cockpit.md), [config-screen.md](config-screen.md).
