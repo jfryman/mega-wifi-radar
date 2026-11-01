@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract contract-lock fake-feed
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract contract-lock fake-feed spike-voxel spike-voxel-run spike-voxel-flash
 
 all: release
 
@@ -95,3 +95,14 @@ print-shots: sim
 # Regenerate the boot splash data (res/splash/*.bin, src/splash_data.h) from res/splash/src/art.typ.
 splash-art:
 	scripts/splash-art
+
+# Cockpit-mode speed spike (lode/plans/cockpit-mode.md): standalone ROM, spike/voxel/out/rom.bin.
+# Terrain: cd tools && go run ./voxelgen -o ../spike/voxel/src
+spike-voxel:
+	$(MD) $(SGDKMK) -C spike/voxel release
+
+spike-voxel-run: spike-voxel
+	scripts/sim spike/voxel/out/rom.bin $(SNAP)
+
+spike-voxel-flash: spike-voxel
+	$(FLASHKIT) write-rom spike/voxel/out/rom.bin
