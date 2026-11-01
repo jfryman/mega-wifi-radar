@@ -1,7 +1,7 @@
 # Plan: flyover notices (MQTT → relay → cart), target 0.4.0 / contract v4
 
-**Status: phase 1 in progress.** Done: relay MQTT client, env config, dev broker, `parseATC` (relay logs entering
-flights; [../relay/relay.md](../relay/relay.md)). Next: notice ring, text composer, ICAO match.
+**Status: phase 1 done (relay side, [../relay/relay.md](../relay/relay.md)): MQTT client, env config, dev broker,
+notice ring, composer, ICAO match; the relay logs notices.** Next: phase 2, contract v4 (`/v1/notice`, `n=`, flags).
 
 ## Goal
 When a plane passes within ~500 m of the owner's house, the cart, if it's on, shows a short, playful notice
@@ -48,8 +48,7 @@ flowchart LR
   PUBLISH (retained empty, for `-mqtt-clear` only). ~250 lines, reconnect with 5/10/30/60 s back-off. No TLS in v1
   (LAN broker); `mqtts://` later if wanted.
 - Config (built): `MQTT_BROKER_HOST` (empty = off) / `_PORT` / `MQTT_USERNAME` / `MQTT_PASSWORD` (env only),
-  `MQTT_TOPIC`, `MQTT_CLEAR`, atc-mqtt's names, each with a flag; see [../relay/relay.md](../relay/relay.md).
-  Still to add: `-notice-ttl` / `NOTICE_TTL` (30 s).
+  `MQTT_TOPIC`, `MQTT_CLEAR`, `RELAY_NOTICE_TTL`, each with a flag; see [../relay/relay.md](../relay/relay.md).
 - **Notice ring:** the 4 newest notices, ids `u16` increasing from a random start (so a relay restart doesn't
   collide with a cart's remembered id). Each lives `-notice-ttl`. Stateless toward carts: nothing is per-client.
 - **ICAO match:** look the flight up in `source.last` (newest adsb.fi snapshot, already kept): nearest aircraft
@@ -59,11 +58,11 @@ flowchart LR
   can change without cart code:
   ```
   OVERHEAD!  SWA1234          (headline: picks from a small list by flight_uuid hash:
-  SOUTHWEST  B737-800           OVERHEAD! / LOOK UP! / INCOMING! / FLYBY!)
+  SOUTHWEST   B738              OVERHEAD! / LOOK UP! / INCOMING! / FLYBY!)
   BNA > MDW  1,800FT 160KT
   ```
   `aircraft_type` gets shortened (`Boeing 737-800` → `B737-800`, `Airbus A321neo` → `A321NEO`), airline trimmed
-  to a word, `"Unknown"` → omitted. Emergencies (if the ICAO match says EMERG) get `MAYDAY OVERHEAD`.
+  to a word, `"Unknown"` → omitted. Emergencies (if the ICAO match says EMERG) get `MAYDAY!`.
 - **Signal:** the cart sends `n=<last notice id seen>` on `/v1/frame` and `/v1/track`. If a live notice with a later
   id exists, the relay sets `AR_H_NOTICE` (hflags bit 2) / `AR_K_NOTICE` (kflags bit 4). Cost when idle: zero
   extra requests.
@@ -149,8 +148,7 @@ A short PA-style "attention" chime when a notice arrives.
   onset. The emulator build plays the chime with the fake notice.
 
 ## Phases
-1. Relay: ~~MQTT client, env config, dev broker, parser~~ (done), then ring + composer + ICAO match, tested with
-   `relay/testdata/atc/` samples; verify with `make mqtt-start relay-start mqtt-pub`.
+1. ~~Relay: MQTT client, env config, dev broker, parser, ring, composer, ICAO match~~ (done 2026-11-01).
 2. Contract v4: arframe.h, `/v1/notice`, `n=`, flags, contract test + lock.
 3. Cart radar banner + fake feed + `make sim` screenshots; RAM check, boot the cart ROM in MAME.
 4. Cockpit HUD notice.

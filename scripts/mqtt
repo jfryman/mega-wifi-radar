@@ -1,7 +1,8 @@
 #!/bin/sh
 # Dev MQTT broker for flyover notices (lode/plans/flyover-notices.md): eclipse-mosquitto in a container.
 #   scripts/mqtt start|stop|logs   # detached container mwradar-mqtt, port ${MQTT_PORT:-1883} on the host
-#   scripts/mqtt pub [file]        # publish an atc/status message (default: relay/testdata/atc/entering.json)
+#   scripts/mqtt pub [file]        # publish an atc/status message (default: relay/testdata/atc/entering.json),
+#                                  # stamped now and with fresh flight_uuids (the relay drops stale and repeated ones)
 #   scripts/mqtt sub               # watch atc/# on the broker
 # The broker sits on the "mwradar" container network, where scripts/relay finds it as mwradar-mqtt:1883
 # (the same shape as the cluster, where the relay reaches the broker by service name).
@@ -33,7 +34,13 @@ case "$cmd" in
     stop)  "$CTR" rm -f "$NAME" ;;
     logs)  exec "$CTR" logs -f "$NAME" ;;
     pub)   file=${1:-$ROOT/relay/testdata/atc/entering.json}
-           client mosquitto_pub -q 1 -t "$TOPIC" -s < "$file"
+           now=$(date -u +%Y-%m-%dT%H:%M:%SZ); base=dev-$(date +%s)-$$
+           awk -v t="$now" -v u="$base" '{
+               gsub(/"timestamp": *"[^"]*"/, "\"timestamp\": \"" t "\"")
+               while (match($0, /"flight_uuid": *"[^"#]*"/)) {
+                   n++; $0 = substr($0, 1, RSTART - 1) "\"flight_uuid\": \"" u "#" n "\"" substr($0, RSTART + RLENGTH)
+               }
+               print }' "$file" | client mosquitto_pub -q 1 -t "$TOPIC" -s
            echo "mqtt: published $(basename "$file") to $TOPIC" ;;
     sub)   client mosquitto_sub -v -t 'atc/#' ;;
     *)     echo "usage: scripts/mqtt start|stop|logs|pub [file]|sub" >&2; exit 2 ;;

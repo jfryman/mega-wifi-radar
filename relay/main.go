@@ -214,6 +214,7 @@ func main() {
 	flag.StringVar(&mq.topic, "mqtt-topic", "atc/status", "MQTT topic atc-mqtt publishes flights to")
 	flag.BoolVar(&mq.clear, "mqtt-clear", false, "clear a retained message on the topic after reading it")
 	flag.StringVar(&mq.clientID, "mqtt-client-id", mqttClientID(), "MQTT client id")
+	noticeTTL := flag.Duration("notice-ttl", 30*time.Second, "how long a flyover notice waits for a cart")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
 
@@ -262,7 +263,7 @@ func main() {
 	}
 	if mq.host != "" {
 		log.Printf("mqtt: %s, topic %q, user %q, client %s", mq.addr(), mq.topic, mq.user, mq.clientID)
-		go runMQTT(context.Background(), mq, noticeHandler)
+		go runMQTT(context.Background(), mq, newNotices(src, *noticeTTL).handle)
 	} else {
 		log.Printf("mqtt: off (no MQTT_BROKER_HOST): no flyover notices")
 	}
@@ -284,6 +285,7 @@ var serverEnv = map[string]string{
 	"mqtt-topic":     "MQTT_TOPIC",
 	"mqtt-clear":     "MQTT_CLEAR",
 	"mqtt-client-id": "MQTT_CLIENT_ID",
+	"notice-ttl":     "RELAY_NOTICE_TTL",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag

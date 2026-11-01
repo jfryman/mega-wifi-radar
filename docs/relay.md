@@ -72,18 +72,20 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 | `-mqtt-topic` | `MQTT_TOPIC` | `atc/status` | The topic `atc-mqtt` publishes flights to |
 | `-mqtt-clear` | `MQTT_CLEAR` | `false` | After a *retained* message, publish an empty retained one to clear the topic |
 | `-mqtt-client-id` | `MQTT_CLIENT_ID` | `mwradar-relay-<random>` | Unique per process; the relay always uses a clean session |
+| `-notice-ttl` | `RELAY_NOTICE_TTL` | `30s` | How long a flyover notice waits for a cart |
 
 ### Flyover notices (MQTT)
 
 With `MQTT_BROKER_HOST` set, the relay subscribes to `atc-mqtt`'s `atc/status` topic (QoS 1) and reads the
-flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. The cart side
-of this feature is planned for 0.4.0. For development, run a local broker:
+flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. Each becomes
+a three-line notice, matched to the aircraft in the adsb.fi feed when a cart is polling, kept for `-notice-ttl`
+(30 s) and logged. Showing them on the cart is planned for 0.4.0. For development, run a local broker:
 
 ```sh
 make mqtt-start      # eclipse-mosquitto container mwradar-mqtt, localhost:1883, network "mwradar"
 make relay-start     # finds the running broker and uses it (MQTT_BROKER_HOST=mwradar-mqtt)
-make mqtt-pub        # publish relay/testdata/atc/entering.json to atc/status
-scripts/relay logs   # mqtt: atc/status: entering SW1234 (...)
+make mqtt-pub        # publish relay/testdata/atc/entering.json to atc/status (stamped now)
+scripts/relay logs   # notice 23654 (no match): LOOK UP!   SWA1234 |SOUTHWEST   B738 |BNA > MDW ...
 scripts/mqtt sub     # watch atc/#
 ```
 

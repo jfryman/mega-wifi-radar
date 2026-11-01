@@ -66,7 +66,7 @@ empty variables count as unset. For containers and the planned cluster deploymen
 | `-min-interval` | `RELAY_MIN_INTERVAL` | `-mqtt-user` | `MQTT_USERNAME` |
 | `-mdns` | `RELAY_MDNS` | `-mqtt-topic` (`atc/status`) | `MQTT_TOPIC` |
 | `-dem` | `RELAY_DEM` | `-mqtt-clear` | `MQTT_CLEAR` |
-| | | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
+| `-notice-ttl` (30 s) | `RELAY_NOTICE_TTL` | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
 
 - The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
 - `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
@@ -75,28 +75,49 @@ empty variables count as unset. For containers and the planned cluster deploymen
   `-mdns=false`; the script's `RELAY_MDNS=0` skips the *host* advertisement).
 
 ## MQTT: flyover notices (`mqtt.go`, `notice.go`)
-Plan and goal: [../plans/flyover-notices.md](../plans/flyover-notices.md). Today the relay subscribes and logs
-entering flights; the notice ring, text composer and `/v1/notice` (contract v4) come next.
+Plan and goal: [../plans/flyover-notices.md](../plans/flyover-notices.md). The relay subscribes, turns entering
+flights into notices and logs them (`notice 23653 (icao ad4747): FLYBY!  AAL1103|AMERICAN  B738|12,275FT 363KT`).
+Serving them to the cart (`/v1/notice`, contract v4) is phase 2.
+```mermaid
+flowchart LR
+  B[(broker atc/status)] --> M[mqtt.go runMQTT] --> P[parseATC: entering only] --> A{notices.add}
+  A -- uuid seen / > 90 s old --> X[drop]
+  A --> MA[source.match vs adsb.fi snapshot < 15 s] --> C[composeNotice: 3 x 26 chars] --> R[(ring of 4, TTL 30 s)]
+  R --> AF[after id: oldest live newer than id]
+```
 - `mqtt.go`: minimal MQTT 3.1.1 client, stdlib. CONNECT (clean session, keep-alive 60 s, user/pass), SUBSCRIBE
   QoS 1, PUBLISH in at QoS 0/1 with PUBACK, PINGREQ every 30 s, read deadline 1.5 × keep-alive. `runMQTT`
   reconnects with 5/10/30/60 s back-off, reset by a CONNACK. `mqttServe` takes a `net.Conn`, so tests drive it
-  over `net.Pipe` with a fake broker (`mqtt_test.go`).
+  over `net.Pipe` with a fake broker (`mqtt_test.go`). Client id random per process (the broker kicks a duplicate).
 - **Clear:** with `-mqtt-clear`, a *retained* message is answered with an empty retained PUBLISH (QoS 0) on its
   topic. Empty payloads are ignored (that's our own clear echoed back). `atc/status` itself isn't retained.
-- **Client id** is random per process: the broker kicks an older session with the same id (two relays, or a pod
-  restart overlapping the old one).
-- `notice.go` `parseATC`: the consolidated `atc/status` (`entering_flights[]`; an `error` field → error) or a single
-  flight object (legacy `atc/incoming`; `exiting` ignored).
-```go
-go runMQTT(context.Background(), mq, noticeHandler) // main.go, only when mq.host != ""
-```
+- `parseATC`: the consolidated `atc/status` (`entering_flights[]`; an `error` field → error) or a single flight object
+  (legacy `atc/incoming`; `exiting` ignored).
+- **atc-mqtt data facts** (its FR24 SDK client): `flight_number` is the **ADS-B callsign** (`SWA1234`);
+  `aircraft_type` is FR24's aircraft code, normally an ICAO type (`B738`); `airline` comes from atc-mqtt's IATA
+  table and `origin`/`destination` are often `"Unknown"`. Positions lag up to its poll interval (45 s).
+- `notices` (one per relay, built in `main` only when MQTT is on): ring of `noticeKeep` 4, each live `-notice-ttl`
+  (30 s); ids u16 from a random start, **never 0** (the cart's "none seen"); `after(id)` uses a signed 16-bit
+  difference, so ids wrap. Dedupe by `flight_uuid` (kept 1 h). Reports older than 90 s (by `timestamp`) are dropped.
+- **Match** (`source.match`): only against `source.last` younger than 15 s (i.e. a cart is polling). Same callsign
+  within 10 nm wins; else the nearest within 1.5 nm and 2,000 ft, after dead-reckoning the FR24 fix along its heading
+  to the snapshot's time (≤ 3 min). A match sets `nICAO` + `icao`, uses the ADS-B callsign, its type if FR24 has
+  none, and `nEmerg` if `convert` flags it (headline `MAYDAY!`).
+- **Composer** (`composeNotice`), upper-case ASCII, `padASCII`'d to 26:
+  ```
+  FLYBY!     AAL1103        headline (OVERHEAD! / LOOK UP! / INCOMING! / FLYBY!, by fnv(uuid+cs)) + callsign
+  AMERICAN    B738          airline (shortAirline, else callsignAirlines by ICAO prefix) at col 0, type at 12
+  BNA > MDW  1,800FT 160KT  route (or FROM x / TO y / names' first word), alt, speed; speed then alt dropped to fit
+  ```
+  No callsign → `MYSTERY PLANE`. `shortType`: codes as they are, `Boeing 737-800` → `B737-800`, `Airbus A321neo`
+  → `A321NEO`, `Cessna 172` → `C172`.
 
 ### Dev broker (`scripts/mqtt`, `scripts/mosquitto.conf`)
 `make mqtt-start` runs `eclipse-mosquitto:2` as `mwradar-mqtt` (anonymous, no persistence) on the container network
 **`mwradar`**, port 1883 published on the host. `scripts/relay run|start` joins `mwradar` when it exists and, if
 `MQTT_BROKER_HOST` is unset and `mwradar-mqtt` is running, sets it to `mwradar-mqtt` (the cluster shape: the broker by
-service name). `make mqtt-pub` publishes `relay/testdata/atc/entering.json`; `scripts/mqtt sub` watches `atc/#`.
-Verified 2026-11-01: messages logged, reconnect after a broker restart (~5 s), retained clear.
+service name). `make mqtt-pub` publishes `relay/testdata/atc/entering.json` stamped now with fresh `flight_uuid`s (else it's dropped as stale/repeated); `scripts/mqtt sub` watches `atc/#`.
+Verified 2026-11-01: notices logged, a live adsb.fi aircraft matched by callsign, reconnect after a broker restart (~5 s), retained clear.
 
 ## Running it
 | How | Command |
