@@ -1,6 +1,7 @@
 // Boot splash art, drawn as vectors and rendered at 72 ppi (1 pt = 1 px) by scripts/splash-art,
 // then quantized to the Genesis palettes in palettes.json by tools/splashgen.
-// Pages: 1 scene (320x224), 2 wordmark (288x48), 3-6 the 787 at 0, 6, 12, 18 degrees (96x48).
+// Pages: 1 scene (320x224), 2 wordmark (288x48), 3-6 the 787 at 0, 6, 12, 18 degrees (96x48),
+// 7 speech-bubble tiles (64x32).
 // Design: lode/ui/boot-splash.md.
 
 #let pal = json("palettes.json")
@@ -14,7 +15,10 @@
 #set text(font: "Barlow")
 
 // ------------------------------------------------------------ 1: scene
-#let sky-h = 150
+// The ground sits at the bottom edge: the wordmark is across the top and the sky between is
+// where the speech bubbles open (lode/ui/boot-splash.md).
+#let sky-h = 182
+#let g = 32   // everything on the ground is drawn 32 px lower than the first layout
 #page(width: 320pt, height: 224pt, margin: 0pt, fill: bg(0))[
   // sky: smooth gradient, dithered by splashgen
   #place(top + left, rect(width: 320pt, height: sky-h * 1pt, fill: gradient.linear(
@@ -24,34 +28,35 @@
   #place(top + left, dy: (sky-h - 8) * 1pt, polygon(fill: bg(13),
     (0pt, 8pt), (40pt, 2pt), (90pt, 6pt), (150pt, 0pt), (210pt, 5pt), (270pt, 1pt), (320pt, 6pt), (320pt, 8pt)))
   // ground
-  #place(top + left, dy: sky-h * 1pt, rect(width: 320pt, height: 74pt, fill: bg(9)))
-  #place(top + left, dy: (sky-h + 34) * 1pt, rect(width: 320pt, height: 40pt, fill: bg(8)))
+  #place(top + left, dy: sky-h * 1pt, rect(width: 320pt, height: (224 - sky-h) * 1pt, fill: bg(9)))
+  #place(top + left, dy: 216pt, rect(width: 320pt, height: 8pt, fill: bg(8)))
   // runway: edges, centre-line dashes, red edge lights
-  #place(top + left, dy: 162pt, rect(width: 320pt, height: 20pt, fill: bg(10)))
-  #place(top + left, dy: 162pt, rect(width: 320pt, height: 1pt, fill: bg(15)))
-  #place(top + left, dy: 181pt, rect(width: 320pt, height: 1pt, fill: bg(15)))
-  #for x in range(4, 320, step: 24) { place(top + left, dx: x * 1pt, dy: 171.5pt, rect(width: 12pt, height: 1pt, fill: bg(15))) }
+  #place(top + left, dy: (162 + g) * 1pt, rect(width: 320pt, height: 20pt, fill: bg(10)))
+  #place(top + left, dy: (162 + g) * 1pt, rect(width: 320pt, height: 1pt, fill: bg(15)))
+  #place(top + left, dy: (181 + g) * 1pt, rect(width: 320pt, height: 1pt, fill: bg(15)))
+  #for x in range(4, 320, step: 24) { place(top + left, dx: x * 1pt, dy: (171.5 + g) * 1pt, rect(width: 12pt, height: 1pt, fill: bg(15))) }
   #for x in range(10, 320, step: 32) {
-    place(top + left, dx: x * 1pt, dy: 159pt, rect(width: 2pt, height: 2pt, fill: bg(11)))
-    place(top + left, dx: x * 1pt, dy: 183pt, rect(width: 2pt, height: 2pt, fill: bg(11)))
+    place(top + left, dx: x * 1pt, dy: (159 + g) * 1pt, rect(width: 2pt, height: 2pt, fill: bg(11)))
+    place(top + left, dx: x * 1pt, dy: (183 + g) * 1pt, rect(width: 2pt, height: 2pt, fill: bg(11)))
   }
   // hold-short bars at x = 150 (the 787 stops with its nose just before them)
-  #place(top + left, dx: 150pt, dy: 162pt, rect(width: 1pt, height: 20pt, fill: bg(14)))
-  #place(top + left, dx: 153pt, dy: 162pt, rect(width: 1pt, height: 20pt, fill: bg(14)))
+  #place(top + left, dx: 150pt, dy: (162 + g) * 1pt, rect(width: 1pt, height: 20pt, fill: bg(14)))
+  #place(top + left, dx: 153pt, dy: (162 + g) * 1pt, rect(width: 1pt, height: 20pt, fill: bg(14)))
 
   // control tower (left): shaft, cab, windows, roof, antenna + beacon
   #let tx = 14
-  #place(top + left, dx: (tx + 10) * 1pt, dy: 92pt, rect(width: 18pt, height: 72pt, fill: bg(12)))
-  #place(top + left, dx: (tx + 22) * 1pt, dy: 92pt, rect(width: 6pt, height: 72pt, fill: bg(13)))
-  #for y in range(100, 160, step: 12) { place(top + left, dx: (tx + 14) * 1pt, dy: y * 1pt, rect(width: 3pt, height: 4pt, fill: bg(14))) }
-  #place(top + left, dx: (tx + 4) * 1pt, dy: 86pt, rect(width: 30pt, height: 6pt, fill: bg(13)))
-  #place(top + left, dx: (tx) * 1pt, dy: 70pt, polygon(fill: bg(12), (0pt, 0pt), (38pt, 0pt), (34pt, 16pt), (4pt, 16pt)))
-  #for i in range(0, 5) { place(top + left, dx: (tx + 4 + i * 6.5) * 1pt, dy: 73pt, rect(width: 4.5pt, height: 8pt, fill: bg(14))) }
-  #place(top + left, dx: (tx - 2) * 1pt, dy: 66pt, rect(width: 42pt, height: 4pt, fill: bg(13)))
-  #place(top + left, dx: (tx + 18) * 1pt, dy: 52pt, rect(width: 1.5pt, height: 14pt, fill: bg(13)))
-  #place(top + left, dx: (tx + 17) * 1pt, dy: 49pt, rect(width: 4pt, height: 3pt, fill: bg(11)))
+  #let at(x, y, body) = place(top + left, dx: x * 1pt, dy: (y + g) * 1pt, body)
+  #at(tx + 10, 92, rect(width: 18pt, height: 72pt, fill: bg(12)))
+  #at(tx + 22, 92, rect(width: 6pt, height: 72pt, fill: bg(13)))
+  #for y in range(100, 160, step: 12) { at(tx + 14, y, rect(width: 3pt, height: 4pt, fill: bg(14))) }
+  #at(tx + 4, 86, rect(width: 30pt, height: 6pt, fill: bg(13)))
+  #at(tx, 70, polygon(fill: bg(12), (0pt, 0pt), (38pt, 0pt), (34pt, 16pt), (4pt, 16pt)))
+  #for i in range(0, 5) { at(tx + 4 + i * 6.5, 73, rect(width: 4.5pt, height: 8pt, fill: bg(14))) }
+  #at(tx - 2, 66, rect(width: 42pt, height: 4pt, fill: bg(13)))
+  #at(tx + 18, 52, rect(width: 1.5pt, height: 14pt, fill: bg(13)))
+  #at(tx + 17, 49, rect(width: 4pt, height: 3pt, fill: bg(11)))
   // apron by the tower
-  #place(top + left, dx: 0pt, dy: 164pt, rect(width: 70pt, height: 3pt, fill: bg(10)))
+  #at(0, 164, rect(width: 70pt, height: 3pt, fill: bg(10)))
 ]
 
 // ------------------------------------------------------------ 2: wordmark
@@ -117,3 +122,25 @@
   page(width: 96pt, height: 48pt, margin: 0pt, fill: none,
     place(top + left, dx: -2pt, dy: 7pt, rotate(-deg * 1deg, origin: center + horizon, plane(gear: gear))))
 }
+
+// ------------------------------------------------------------ 7: speech-bubble tiles
+// 8x4 tiles; splashgen takes 13 of them at fixed spots (see bubbleTiles there). Every shape is
+// drawn twice: fat in the outline colour, then plain in white, so overlapping shapes merge into
+// one outline. Shapes sit 1.5 px inside the tile edges, so the outline lands in the outer pixels.
+#let ink = c("text", 1)
+#let paper = c("text", 2)
+#let bubble-shapes(fill, stroke) = {
+  let s = if stroke { 3pt + ink } else { none }
+  let at(x, y, body) = place(top + left, dx: x * 1pt, dy: y * 1pt, body)
+  // A: plain 3x3 bubble -> corners, edges, fill
+  at(1.5, 1.5, rect(width: 21pt, height: 21pt, radius: 5pt, fill: fill, stroke: s))
+  // B: 4x3 bubble at tiles 4..7 with a tail out of its left edge (tile 3, row 1) and one
+  // down out of its bottom edge (tile 6, row 3)
+  at(33.5, 1.5, rect(width: 29pt, height: 21pt, radius: 5pt, fill: fill, stroke: s))
+  at(0, 0, polygon(fill: fill, stroke: s, (34pt, 9pt), (25.5pt, 14.5pt), (34pt, 14pt)))
+  at(0, 0, polygon(fill: fill, stroke: s, (50pt, 22pt), (51pt, 30.5pt), (55pt, 22pt)))
+}
+#page(width: 64pt, height: 32pt, margin: 0pt, fill: none)[
+  #bubble-shapes(ink, true)
+  #bubble-shapes(paper, false)
+]

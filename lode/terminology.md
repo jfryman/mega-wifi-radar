@@ -26,6 +26,7 @@
 - nm - nautical mile; frames use 1/32 nm.
 - Home point - the scope centre (airport ICAO + lat/lon in 1e-4 deg + range nm). Dev default KBNA.
 - KBNA - Nashville International, the dev home point (36.1245, -86.6782, 599 ft).
+- Speech bubble - a boot radio call in a ToeJam & Earl-style bubble whose tail points at the speaker (tower cab or 787); body on plane B, text on plane A bobbing in the letter wave (column vscroll).
 - Config screen - the setup screen (`setup.c`): theme, range, tags, airport, Wi-Fi, relay; opens on START or when boot can't connect.
 - Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
 - H40 - the 320×224 VDP display mode.

@@ -15,8 +15,8 @@
 #step(2, [Make sure the power switch is OFF.], [Then insert the cartridge into the slot, label facing
   toward you, and press it down firmly until it's seated.])
 #v(1mm)
-#step(3, [Turn the power switch ON.], [Your flight, *MEGA 787*, appears at the gate. Follow its
-  radio calls as the cartridge finds its Wi-Fi module and joins your network. When the tower
+#step(3, [Turn the power switch ON.], [Your flight, *MEGA 787*, appears at the gate. Follow the
+  radio calls in the speech bubbles as the cartridge finds its Wi-Fi module and joins your network. When the tower
   clears it for takeoff, the radar starts sweeping.])
 
 #pagebreak()

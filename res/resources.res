@@ -13,4 +13,5 @@ BIN splash_bg_map      "splash/bg_map.bin"      2
 BIN splash_logo_tiles  "splash/logo_tiles.bin"  2
 BIN splash_logo_map    "splash/logo_map.bin"    2
 BIN splash_plane_tiles "splash/plane_tiles.bin" 2
+BIN splash_bubble_tiles "splash/bubble_tiles.bin" 2
 BIN splash_pal         "splash/pal.bin"         2

@@ -4,7 +4,7 @@
 //	cd tools && go run ./splashgen -png ../out/splash -src ../res/splash/src -o ../res/splash -h ../src/splash_data.h
 //
 // Pages: splash-1.png scene (320x224, PAL0), splash-2.png wordmark (288x48, PAL1),
-// splash-3..6.png the 787 frames (96x48, PAL2).
+// splash-3..6.png the 787 frames (96x48, PAL2), splash-7.png speech-bubble tiles (64x32, PAL3).
 package main
 
 import (
@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	skyRows    = 150 // scene rows above the horizon: dithered over the sky colours
+	skyRows    = 182 // scene rows above the horizon: dithered over the sky colours
 	shineSlots = 12  // wordmark body slots for the palette-cycled shine, spread once across it
 	shineFirst = 3   // first body slot index in PAL1
 	planeW     = 96
@@ -30,6 +30,16 @@ const (
 	sprH       = 3
 	frames     = 4
 )
+
+// bubbleTiles picks the speech-bubble tiles out of art page 7 (8x4 tiles), as (tile x, tile y),
+// in the order splash.c indexes them (BT_* there).
+var bubbleTiles = [][2]int{
+	{0, 0}, {1, 0}, {2, 0}, // top-left, top, top-right
+	{0, 1}, {1, 1}, {2, 1}, // left, fill, right
+	{0, 2}, {1, 2}, {2, 2}, // bottom-left, bottom, bottom-right
+	{4, 1}, {3, 1}, // left edge opened for the tail, left tail tip
+	{6, 2}, {6, 3}, // bottom edge opened for the tail, down tail tip
+}
 
 type rgb struct{ r, g, b int }
 
@@ -232,6 +242,25 @@ func main() {
 		}
 	}
 
+	// speech bubble: fixed tiles, no dedupe (splash.c indexes them)
+	const BW, BH = 64, 32
+	bb := page(7)
+	bbIdx := make([]uint8, BW*BH)
+	for y := 0; y < BH; y++ {
+		for x := 0; x < BW; x++ {
+			c, a := px(bb, x, y)
+			if a < 128 {
+				continue
+			}
+			i, _ := nearest(c, pals["text"], []int{1, 2})
+			bbIdx[y*BW+x] = uint8(i)
+		}
+	}
+	var bbTiles [][32]byte
+	for _, t := range bubbleTiles {
+		bbTiles = append(bbTiles, tile(bbIdx, BW, t[0], t[1]))
+	}
+
 	var palWords []uint16
 	for _, name := range order {
 		for _, c := range pals[name] {
@@ -247,6 +276,7 @@ func main() {
 	write(filepath.Join(*out, "logo_tiles.bin"), lgTiles)
 	write(filepath.Join(*out, "logo_map.bin"), lgMap)
 	write(filepath.Join(*out, "plane_tiles.bin"), plTiles)
+	write(filepath.Join(*out, "bubble_tiles.bin"), bbTiles)
 	write(filepath.Join(*out, "pal.bin"), palWords)
 
 	var b strings.Builder
@@ -259,8 +289,9 @@ func main() {
 	fmt.Fprintf(&b, "#define SPLASH_PLANE_FRAME_TILES %d  /* 6 sprites x 4x3 tiles */\n", len(plTiles)/frames)
 	fmt.Fprintf(&b, "#define SPLASH_SHINE_FIRST  %d\n", shineFirst)
 	fmt.Fprintf(&b, "#define SPLASH_SHINE_SLOTS  %d\n", shineSlots)
+	fmt.Fprintf(&b, "#define SPLASH_BUBBLE_TILES %d\n", len(bbTiles))
 	if err := os.WriteFile(*hdr, []byte(b.String()), 0o644); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("splashgen: bg %d tiles, logo %d tiles, plane %d tiles", len(bgTiles), len(lgTiles), len(plTiles))
+	log.Printf("splashgen: bg %d tiles, logo %d tiles, plane %d tiles, bubble %d tiles", len(bgTiles), len(lgTiles), len(plTiles), len(bbTiles))
 }

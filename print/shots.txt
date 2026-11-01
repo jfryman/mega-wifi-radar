@@ -1,12 +1,12 @@
 # Manual screenshots from the emulator build (make print-shots; needs the MAME image, see scripts/sim).
 # name | snapshot time (emulated s) | presses "t:FIELD,t:FIELD/secs" (MAME names: P1 A/B/C, P1 Start, P1 Up...)
-radar    | 14 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down
-popup    | 13.5 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down,12.2:P1 C
-cockpit  | 22 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down,12.2:P1 C,13.5:P1 A
-setup    | 13 | 11:P1 Start
+radar    | 16 | 13:P1 Down,13.4:P1 Down,13.8:P1 Down
+popup    | 15.5 | 13:P1 Down,13.4:P1 Down,13.8:P1 Down,14.2:P1 C
+cockpit  | 24 | 13:P1 Down,13.4:P1 Down,13.8:P1 Down,14.2:P1 C,15.5:P1 A
+setup    | 15 | 13:P1 Start
 notice   | 34 |
-stars    | 17 | 11:P1 Start,12:P1 Right,13:P1 Start
-zoom     | 14 | 11:P1 A,12:P1 A
-keyboard | 16 | 11:P1 Start,12:P1 Down,12.5:P1 Down,13:P1 Down,13.5:P1 Down,14:P1 Down,14.5:P1 Down,15:P1 A
+stars    | 19 | 13:P1 Start,14:P1 Right,15:P1 Start
+zoom     | 16 | 13:P1 A,14:P1 A
+keyboard | 18 | 13:P1 Start,14:P1 Down,14.5:P1 Down,15:P1 Down,15.5:P1 Down,16:P1 Down,16.5:P1 Down,17:P1 A
 boot-taxi    | 2.7 |
-boot-takeoff | 7.4 |
+boot-takeoff | 8.2 |

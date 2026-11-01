@@ -51,6 +51,8 @@ flowchart LR
 - Manual page count is padded to a multiple of 4 with Notes pages, so the booklet imposition always works.
 - Screenshots come from the emulator build (`make print-shots`, `print/shots.txt`: name, snapshot time,
   presses) and are committed, because CI has no MAME. Typst draws them with `scaling: "pixelated"`.
+  The emulator boot ends (radar up) at ~12 s, so post-boot presses start at 13 s. A change to the boot's
+  length shifts every press: a Start pressed during the boot skips it instead of opening setup.
 - A user-visible feature updates its `print/manual/*.typ` section, the CHANGELOG and, if the screen
   changed, the shots, all in the same commit.
 

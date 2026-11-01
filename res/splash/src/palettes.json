@@ -7,7 +7,7 @@
   "text"
  ],
  "bg": {
-  "_role": "PAL0: plane B scene; text 15 = white (pilot)",
+  "_role": "PAL0: plane B scene",
   "colors": [
    [0, 0, 0],
    [0, 0, 2],
@@ -28,7 +28,7 @@
   ]
  },
  "logo": {
-  "_role": "PAL1: wordmark; 3..14 are the body's shine slots, spread once across it; text 15 = cyan (ATC)",
+  "_role": "PAL1: wordmark; 3..14 are the body's shine slots, spread once across it; text 15 = navy (bubble calls)",
   "colors": [
    [0, 0, 0],
    [0, 0, 2],
@@ -45,11 +45,11 @@
    [1, 2, 6],
    [1, 2, 6],
    [1, 2, 6],
-   [2, 7, 7]
+   [0, 0, 2]
   ]
  },
  "plane": {
-  "_role": "PAL2: the 787; text 15 = red (failures)",
+  "_role": "PAL2: the 787; text 15 = red (failures in a bubble)",
   "colors": [
    [0, 0, 0],
    [1, 1, 2],
@@ -70,11 +70,11 @@
   ]
  },
  "text": {
-  "_role": "PAL3: status line; text 15 = grey",
+  "_role": "PAL3: speech bubbles (1 outline, 2 fill) and the status line; text 15 = grey",
   "colors": [
    [0, 0, 0],
-   [0, 0, 0],
-   [0, 0, 0],
+   [0, 0, 2],
+   [7, 7, 7],
    [0, 0, 0],
    [0, 0, 0],
    [0, 0, 0],

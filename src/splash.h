@@ -20,7 +20,7 @@ enum splash_phase {
 void splash_start(enum splash_phase at);
 /* Move to the next phase once the current call has been on screen long enough (START skips). */
 void splash_phase(enum splash_phase p, const char *detail);
-/* Dim status line under the radio box (firmware, IP). */
+/* Dim status line under the wordmark (firmware, IP). */
 void splash_status(const char *s);
 /* After SP_TAKEOFF: wait for the departure and "radar contact", fade out, stop. */
 void splash_finish(void);

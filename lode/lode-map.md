@@ -22,7 +22,7 @@
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
   - [radar-renderer.md](ui/radar-renderer.md) - V-Int renderer, shared state, measured costs, perf lessons
-  - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, layers, art pipeline, motion
+  - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, speech bubbles + letter wave, layers, art pipeline, motion
   - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
   - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, Voxel Space into VRAM, overlay RAM, camera, HUD
