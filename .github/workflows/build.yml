@@ -95,7 +95,7 @@ jobs:
             docker tag "$REMOTE" "$LOCAL"
           else
             docker build -t "$LOCAL" -f mars/Dockerfile \
-              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" mars
+              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" .
             if [ "$PUSH" = true ]; then
               docker tag "$LOCAL" "$REMOTE" && docker push "$REMOTE"
             fi

@@ -1,6 +1,6 @@
 # mega_wifi_radar 32X build image: m68k-elf (68000) + sh-elf (SH-2) toolchains and the 32X boot code.
-# Build through scripts/mars (it tags the image by the hash of mars/Dockerfile), not by hand.
-# Separate from docker/Dockerfile on purpose: the Genesis image and its hash stay untouched.
+# Build through scripts/mars (it tags the image by the hash of mars/Dockerfile + sgdk/patches), not by hand.
+# Separate from docker/Dockerfile on purpose: the Genesis image and its hash stay untouched. Build context: repo root.
 
 ARG DEBIAN=debian:bookworm-slim
 
@@ -71,6 +71,27 @@ RUN git init -q /marsdev && cd /marsdev \
  && cp LICENSE /opt/mars/boot/MARSDEV_LICENSE \
  && echo "marsdev ${MARSDEV_COMMIT}" > /opt/mars/boot/SOURCE
 
+# ---------------------------------------------------------------- SGDK's MegaWiFi driver
+# The 32X ROM's 68000 runs SGDK's comm/lsd/megawifi sources without the rest of SGDK (lode/mars/summary.md).
+# Same pin and the same Rev.C patches as docker/Dockerfile: keep SGDK_COMMIT in step with it.
+FROM ${DEBIAN} AS sgdkmw
+
+ARG SGDK_REPO=https://github.com/Stephane-D/SGDK
+ARG SGDK_COMMIT=9a78a44143a867cd8c5053b95cd061a21f0b73c2
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+RUN git init -q /sgdk && cd /sgdk \
+ && git remote add origin ${SGDK_REPO} \
+ && git fetch -q --depth 1 origin ${SGDK_COMMIT} && git checkout -q FETCH_HEAD
+COPY sgdk/patches /tmp/patches
+RUN cd /sgdk && for p in /tmp/patches/*.patch; do git apply --check "$p" && git apply "$p"; done \
+ && mkdir -p /opt/mars/mw/src /opt/mars/mw/inc/ext/mw \
+ && cp src/ext/mw/comm.c src/ext/mw/lsd.c src/ext/mw/megawifi.c /opt/mars/mw/src/ \
+ && cp inc/ext/mw/comm.h inc/ext/mw/lsd.h inc/ext/mw/megawifi.h inc/ext/mw/mw-msg.h /opt/mars/mw/inc/ext/mw/ \
+ && cp license.txt /opt/mars/mw/SGDK_LICENSE 2>/dev/null || cp LICENSE* /opt/mars/mw/ \
+ && echo "SGDK ${SGDK_COMMIT} + sgdk/patches" > /opt/mars/mw/SOURCE
+
 # ---------------------------------------------------------------- final
 FROM ${DEBIAN}
 
@@ -81,7 +102,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=toolchain /opt/m68k /opt/m68k
 COPY --from=toolchain /opt/sh /opt/sh
 COPY --from=marsboot /opt/mars /opt/mars
-ENV PATH=/opt/m68k/bin:/opt/sh/bin:${PATH} MARS_BOOT=/opt/mars/boot
+COPY --from=sgdkmw /opt/mars/mw /opt/mars/mw
+ENV PATH=/opt/m68k/bin:/opt/sh/bin:${PATH} MARS_BOOT=/opt/mars/boot MARS_MW=/opt/mars/mw
 
 # Prove both compilers produce code for the right CPUs.
 RUN printf 'int f(int a,int b){return a/b;}\n' > /tmp/t.c \

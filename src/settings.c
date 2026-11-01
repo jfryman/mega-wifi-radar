@@ -14,6 +14,9 @@ struct settings settings;
 #define MARK_MAGIC      "MWRN"
 #define ROM_CHECKSUM    rom_checksum()  /* header checksum: differs per build */
 
+#ifdef MARS
+u16 rom_checksum(void);                 /* the 32X's SH-2s can't read the cartridge: the 68000 sends it */
+#else
 /* The header checksum at $18E, written into the ROM by sizebnd after compiling. Read it from the
  * bus: the empty asm hides the fixed address from GCC (no -Warray-bounds, no constant folding). */
 static u16 __attribute__((unused)) rom_checksum(void)
@@ -22,6 +25,7 @@ static u16 __attribute__((unused)) rom_checksum(void)
     __asm__("" : "+a"(p));
     return *p;
 }
+#endif
 
 struct saved {
     char magic[4];
@@ -34,7 +38,8 @@ static inline u16 checksum(const struct saved *v)
     const u8 *p = (const u8 *)v;
     u16 sum = 0x5A5A;
 
-    for (u16 i = 0; i < sizeof(*v) - sizeof(v->sum); i++) sum = (sum << 1 | sum >> 15) ^ p[i];
+    /* up to sum, not sizeof - 2: the same bytes on the SH-2, whose struct has tail padding */
+    for (u16 i = 0; i < __builtin_offsetof(struct saved, sum); i++) sum = (sum << 1 | sum >> 15) ^ p[i];
     return sum;
 }
 

@@ -3,8 +3,8 @@
 #   scripts/mars make -C mars/spike
 #   scripts/mars --image       # just make sure the image exists (prints its name)
 #   scripts/mars --name        # print the image name without pulling or building
-# The image tag is a hash of everything that defines it, so editing mars/Dockerfile
-# always triggers a rebuild. The Genesis image (scripts/md) is separate and unaffected.
+# The image tag is a hash of everything that defines it, so editing mars/Dockerfile or
+# sgdk/patches always triggers a rebuild. The Genesis image (scripts/md) is separate and unaffected.
 # A missing image is first pulled from $MARS_REGISTRY (CI publishes every hash there);
 # set MARS_REGISTRY= (empty) to always build locally. MARS_BUILD_FLAGS adds build options.
 set -eu
@@ -14,7 +14,7 @@ CTR=${CTR:-$(command -v podman || command -v docker || true)}
 [ -n "$CTR" ] || { echo "mars: need podman or docker on PATH" >&2; exit 1; }
 
 if command -v sha256sum >/dev/null 2>&1; then SHA="sha256sum"; else SHA="shasum -a 256"; fi
-HASH=$(cd "$ROOT" && find mars/Dockerfile -type f | LC_ALL=C sort \
+HASH=$(cd "$ROOT" && find mars/Dockerfile sgdk/patches -type f | LC_ALL=C sort \
        | xargs cat | $SHA | cut -c1-12)
 IMAGE="mwradar-mars:$HASH"
 REGISTRY=${MARS_REGISTRY-ghcr.io/jfryman/mega-wifi-radar-mars}
@@ -26,7 +26,7 @@ if ! "$CTR" image inspect "$IMAGE" >/dev/null 2>&1; then
     else
         echo "mars: building $IMAGE (first build compiles two gccs; ~30-60 min)" >&2
         # shellcheck disable=SC2086
-        "$CTR" build ${MARS_BUILD_FLAGS:-} -t "$IMAGE" -f "$ROOT/mars/Dockerfile" "$ROOT/mars" >&2
+        "$CTR" build ${MARS_BUILD_FLAGS:-} -t "$IMAGE" -f "$ROOT/mars/Dockerfile" "$ROOT" >&2
     fi
 fi
 [ "${1:-}" = "--image" ] && { echo "$IMAGE"; exit 0; }
