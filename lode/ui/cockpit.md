@@ -23,7 +23,7 @@ sequenceDiagram
   M->>M: radar_up (radar_init refills the overlay), poll, reselect the aircraft
 ```
 
-## Data (contract v3, `src/arframe.h`; [../architecture/contract.md](../architecture/contract.md))
+## Data (contract v4, `src/arframe.h`; [../architecture/contract.md](../architecture/contract.md))
 - **`/v1/terrain?icao=&v=`** → `struct ar_terrain` (104 B) + 128×128 height levels (0..63) + 128×128 palette
   indices (4..15), rows from the south edge, west to east. 404 if the aircraft isn't in the feed.
   - `cell_m` = height above ground / 5 (30..3000 m): the camera sits ~5 cells up at any altitude.
@@ -39,7 +39,7 @@ sequenceDiagram
   `w·h ≤ AR_STRIP_CELLS` (1,024). A strip inside the patch equals the patch cell for cell (relay tests, and live).
   The patch and strips share one encoder (`sampleCells` with each cell's north-west neighbour, `geom.code`).
   No elevation data → 502 (the cart keeps what it has).
-- **`/v1/track?icao=&p=<key>&v=`** → `struct ar_track` (40 B): `x, y` (1/256 cell from the SW corner), `z` (1/256
+- **`/v1/track?icao=&p=<key>&n=&v=`** → `struct ar_track` (40 B), `AR_K_NOTICE` when a flyover notice newer than `n=` waits: `x, y` (1/256 cell from the SW corner), `z` (1/256
   level), `vx, vy, vz` per second, `heading`, `bank` (deg), `age` (s since the position), plus `alt`, `gs`,
   `vrate`, `cs` for the HUD. No `AR_K_FOUND`: the relay doesn't know it.
 
@@ -104,8 +104,10 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 ## HUD (window rows 16-27)
 Row 17 callsign (PAL2 cyan) + status (`LIVE`, amber `NO SIGNAL` / `TERRAIN...` / `SIGNAL LOST`); 19 altitude, ground
 speed; 21 vertical speed, heading, bank; 23 `B  BACK TO RADAR` + fps (col 30); 25 the elevation credit
-(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages overwrite it). One line per frame. On return,
-the radar selects the same aircraft once the first poll has it.
+(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages and a flyover notice's lines borrow it, then
+it comes back). One line per frame. On return, the radar selects the same aircraft once the first poll has it.
+A flyover notice ([notices.md](notices.md)) is fetched in a strip's slot and shows `OVERHEAD!` in the status slot;
+the cockpit loop also runs `chime_tick()`.
 
 ## Emulator
 `relay -pack-cockpit` (`make fake-feed`) writes `res/fake/kbna_cockpit.bin`: a 750 m-cell patch around KBNA from

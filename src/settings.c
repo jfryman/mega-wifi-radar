@@ -9,7 +9,8 @@ struct settings settings;
 
 /* Flash record in ESP32 user_data sector 0 (mw_flash_*: 4 KiB sectors). */
 #define SAVE_SECTOR     0
-#define SAVE_MAGIC      "MWR1"
+#define SAVE_MAGIC      "MWR2"
+#define SAVE_MAGIC_V1   "MWR1"          /* 0.3.x: no chime; loaded with the chime on */
 #define MARK_SECTOR     1               /* dev-defaults-off marker, written by a reset */
 #define MARK_MAGIC      "MWRN"
 #define ROM_CHECKSUM    rom_checksum()  /* header checksum: differs per build */
@@ -29,12 +30,25 @@ struct saved {
     u16 sum;
 };
 
-static inline u16 checksum(const struct saved *v)
+/* The 0.3.x record: struct settings up to relay. */
+struct saved_v1 {
+    char magic[4];
+    u8 theme, range_idx, tag_mode;
+    char icao[5];
+    s32 lat_e4, lon_e4;
+    char relay[RELAY_LEN + 1];
+    u16 sum;
+};
+_Static_assert(__builtin_offsetof(struct settings, chime) == __builtin_offsetof(struct saved_v1, sum) - 4,
+               "struct settings must start with the 0.3.x fields, unchanged");
+
+/* Over the record's bytes up to its sum (n). */
+static inline u16 checksum(const void *v, u16 n)
 {
-    const u8 *p = (const u8 *)v;
+    const u8 *p = v;
     u16 sum = 0x5A5A;
 
-    for (u16 i = 0; i < sizeof(*v) - sizeof(v->sum); i++) sum = (sum << 1 | sum >> 15) ^ p[i];
+    for (u16 i = 0; i < n; i++) sum = (sum << 1 | sum >> 15) ^ p[i];
     return sum;
 }
 
@@ -63,6 +77,7 @@ void settings_init(void)
     for (u16 i = 0; i < 4 && devcfg_home_icao[i]; i++) settings.icao[i] = devcfg_home_icao[i];
     settings.lat_e4 = devcfg_home_lat_e4;
     settings.lon_e4 = devcfg_home_lon_e4;
+    settings.chime = CHIME_ON;
 }
 
 void settings_dev_defaults(void)
@@ -77,12 +92,19 @@ void settings_dev_defaults(void)
 bool settings_load(void)
 {
     struct saved v;
+    const struct saved_v1 *o = (const struct saved_v1 *)&v;
     u8 *p = mw_flash_read(SAVE_SECTOR * 4096, sizeof(v));
 
     if (!p) return FALSE;
     memcpy(&v, p, sizeof(v));
-    if (memcmp(v.magic, SAVE_MAGIC, 4) || v.sum != checksum(&v) ||
-            v.s.theme >= THEME_COUNT || v.s.range_idx >= RANGE_COUNT || v.s.tag_mode >= TAGS_MODES)
+    if (!memcmp(v.magic, SAVE_MAGIC_V1, 4) && o->sum == checksum(o, sizeof(*o) - sizeof(o->sum))) {
+        memcpy(v.magic, SAVE_MAGIC, 4);                 /* same fields, plus the chime */
+        v.s.chime = CHIME_ON;
+        v.sum = checksum(&v, sizeof(v) - sizeof(v.sum));
+    }
+    if (memcmp(v.magic, SAVE_MAGIC, 4) || v.sum != checksum(&v, sizeof(v) - sizeof(v.sum)) ||
+            v.s.theme >= THEME_COUNT || v.s.range_idx >= RANGE_COUNT || v.s.tag_mode >= TAGS_MODES ||
+            v.s.chime >= CHIME_MODES)
         return FALSE;
     v.s.icao[4] = 0;
     v.s.relay[RELAY_LEN] = 0;
@@ -96,7 +118,7 @@ bool settings_save(void)
 
     memcpy(v.magic, SAVE_MAGIC, 4);
     v.s = settings;
-    v.sum = checksum(&v);
+    v.sum = checksum(&v, sizeof(v) - sizeof(v.sum));
     return mw_flash_sector_erase(SAVE_SECTOR) == MW_ERR_NONE &&
            mw_flash_write(SAVE_SECTOR * 4096, (u8 *)&v, sizeof(v)) == MW_ERR_NONE;
 }

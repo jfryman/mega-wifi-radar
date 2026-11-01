@@ -4,10 +4,13 @@
  * into the wrapping buffer (at most one per STREAM_FRAMES), keeping it centred on the camera; a whole new
  * patch only when its height leaves the patch's scale, or streaming has fallen far behind. All requests
  * block, so the view pauses while one runs (a strip ~0.2 s, a patch ~2.5 s); the camera catches up by
- * elapsed time afterwards. */
+ * elapsed time afterwards. A flyover notice (lode/ui/notices.md) never takes the view over: OVERHEAD! in the
+ * status slot and its three lines in turn on the credit row, fetched in a strip's slot. */
 #include "cockpit.h"
+#include "chime.h"
 #include "feed.h"
 #include "fmt.h"
+#include "notice.h"
 #include "voxel.h"
 
 #define TRACK_FRAMES    120                 /* a track every 2 s */
@@ -18,6 +21,7 @@
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
 #define HUD_COL         1
+#define CREDIT          "ELEVATION DATA: AWS TERRAIN TILES"     /* attribution, as the radar credits adsb.fi */
 
 enum { ST_LIVE, ST_STALE, ST_LOADING, ST_LOST };
 
@@ -37,6 +41,10 @@ static s16 hd_rate;                         /* heading change per frame between 
 static s16 horizon_target;
 static u8 status;
 static u16 fps10;
+static const struct ar_notice *nt;          /* the notice on the HUD */
+static u16 nt_id;
+static u32 nt_at;
+static s8 nt_page;                          /* line on the credit row; -1 before the first */
 
 /* ------------------------------------------------------------ HUD (window plane, rows 16-27) */
 
@@ -50,12 +58,48 @@ static void hud_text(u16 row, const char *s)
     VDP_drawText(line, HUD_COL, row);
 }
 
+/* The notice is about the aircraft we're riding. */
+static bool riding(void) { return (nt->nflags & AR_N_ICAO) && !memcmp(nt->icao, icao, 3); }
+
 static void hud_status(u8 st)
 {
     static const char *const text[] = { "LIVE        ", "NO SIGNAL   ", "TERRAIN...  ", "SIGNAL LOST " };
     status = st;
-    VDP_setTextPalette(st == ST_LIVE ? PAL1 : PAL3);
-    VDP_drawText(text[st], 27, 17);
+    VDP_setTextPalette(st == ST_LIVE && !nt ? PAL1 : PAL3);
+    VDP_drawText(st == ST_LIVE && nt ? (riding() ? "OVER HOME!  " : "OVERHEAD!   ") : text[st], 27, 17);
+    VDP_setTextPalette(PAL1);
+}
+
+/* Every frame: start a new notice, turn its page (secs / 3 each), then give the credit row back. */
+static void hud_notice(void)
+{
+    char s[AR_NOTICE_COLS + 1];
+
+    if (!nt || nt->id != nt_id) {           /* none yet, or a newer one replaced it */
+        if (!(nt = notice_current())) return;
+        nt_id = nt->id;
+        nt_at = vtimer;
+        nt_page = -1;
+        hud_status(status);
+    }
+    u32 span = nt->secs * 20UL, t = vtimer - nt_at;
+    s8 page = t >= 3 * span ? 3 : t / span;
+    if (page == nt_page) return;
+    nt_page = page;
+    if (page == 3) {
+        notice_done();
+        nt = NULL;
+        hud_text(25, CREDIT);
+        hud_status(status);
+        return;
+    }
+    if (page == 0 && riding()) strcpy(s, "YOU ARE OVER HOME!");
+    else {
+        memcpy(s, nt->text + page * AR_NOTICE_COLS, AR_NOTICE_COLS);
+        s[AR_NOTICE_COLS] = 0;
+    }
+    VDP_setTextPalette(page == 0 ? PAL3 : PAL1);
+    hud_text(25, s);
     VDP_setTextPalette(PAL1);
 }
 
@@ -231,6 +275,7 @@ void cockpit_run(const u8 icao_in[3])
     cam.horizon = horizon_target = VOX_HORIZON;
     status = ST_LOADING;
     fps10 = 0;
+    nt = NULL;
 
     voxel_init();
     VDP_setTextPlane(WINDOW);
@@ -239,7 +284,7 @@ void cockpit_run(const u8 icao_in[3])
     PAL_setColor(PAL2 * 16 + 15, 0xEE0);
     PAL_setColor(PAL3 * 16 + 15, 0x0AE);
     hud_text(23, "B  BACK TO RADAR");
-    hud_text(25, "ELEVATION DATA: AWS TERRAIN TILES");   /* attribution, as the radar credits adsb.fi */
+    hud_text(25, CREDIT);
     wait_release();
 
     if (!load_terrain()) {
@@ -279,9 +324,16 @@ void cockpit_run(const u8 icao_in[3])
             last = vtimer;
             advance(0);
         } else if (vtimer - strip_at >= STREAM_FRAMES) {
-            stream();
+            if (feed_notice_waiting()) {    /* the notice instead of a strip this time */
+                strip_at = vtimer;
+                notice_check();
+            } else {
+                stream();
+            }
         }
 
+        chime_tick();
+        hud_notice();
         voxel_render(&cam);
         hud(part);
         part = (part + 1) & 3;
@@ -293,6 +345,7 @@ void cockpit_run(const u8 icao_in[3])
         }
     }
 out:
+    if (nt) notice_done();                  /* seen: the radar doesn't show it again */
     wait_release();
     VDP_setTextPlane(BG_A);
 }

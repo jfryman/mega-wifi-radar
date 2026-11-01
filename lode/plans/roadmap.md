@@ -24,7 +24,8 @@ flowchart TD
   the same commit (a cockpit build needs the relay from the same checkout). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version (`mwradar-relay:v0.2.1-4-g6b4cf8f-dirty.…`), advertised by `dns-sd -P` from `scripts/relay start`.
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-01 it's **contract v4** (the cart, still
+  on the v3 build, shows `RELAY VER?` until reflashed) and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
@@ -45,7 +46,8 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 
 ## Next: 0.4.0 flyover notices
 MQTT (`atc-mqtt`) → relay → cart notices: radar banner, cockpit HUD line, generic chime + a KBNA easter egg,
-contract v4. Goal, done-criteria and phases: [flyover-notices.md](flyover-notices.md).
+contract v4. Built and emulator-verified; left: the real-cart check, the owner's ear on the chimes, the tag
+([flyover-notices.md](flyover-notices.md)).
 
 ## Open decisions / ideas
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
@@ -54,7 +56,7 @@ contract v4. Goal, done-criteria and phases: [flyover-notices.md](flyover-notice
 - [ ] STARS polish: data blocks with leader lines.
 - [ ] Y / Z on 6-button pads (reserved).
 - [ ] Persist the sort order (RAM only today; adding it to `struct settings` would invalidate saved `MWR1` records).
-- [ ] More sound (engine noise on the splash; the 0.4.0 chime adds FM code to reuse), non-KBNA fake feeds for emulator demos.
+- [ ] More sound (engine noise on the splash; `chime.c` has FM patch + note code to reuse), non-KBNA fake feeds for emulator demos.
 
 ## Decided
 SGDK master `9a78a44` in a container; V-Int renderer, so blocking polls never stall the sweep; compact frame over HTTP GET

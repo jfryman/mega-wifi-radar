@@ -11,6 +11,7 @@ extern const u16 range_steps[RANGE_COUNT];      /* 5, 10, 25, 50, 100 nm */
 #define RELAY_LEN   63
 
 enum tag_mode { TAGS_ALL, TAGS_SELECTED, TAGS_OFF, TAGS_MODES };
+enum chime_mode { CHIME_ON, CHIME_OFF, CHIME_MODES };     /* the flyover notice chime */
 
 struct settings {
     u8 theme;                   /* THEME_CLASSIC / THEME_STARS */
@@ -19,6 +20,7 @@ struct settings {
     char icao[5];               /* home airport */
     s32 lat_e4, lon_e4;         /* home point, 1e-4 deg */
     char relay[RELAY_LEN + 1];  /* relay base URL, "" = AUTO (found over mDNS) */
+    u8 chime;                   /* CHIME_ON / CHIME_OFF */
 };
 
 extern struct settings settings;

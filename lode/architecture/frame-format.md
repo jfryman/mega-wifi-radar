@@ -1,4 +1,4 @@
-# Compact frame format (contract v3)
+# Compact frame format (contract v4)
 
 The binary snapshot of nearby traffic that the console consumes. The digester produces it: the relay
 (option A) now, possibly the ESP32 firmware (option B) later, in byte-identical form. The console
@@ -33,7 +33,7 @@ flowchart LR
 | 8 | `u32` | time | Unix seconds of the upstream snapshot |
 | 12 | `u16` | range_nm | filter radius applied |
 | 14 | `u8` | source | `1` adsb.fi, `2` adsb.lol, `3` OpenSky. Drives the on-screen attribution ("Data: adsb.fi") |
-| 15 | `u8` | hflags | bit0 `TRUNCATED` (cap hit), bit1 `UPSTREAM_ERR` (this is the last good snapshot) |
+| 15 | `u8` | hflags | bit0 `TRUNCATED` (cap hit), bit1 `UPSTREAM_ERR` (this is the last good snapshot), bit2 `NOTICE` (a flyover notice newer than `n=` waits: [../ui/notices.md](../ui/notices.md)) |
 
 ## Aircraft record: 24 bytes
 | Off | Type | Field | Unit / encoding |
@@ -70,7 +70,7 @@ struct ar_rec { u8 icao[3], flags; s16 x, y, alt; u16 squawk;
 ```
 
 ## Transport
-`GET http://<relay>/v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=<AR_VER>` returns `200`,
+`GET http://<relay>/v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&v=<AR_VER>` returns `200`,
 `Content-Type: application/octet-stream`, **with a `Content-Length`** (no chunked encoding:
 `net_http_get` needs the length). Errors are non-200 statuses with no frame. The relay filters to
 `range`, drops aircraft with no position or `seen_pos > 60`, sorts **nearest first** and keeps
@@ -80,7 +80,8 @@ Sizing: 16 + 96 × 24 = **2,320 B maximum**. KORD at 25 nm (~74 aircraft) = 1,79
 MSS chunks. The console's frame buffer is 2,320 B.
 
 ## Versioning
-- `ver` is the contract version `AR_VER`: 3 since 0.3.0 (cockpit mode's `/v1/terrain` and `/v1/track`); 2 in 0.2.x,
+- `ver` is the contract version `AR_VER`: 4 since 0.4.0 (flyover notices: `n=`, `AR_H_NOTICE`, `/v1/notice`); 3 in 0.3.x
+  (cockpit mode's `/v1/terrain` and `/v1/track`); 2 in 0.2.x,
   when `v=`, the 409 mismatch and `/v1/detail` came in. The frame itself is unchanged since v2.
   The relay and the cart are released together and must match exactly: **any** change to `src/arframe.h`
   bumps it (enforced by `relay/contract.lock`, [contract.md](contract.md)). The console rejects any other `ver`

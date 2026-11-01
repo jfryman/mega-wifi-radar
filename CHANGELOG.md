@@ -1,4 +1,32 @@
-## 0.3.1 (Unreleased)
+## 0.4.0 (Unreleased)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **relay:** the contract is now version 4. A 0.4.0 cartridge needs the 0.4.0 relay (and the other way
+    round); a mismatch is reported at boot or as `RELAY VER?`, as before.
+  * **setup:** saved settings move to a new record (`MWR2`) with the chime setting. A 0.3.x record is read and
+    upgraded automatically, so nothing is lost; a 0.3.x cartridge can't read the new one back.
+
+FEATURES:
+
+  * **notices:** flyover notices. With the relay connected to an MQTT flyover feed (such as the
+    `atc-mqtt` service's `atc/status`), a banner drops over the top of the scope for 15 seconds when a plane
+    passes over home: a headline and callsign, airline and type, route, altitude and speed. When the relay
+    finds the aircraft in its feed, it's selected and C opens its details; B dismisses the banner. In the
+    cockpit view the notice shows on the HUD without covering the view.
+  * **notices:** a chime on the Genesis's FM sound chip plays as a notice arrives; setup's new CHIME row turns
+    it off. Some home airports have a tune of their own.
+  * **relay:** subscribes to an MQTT broker (`MQTT_BROKER_HOST`, `MQTT_TOPIC`...), turns entering flights into
+    notices (matched to the adsb.fi aircraft when it can) and serves them on `/v1/notice`. Off unless a broker
+    is configured. Built-in client, no new dependencies.
+  * **relay:** every server setting can come from an environment variable (`RELAY_*`, `MQTT_*`), for
+    containers and Kubernetes. The MQTT names match `atc-mqtt`'s, so both can share one secret.
+
+IMPROVEMENTS:
+
+  * **print:** the manual has a *Flyover Notices* page, and the setup page covers CHIME.
+  * **dev:** `make mqtt-start` runs a local MQTT broker the dev relay uses by itself; `make mqtt-pub`
+    publishes a sample flyover. `scripts/sim` can record the sound (`SIM_WAV`).
 
 ## 0.3.0 (October 31, 2026)
 

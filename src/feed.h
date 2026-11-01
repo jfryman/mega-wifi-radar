@@ -41,6 +41,12 @@ enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *t);
 /* /v1/strip: w * h heights then w * h colours of the patch's grid from cell (x, y), into buf (2 * w * h). */
 enum feed_err feed_strip(const char *key, s16 x, s16 y, u16 w, u16 h, u8 *buf);
 
+/* Flyover notices (lode/plans/flyover-notices.md). Frames and tracks report whether a notice newer than the
+ * last one seen is waiting (they send that id as n=); feed_notice() fetches it (blocking, one small GET). On
+ * FEED_OK, *n is valid until the next call; id 0 means it was gone by then. */
+bool feed_notice_waiting(void);
+enum feed_err feed_notice(const struct ar_notice **n);
+
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
  * (none found) or FEED_ERR_VERSION (found one at another contract version). */

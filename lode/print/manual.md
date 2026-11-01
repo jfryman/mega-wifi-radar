@@ -18,17 +18,18 @@ flowchart LR
 | 4–5 | starting-up | Model 1 top + front with callouts, 3 steps, first time, if nothing appears, what you need |
 | 6–7 | controls | pad drawing + 5 keys (A: cockpit from the details), six-button note (X theme, Y cockpit); range steps + `zoom` shot (page 7) |
 | 8 | relay | what the relay is, docker command, same-release rule, URL rules, adsb.fi fair use |
-| 9–10 | setup | `setup` shot + 7 keys (CONTROLS, RESET), `keyboard` shot, persistence, airport count |
+| 9–10 | setup | `setup` shot + 7 keys (THEME/RANGE/TAGS/CHIME, CONTROLS, RESET), `keyboard` shot, persistence, airport count |
 | 11–12 | scope | `radar` shot + 7 keys (traffic list, theme/tags/data), tag colours table, stale/drop |
 | 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
 | 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, callsign/status, altitude, movement, credit), "what you're seeing" note |
-| 15 | themes | Classic + STARS shots |
-| 16 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
-| 17 | credits | credits grid (incl. ELEVATION), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
-| 18–19 | (pad) | Notes |
+| 15 | notices | `notice` shot (75%, callouts staggered into the banner's empty columns) + 4 keys, chime + cockpit line |
+| 16 | themes | Classic + STARS shots |
+| 17 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
+| 18 | credits | credits grid (incl. ELEVATION), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
+| 19 | (pad) | Notes |
 | 20 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
 
-Every page is full: the details, cockpit and troubleshooting pages have no spare lines (an extra line pushed
+Every page is full: the details, cockpit, notices and troubleshooting pages have no spare lines (an extra line pushed
 each onto a new page, and the manual to 24 pages). Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
 don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps.
 

@@ -38,7 +38,7 @@ Leave the cart's **RELAY** on **AUTO** and it finds the relay over mDNS. To pin 
 
 ## Discovery (mDNS)
 
-The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=3 path=/v1/frame`: the contract version and frame path) with a small built-in
+The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=4 path=/v1/frame`: the contract version and frame path) with a small built-in
 responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _mwradar._tcp` (Linux).
 
 | Where the relay runs | Who advertises |
@@ -78,8 +78,8 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 
 With `MQTT_BROKER_HOST` set, the relay subscribes to `atc-mqtt`'s `atc/status` topic (QoS 1) and reads the
 flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. Each becomes
-a three-line notice, matched to the aircraft in the adsb.fi feed when a cart is polling, kept for `-notice-ttl`
-(30 s) and logged. Showing them on the cart is planned for 0.4.0. For development, run a local broker:
+a three-line notice, matched to the aircraft in the adsb.fi feed when a cart is polling and kept for `-notice-ttl`
+(30 s); carts pick it up through `/v1/notice` (below) and show it as a banner or on the cockpit HUD. For development, run a local broker:
 
 ```sh
 make mqtt-start      # eclipse-mosquitto container mwradar-mqtt, localhost:1883, network "mwradar"
@@ -95,36 +95,42 @@ scripts/mqtt sub     # watch atc/#
 ## HTTP API
 
 - **Versions:** the relay and the cartridge ship together; use the relay from your cartridge's release.
-  Every request carries `v=<contract version>` (`AR_VER`, 3 since 0.3.0). Any other value, or none, gets
+  Every request carries `v=<contract version>` (`AR_VER`, 4 since 0.4.0). Any other value, or none, gets
   `409` with a message naming the relay's release, and the cart reports `RELAY MISMATCH` at boot or
   `RELAY VER?` on the radar. The relay logs its release and contract version at start-up.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=3` returns `200` with
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&v=4` returns `200` with
   `application/octet-stream` and an explicit `Content-Length`. `range` is clamped to 1–250 and `max` to 1–96.
   A missing or bad `lat`/`lon` gives `400`.
-- `GET /v1/detail?icao=<6 hex>&v=3` returns one 96-byte detail record for the pop-up (below), from the newest
+- `GET /v1/detail?icao=<6 hex>&v=4` returns one 96-byte detail record for the pop-up (below), from the newest
   upstream snapshot if it's under 30 s old, otherwise from a single-aircraft upstream request
   (`/api/v2/hex/<icao>`, inside the same rate limit). An unknown aircraft gets a record without the FOUND flag.
-- `GET /v1/terrain?icao=<6 hex>&v=3` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
+- `GET /v1/terrain?icao=<6 hex>&v=4` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
   and a patch key), then 128×128 height levels and 128×128 colour indices, centred on the aircraft with cells of
   its height above ground / 5. Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
   so the relay needs HTTPS out to `s3.amazonaws.com`; without it the patch is flat ground. `404` if the
   aircraft isn't in the feed.
-- `GET /v1/track?icao=<6 hex>&p=<patch key>&v=3` returns 40 bytes: the aircraft placed in that patch (position,
+- `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=4` returns 40 bytes: the aircraft placed in that patch (position,
   height, velocity, heading, bank), for the cockpit camera.
-- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=3` returns more of the patch's grid (`w·h` heights,
+- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=4` returns more of the patch's grid (`w·h` heights,
   then `w·h` colours; at most 1,024 cells), which the cart streams in ahead of the aircraft.
+- **Flyover notices:** `n=` on `/v1/frame` and `/v1/track` is the id of the last notice the cart has seen (0 for
+  none). If a newer one is waiting, the frame's header flags get `NOTICE` (`0x04`) and the track's flags
+  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=4` then returns an 88-byte notice: magic `"AN"`, version,
+  flags (matched ICAO, emergency), a 16-bit id (ids wrap; 0 = none waiting any more), the ICAO address, the
+  seconds to show it, and three 26-character lines of text composed by the relay.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
   (the cart shows `UPSTRM ERR`). If there's no previous frame, it returns `502`.
 - `GET /healthz` returns `ok`.
 
 Try it:
 ```sh
-curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&v=3' | xxd | head
-curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=3' | xxd
-curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=3' | head -c 104 | xxd
+curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&n=0&v=4' | xxd | head
+curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=4' | xxd
+curl -s 'http://localhost:8080/v1/notice?after=0&v=4' | xxd
+curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=4' | head -c 104 | xxd
 ```
 
-## Frame format (contract v3)
+## Frame format (contract v4)
 
 Big-endian and word-aligned: a 16-byte header followed by `count` 24-byte records. Positions are
 east/north offsets from the home point in 1/32 nm. The records are sorted nearest first.
@@ -132,13 +138,13 @@ east/north offsets from the home point in 1/32 nm. The records are sorted neares
 | Header (16 B) | Size | Record (24 B) | Size |
 |---|---|---|---|
 | magic `"AR"` | 2 | ICAO address | 3 |
-| version (2) | 1 | flags (ground, stale, emergency, unknown alt/gs/track/vrate) | 1 |
+| version (4) | 1 | flags (ground, stale, emergency, unknown alt/gs/track/vrate) | 1 |
 | count | 1 | x, y: east, north of home (1/32 nm) | 2+2 |
 | record size (≥ 24) | 2 | altitude (25 ft) | 2 |
 | sequence | 2 | squawk (digits as nibbles, `0x7700`) | 2 |
 | time (Unix s) | 4 | ground speed (2 kt), track (1/256 turn) | 1+1 |
 | range (nm) | 2 | vertical rate (64 fpm), category | 1+1 |
-| source, header flags | 1+1 | callsign (8 chars, space padded) | 8 |
+| source, header flags (truncated, upstream error, notice) | 1+1 | callsign (8 chars, space padded) | 8 |
 
 ### Detail record (96 B)
 

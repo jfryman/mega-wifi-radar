@@ -9,6 +9,7 @@
 #include "fmt.h"
 #include "geo.h"
 #include "net.h"
+#include "notice.h"
 #include "popup.h"
 #include "radar.h"
 #include "setup.h"
@@ -191,6 +192,10 @@ static void handle_input(void)
         popup_close();
         pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also zoom out */
     }
+    if (notice_banner_up() && (pressed & BUTTON_B)) {
+        notice_banner_close();              /* ... nor the flyover banner (lode/ui/notices.md) */
+        pressed &= ~BUTTON_B;
+    }
     if ((pressed & (BUTTON_A | BUTTON_B)) && !popup_is_open()) {
         s16 r = settings.range_idx + ((pressed & BUTTON_A) ? -1 : 1);
         if (r >= 0 && r < RANGE_COUNT) {
@@ -207,7 +212,10 @@ static void handle_input(void)
     } else {
         if (c_held && c_held < HOLD_FRAMES) {
             if (popup_is_open()) popup_close();
-            else popup_open();
+            else {
+                notice_select();            /* the banner's aircraft, if it has one */
+                popup_open();
+            }
         }
         c_held = 0;
     }
@@ -262,6 +270,7 @@ static void poll(void)
         radar_panel(ROW_DATA2, source_name(h->source));
         tlist_rebuild();
         popup_after_poll();
+        notice_check();                     /* a flyover notice waiting? (lode/ui/notices.md) */
     } else {
         radar_panel(ROW_NET, feed_err_str(e));
         popup_after_poll();
@@ -321,8 +330,10 @@ int main(bool hard)
         main_beat++;
         handle_input();
         popup_tick();
+        notice_radar_tick();
         if (want_cockpit) {
             want_cockpit = FALSE;
+            notice_banner_close();
             popup_close();
             radar_stop();
             cockpit_run(cockpit_icao);
@@ -333,6 +344,8 @@ int main(bool hard)
         }
         if (want_setup) {
             want_setup = FALSE;
+            notice_banner_close();
+            notice_drop();
             popup_close();
             radar_stop();
             setup_run(FALSE);

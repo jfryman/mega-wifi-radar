@@ -29,13 +29,16 @@ Row 3 shows `LOADING DETAILS...` until the fetch returns, or `NO DETAILS FROM TH
 ## Rendering (radar.c)
 - Drawn on the **window plane**, cols 0..27, all 28 rows: `VDP_setWindowVPos(FALSE, PANEL_ROWS)` makes the window
   cover the scope; the side panel (window cols 28+) is unaffected. Closing sets VPos back to 0: instant.
+  The window is a row count (`radar_popup_rows`): the flyover banner uses the same rows and machinery with 6 rows
+  ([notices.md](notices.md)); opening the pop-up over the banner grows it to 28 and ends the banner.
 - **Opaque font:** `opaque_font()` reads SGDK's font back from VRAM at `radar_init` and writes a copy with index 0
   → `C_OPAQUE` (14, black in every palette of both themes) at `t_ofont`, after the blip/box tiles. Window pixels
   of index 0 are transparent and would show plane B (the scope) through.
 - Rows go out like the panel's: `popup_dirty` bits, `POPUP_PER_FRAME` (3) 28-cell rows per V-Int. The window
   switches on only once every row is out (~10 frames). **Opening marks all 28 rows dirty**: blank rows that
   match the buffer would otherwise never be written and stay transparent (seen as scope fragments).
-- Sprites are high priority and would draw over the window, so `sprites()` emits none while it's up.
+- Sprites are high priority and would draw over the window, so `sprites()` emits none while it's up (under the
+  6-row banner, only those in its rows).
 - Plane A (tags, trails) keeps updating under the window.
 
 ```mermaid

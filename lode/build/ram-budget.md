@@ -7,7 +7,7 @@ those allocations fails, the console hangs on a **black screen before the splash
 
 ```mermaid
 flowchart LR
-  S[".data + .bss<br/>0xFF0000 .. _bend<br/>(cart: 0xFFCC80, ~51 KiB)"] --> H["heap _bend .. 0xFFF600<br/>(10.6 KiB): DMA queue,<br/>DMA buffer 2 KiB, font unpack"]
+  S[".data + .bss<br/>0xFF0000 .. _bend<br/>(cart: 0xFFCE8E, ~51.6 KiB)"] --> H["heap _bend .. 0xFFF600<br/>(9.9 KiB): DMA queue,<br/>DMA buffer 2 KiB, font unpack"]
   H --> K["stack 0xFFF600 .. 0x1000000<br/>(2.5 KiB)"]
 ```
 

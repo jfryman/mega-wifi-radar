@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "chime.h"
 #include "settings.h"
 #include "theme.h"
 
@@ -20,6 +21,7 @@ u16 ui_pad(void)
     u16 j, pressed;
 
     SYS_doVBlankProcess();
+    chime_tick();                           /* setup's chime preview */
     j = JOY_readJoypad(JOY_1);
     pressed = j & ~prev;
     if (j & BUTTON_DIR & prev) {

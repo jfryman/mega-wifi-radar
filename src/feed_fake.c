@@ -1,11 +1,20 @@
 /* Fake feed for emulators (build with FAKE_FEED): cycles through frames
  * recorded around KBNA (res/fake/kbna_seq.bin, made by `relay -pack`), with their aircraft's
  * pop-up details (res/fake/kbna_detail.bin) and, for cockpit mode, one terrain patch around KBNA with every
- * aircraft's track in it (res/fake/kbna_cockpit.bin, `relay -pack-cockpit`). */
+ * aircraft's track in it (res/fake/kbna_cockpit.bin, `relay -pack-cockpit`). A flyover notice about the nearest
+ * airborne aircraft turns up NOTICE_FIRST seconds after the first frame, then every NOTICE_EVERY. */
 #include "feed.h"
 
 #ifdef FAKE_FEED
+#include "fmt.h"
 #include "resources.h"
+
+#define NOTICE_FIRST    20
+#define NOTICE_EVERY    90
+
+static const struct ar_hdr *last_frame;
+static u32 notice_at;                       /* vtimer of the next notice */
+static u16 notice_id;
 
 /* "FK", u16 count, count x u32 offsets, then word-aligned v1 frames. */
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
@@ -23,6 +32,59 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     st->bytes = AR_HDR_SIZE + h->count * h->rec_size;
     st->chunks = 1;
     *hdr = h;
+    last_frame = h;
+    if (!notice_at) notice_at = vtimer + NOTICE_FIRST * 60UL;
+    return FEED_OK;
+}
+
+bool feed_notice_waiting(void) { return notice_at && (s32)(vtimer - notice_at) >= 0; }
+
+/* As the relay composes them (relay/notice.go): headline + callsign, operator + type, altitude + speed. */
+enum feed_err feed_notice(const struct ar_notice **n)
+{
+    static struct ar_notice nt;
+    static const char *const heads[] = { "OVERHEAD!", "LOOK UP!", "INCOMING!", "FLYBY!" };
+    const struct ar_detail *d;
+    char line[3][AR_NOTICE_COLS + 8], cs[9], own[12], typ[5], alt[16];
+
+    notice_at = vtimer + NOTICE_EVERY * 60UL;
+    memset(&nt, 0, sizeof(nt));
+    nt.magic[0] = 'A'; nt.magic[1] = 'N'; nt.ver = AR_VER;
+    const struct ar_rec *r = NULL;
+    for (u16 i = 0; last_frame && i < last_frame->count && !r; i++) {   /* frames are nearest first */
+        const struct ar_rec *c = feed_rec(last_frame, i);
+        if (!(c->flags & (AR_F_GROUND | AR_F_ALT_UNK)) && c->alt > 0) r = c;
+    }
+    if (!r) { *n = &nt; return FEED_OK; }
+    nt.id = ++notice_id;
+    nt.nflags = AR_N_ICAO;
+    memcpy(nt.icao, r->icao, 3);
+    nt.secs = 15;
+    memcpy(cs, r->cs, 8);
+    cs[8] = 0;
+    for (u16 i = 8; i && cs[i - 1] == ' '; i--) cs[i - 1] = 0;
+    sprintf(line[0], "%-10s %s", heads[notice_id & 3], cs);
+    own[0] = typ[0] = 0;
+    if (feed_detail(r->icao, &d) == FEED_OK) {
+        u16 k = 0;
+        while (k < 11 && d->owner[k] != ' ') { own[k] = d->owner[k]; k++; }
+        own[k] = 0;
+        memcpy(typ, d->type, 4);
+        typ[4] = 0;
+    }
+    sprintf(line[1], "%-12s%s", own, typ);
+    line[2][0] = 0;
+    if (!(r->flags & (AR_F_GROUND | AR_F_ALT_UNK)) && r->alt > 0) {
+        fmt_thousands(alt, (s32)r->alt * 25);
+        sprintf(line[2], "%sFT ", alt);
+    }
+    if (!(r->flags & AR_F_GS_UNK)) sprintf(line[2] + strlen(line[2]), "%uKT", r->gs * 2);
+    for (u16 l = 0; l < 3; l++) {
+        u16 k = 0;
+        for (; k < AR_NOTICE_COLS && line[l][k]; k++) nt.text[l * AR_NOTICE_COLS + k] = line[l][k];
+        for (; k < AR_NOTICE_COLS; k++) nt.text[l * AR_NOTICE_COLS + k] = ' ';
+    }
+    *n = &nt;
     return FEED_OK;
 }
 /* "FD", u16 count, then count x struct ar_detail (res/fake/kbna_detail.bin, `relay -pack-detail`). */

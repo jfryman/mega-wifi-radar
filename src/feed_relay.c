@@ -1,5 +1,5 @@
-/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&v, /v1/detail?icao&v, and cockpit mode's
- * /v1/terrain?icao&v, /v1/track?icao&p&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
+/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&n&v, /v1/detail?icao&v, /v1/notice?after&v, and
+ * cockpit mode's /v1/terrain?icao&v, /v1/track?icao&p&n&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
 
@@ -37,6 +37,10 @@ static void collect_chunk(const u8 *data, u16 len, void *ctx)
 }
 
 static char relay_url[RELAY_LEN + 1];   /* base URL in use: typed, or found over mDNS */
+
+/* Flyover notices: the last id seen (sent as n=; 0 = none yet) and whether the relay says a newer one waits. */
+static u16 notice_seen;
+static bool notice_flag;
 
 /* Reconnect policy (lode/net/reconnect.md) */
 #define BACKOFF_MIN     15              /* seconds between reconnect attempts, doubling */
@@ -95,9 +99,9 @@ static bool build_url(char *url, u16 size)
     }
     fmt_deg_e4(lat, settings.lat_e4);
     fmt_deg_e4(lon, settings.lon_e4);
-    /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96&v=2" (<= 60) */
+    /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96&n=65535&v=4" (<= 68) */
     sprintf(url, "%s" AR_FRAME_PATH AR_FRAME_QUERY, relay_url,
-            lat, lon, settings_range_nm(), AR_MAX_RECS, AR_VER);
+            lat, lon, settings_range_nm(), AR_MAX_RECS, notice_seen, AR_VER);
     return TRUE;
 }
 
@@ -155,7 +159,7 @@ static enum feed_err counted(enum feed_err e)
 
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
 {
-    static char url[RELAY_LEN + 64];
+    static char url[RELAY_LEN + 72];
     struct collect_to t = { { 0, FALSE }, (u8 *)frame_buf, sizeof(frame_buf) };
     enum feed_err e;
 
@@ -164,6 +168,7 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     if ((e = get(url, &t, st)) != FEED_OK) return e;
     if ((e = counted(check((const struct ar_hdr *)frame_buf, t.c.len))) != FEED_OK) return e;
     *hdr = (const struct ar_hdr *)frame_buf;
+    notice_flag = (*hdr)->hflags & AR_H_NOTICE;
     return FEED_OK;
 }
 
@@ -241,19 +246,42 @@ enum feed_err feed_terrain(const u8 icao[3], struct ar_terrain *hdr, u8 *h, u8 *
 
 enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *out)
 {
-    static char url[RELAY_LEN + 32 + AR_KEY_LEN];
+    static char url[RELAY_LEN + 40 + AR_KEY_LEN];
     static u16 buf[AR_TRACK_SIZE / 2 + 4];          /* + room to spot an oversized body */
     struct collect_to t = { { 0, FALSE }, (u8 *)buf, sizeof(buf) };
     const struct ar_track *r = (const struct ar_track *)buf;
     enum feed_err e;
 
     if (!relay_url[0]) return FEED_ERR_CONFIG;
-    /* base (<= RELAY_LEN) + "/v1/track?icao=abfcda&p=<key>&v=3" (<= 27 + key) */
-    sprintf(url, "%s" AR_TRACK_PATH AR_TRACK_QUERY, relay_url, icao[0], icao[1], icao[2], key, AR_VER);
+    /* base (<= RELAY_LEN) + "/v1/track?icao=abfcda&p=<key>&n=65535&v=4" (<= 35 + key) */
+    sprintf(url, "%s" AR_TRACK_PATH AR_TRACK_QUERY, relay_url, icao[0], icao[1], icao[2], key, notice_seen, AR_VER);
     if ((e = get(url, &t, NULL)) != FEED_OK) return e;
     if (t.c.len != AR_TRACK_SIZE || r->magic[0] != 'A' || r->magic[1] != 'K') return counted(FEED_ERR_FORMAT);
     if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
     *out = *r;
+    notice_flag = r->kflags & AR_K_NOTICE;
+    return counted(FEED_OK);
+}
+
+bool feed_notice_waiting(void) { return notice_flag; }
+
+enum feed_err feed_notice(const struct ar_notice **n)
+{
+    static char url[RELAY_LEN + 32];
+    static u16 buf[AR_NOTICE_SIZE / 2 + 4];         /* + room to spot an oversized body */
+    struct collect_to t = { { 0, FALSE }, (u8 *)buf, sizeof(buf) };
+    const struct ar_notice *r = (const struct ar_notice *)buf;
+    enum feed_err e;
+
+    notice_flag = FALSE;                            /* the next frame or track says if another waits */
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    /* base (<= RELAY_LEN) + "/v1/notice?after=65535&v=4" (<= 26) */
+    sprintf(url, "%s" AR_NOTICE_PATH AR_NOTICE_QUERY, relay_url, notice_seen, AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    if (t.c.len != AR_NOTICE_SIZE || r->magic[0] != 'A' || r->magic[1] != 'N') return counted(FEED_ERR_FORMAT);
+    if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    if (r->id) notice_seen = r->id;
+    *n = r;
     return counted(FEED_OK);
 }
 

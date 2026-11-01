@@ -2,6 +2,7 @@
 # Run a ROM headless in MAME (inside the mw-cart bring-up image, which has MAME)
 # and save PNG snapshots.  scripts/sim out/sim.bin 3,8,15
 # SIM_PRESS="9:P1 A,12:P1 Start" presses pad buttons at emulated seconds.
+# SIM_WAV=out/snap/sound.wav records the sound (e.g. to check the notice chime's notes).
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CTR=${CTR:-$(command -v podman || command -v docker || true)}
@@ -14,6 +15,7 @@ rm -rf "$OUT" && mkdir -p "$OUT"
     -e SDL_VIDEODRIVER=dummy -e SDL_AUDIODRIVER=dummy "$IMG" \
     mame genesis -cart "/w/$ROM" -noautosave -video none -sound none -nothrottle \
         -skip_gameinfo -state_directory /tmp/sta -cfg_directory /tmp/cfg -nvram_directory /tmp/cfg \
-        -snapshot_directory /w/out/snap -autoboot_script /w/sim/snap.lua 2>&1 \
+        -snapshot_directory /w/out/snap -autoboot_script /w/sim/snap.lua \
+        ${SIM_WAV:+-wavwrite "/w/$SIM_WAV"} 2>&1 \
     | grep -vE "osd_subst_env|^$" || true
 ls "$OUT"/genesis/ 2>/dev/null

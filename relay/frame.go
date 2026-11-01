@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	frameVer     = 3 // AR_VER: the relay and the cart only talk at the same version
+	frameVer     = 4 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
 	recSize      = 24
 	maxRecs      = 96
@@ -34,6 +34,7 @@ const (
 const (
 	hTruncated   = 0x01
 	hUpstreamErr = 0x02
+	hNotice      = 0x04 // a notice newer than the request's n= is waiting
 )
 
 // Record flags.

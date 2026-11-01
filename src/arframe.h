@@ -3,7 +3,7 @@
 
 /* The relay <-> cartridge contract (lode/architecture/contract.md): the compact traffic frame
  * (spec: lode/architecture/frame-format.md), the aircraft detail record, cockpit mode's terrain patch
- * and track (lode/ui/cockpit.md), the HTTP requests, and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
+ * and track (lode/ui/cockpit.md), flyover notices (lode/plans/flyover-notices.md), the HTTP requests, and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
  * item here, so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Any change here must bump AR_VER (relay/contract.lock enforces it; `make contract-lock` after).
  * A relay and a cart only talk at the same AR_VER: the relay answers others with
@@ -11,7 +11,7 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          3
+#define AR_VER          4
 #define AR_REC_SIZE_V1  24
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
@@ -25,6 +25,7 @@
 /* struct ar_hdr.hflags */
 #define AR_H_TRUNCATED      0x01
 #define AR_H_UPSTREAM_ERR   0x02
+#define AR_H_NOTICE         0x04   /* a flyover notice newer than the request's n= is waiting: fetch AR_NOTICE_PATH */
 
 /* struct ar_rec.flags */
 #define AR_F_GROUND     0x01
@@ -39,9 +40,10 @@
 #define AR_CAT_NONE     0xFF
 
 /* HTTP: GET <relay base URL> AR_FRAME_PATH AR_FRAME_QUERY (lat, lon as degrees; range nm; max records;
- * AR_VER). The relay answers a request without v=AR_VER with AR_HTTP_MISMATCH. */
+ * the id of the last flyover notice seen, 0 for none; AR_VER). The relay answers a request without v=AR_VER
+ * with AR_HTTP_MISMATCH. */
 #define AR_FRAME_PATH   "/v1/frame"
-#define AR_FRAME_QUERY  "?lat=%s&lon=%s&range=%u&max=%u&v=%u"
+#define AR_FRAME_QUERY  "?lat=%s&lon=%s&range=%u&max=%u&n=%u&v=%u"
 #define AR_HTTP_MISMATCH 409
 
 /* GET <relay> AR_DETAIL_PATH AR_DETAIL_QUERY (icao as 6 hex digits; AR_VER): one struct ar_detail.
@@ -74,10 +76,10 @@
 /* struct ar_terrain.tflags */
 #define AR_T_FLAT        0x01   /* no elevation data for this area: flat ground */
 
-/* GET <relay> AR_TRACK_PATH AR_TRACK_QUERY (icao, the patch's key, AR_VER): one struct ar_track, placed in
- * that patch. An aircraft the relay doesn't know gets a record without AR_K_FOUND. */
+/* GET <relay> AR_TRACK_PATH AR_TRACK_QUERY (icao, the patch's key, the last notice id seen, AR_VER): one
+ * struct ar_track, placed in that patch. An aircraft the relay doesn't know gets a record without AR_K_FOUND. */
 #define AR_TRACK_PATH    "/v1/track"
-#define AR_TRACK_QUERY   "?icao=%02x%02x%02x&p=%s&v=%u"
+#define AR_TRACK_QUERY   "?icao=%02x%02x%02x&p=%s&n=%u&v=%u"
 #define AR_TRACK_SIZE    40
 
 /* GET <relay> AR_STRIP_PATH AR_STRIP_QUERY (the patch's key, x, y, w, h in cells, AR_VER): w * h height levels,
@@ -93,6 +95,20 @@
 #define AR_K_GROUND      0x02
 #define AR_K_EMERG       0x04
 #define AR_K_ALT_UNK     0x08   /* z is the ground under the aircraft */
+#define AR_K_NOTICE      0x10   /* as AR_H_NOTICE, in cockpit mode */
+
+/* Flyover notices (lode/plans/flyover-notices.md): a plane over the owner's house, from the relay's MQTT feed.
+ * GET <relay> AR_NOTICE_PATH AR_NOTICE_QUERY (the last notice id seen, 0 for none; AR_VER): one struct
+ * ar_notice, the oldest waiting one newer than that id, or one with id 0 if none is waiting any more.
+ * Ids wrap: newer means (s16)(id - seen) > 0. */
+#define AR_NOTICE_PATH   "/v1/notice"
+#define AR_NOTICE_QUERY  "?after=%u&v=%u"
+#define AR_NOTICE_SIZE   88
+#define AR_NOTICE_COLS   26     /* characters per line; text holds 3 lines */
+
+/* struct ar_notice.nflags */
+#define AR_N_ICAO        0x01   /* icao is the aircraft in the feed */
+#define AR_N_EMERG       0x02
 
 /* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
 #define AR_MDNS_SERVICE  "_mwradar._tcp.local"
@@ -182,6 +198,17 @@ struct ar_track {
     char cs[8];         /* space padded */
 };
 
+/* A flyover notice: three lines composed by the relay, ready to print. */
+struct ar_notice {
+    char magic[2];      /* "AN" */
+    u8 ver;             /* AR_VER */
+    u8 nflags;          /* AR_N_* */
+    u16 id;             /* 0: no notice */
+    u8 icao[3];         /* with AR_N_ICAO */
+    u8 secs;            /* how long to show it */
+    char text[78];      /* 3 lines of AR_NOTICE_COLS, space padded, upper-case ASCII */
+};
+
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
@@ -189,6 +216,8 @@ _Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE_V1, "ar_rec must be 24 bytes
 _Static_assert(sizeof(struct ar_detail) == AR_DETAIL_SIZE, "ar_detail must be 96 bytes");
 _Static_assert(sizeof(struct ar_terrain) == AR_TERRAIN_HDR, "ar_terrain must be 104 bytes");
 _Static_assert(sizeof(struct ar_track) == AR_TRACK_SIZE, "ar_track must be 40 bytes");
+_Static_assert(sizeof(struct ar_notice) == AR_NOTICE_SIZE, "ar_notice must be 88 bytes");
+_Static_assert(sizeof(((struct ar_notice *)0)->text) == 3 * AR_NOTICE_COLS, "ar_notice.text is 3 lines");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
@@ -208,6 +237,8 @@ AR_AT(ar_track, magic, 0); AR_AT(ar_track, ver, 2); AR_AT(ar_track, kflags, 3); 
 AR_AT(ar_track, y, 8); AR_AT(ar_track, z, 12); AR_AT(ar_track, vx, 16); AR_AT(ar_track, vy, 18);
 AR_AT(ar_track, vz, 20); AR_AT(ar_track, heading, 22); AR_AT(ar_track, bank, 24); AR_AT(ar_track, age, 25);
 AR_AT(ar_track, alt, 26); AR_AT(ar_track, gs, 28); AR_AT(ar_track, vrate, 30); AR_AT(ar_track, cs, 32);
+AR_AT(ar_notice, magic, 0); AR_AT(ar_notice, ver, 2); AR_AT(ar_notice, nflags, 3); AR_AT(ar_notice, id, 4);
+AR_AT(ar_notice, icao, 6); AR_AT(ar_notice, secs, 9); AR_AT(ar_notice, text, 10);
 #undef AR_AT
 
 #endif

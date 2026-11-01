@@ -1,3 +1,4 @@
+#include "chime.h"
 #include "radar.h"
 #include "geo.h"
 #include "scope.h"
@@ -59,7 +60,9 @@ static volatile u32 panel_dirty;
 
 /* Pop-up (lode/ui/detail-popup.md): the window plane over cols 0..27, drawn with an opaque copy of
  * the font so the scope doesn't show through. Rows are written while it's hidden; it appears once
- * they're all out, and closing is instant. Sprites hide while it's up. */
+ * they're all out, and closing is instant. popup_want / popup_on are how many rows from the top it
+ * covers: PANEL_ROWS for the detail pop-up, NOTICE_ROWS for a flyover notice's banner, 0 for none.
+ * Sprites under it are hidden (high priority, they'd draw over the window). */
 static char popup_text[PANEL_ROWS][POPUP_COLS];
 static u8 popup_pal[PANEL_ROWS];
 static volatile u32 popup_dirty;
@@ -273,12 +276,13 @@ static void sprites(void)
     bool fade = themes[settings.theme].blip_fade;
     u16 *e = spr[0];
 
-    u16 max = popup_on ? 0 : MAX_BLIPS;     /* hidden under the pop-up: emit nothing */
+    u16 max = popup_on == PANEL_ROWS ? 0 : MAX_BLIPS;  /* hidden under the pop-up: emit nothing */
+    u16 top = 128 + popup_on * 8;           /* sprite y of the first scope row below a banner */
 
     for (u16 i = 0; i < TR_MAX && n < max; i++) {
         if (!(tr_state[i] & TS_USED)) continue;
         struct track *t = &tracks[i];
-        if (!t->shown || !t->vis) continue;
+        if (!t->shown || !t->vis || t->spr_y < top) continue;
 
         u16 attr = t->spr_attr;
         if (fade && !(t->cur.flags & AR_F_STALE)) attr += lvl_tab[(u8)(step - t->hit_step) >> 5];
@@ -287,7 +291,7 @@ static void sprites(void)
         e[2] = attr;
         e[3] = t->spr_x;
         e += 4;
-        if ((s16)i == selected && n < MAX_BLIPS) {
+        if ((s16)i == selected && n < MAX_BLIPS && t->spr_y - 4 >= top) {
             e[0] = t->spr_y - 4;
             e[1] = (SPRITE_SIZE(2, 2) << 8) | ++n;
             e[2] = TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, t_box);
@@ -361,10 +365,11 @@ static void radar_vint(void)
     PROF(1);
     if (popup_want != popup_on && !(popup_want && popup_dirty)) {
         popup_on = popup_want;
-        VDP_setWindowVPos(FALSE, popup_on ? PANEL_ROWS : 0);   /* all rows: the window covers the scope */
+        VDP_setWindowVPos(FALSE, popup_on);     /* rows from the top: all of them covers the scope */
     }
 
     /* ---- CPU work for the next frame ---- */
+    chime_tick();
     JOY_update();
     joy = JOY_readJoypad(JOY_1);
     if (req_theme) {
@@ -574,13 +579,15 @@ void radar_popup_row(u16 row, const char *text, u16 pal)
     SYS_enableInts();
 }
 
-void radar_popup(bool on)
+void radar_popup_rows(u16 rows)
 {
-    /* opening: write every row, blank ones too, or the window shows through where it never was */
-    if (on && !popup_want) popup_dirty = (1UL << PANEL_ROWS) - 1;
-    popup_want = on;
+    /* growing: write every newly covered row, blank ones too, or the window shows through where it never was */
+    SYS_disableInts();
+    if (rows > popup_want) popup_dirty |= ((1UL << rows) - 1) & ~((1UL << popup_want) - 1);
+    popup_want = rows;
+    SYS_enableInts();
 }
-bool radar_popup_shown(void) { return popup_want; }
+void radar_popup(bool on) { radar_popup_rows(on ? PANEL_ROWS : 0); }
 
 void radar_rescale(void) { req_rescale = 1; }
 void radar_retheme(void) { req_theme = 1; req_retag = 1; }

@@ -17,7 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery, env config, MQTT client + dev broker
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), /v1/notice, version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
@@ -26,7 +26,8 @@
   - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
   - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, Voxel Space into VRAM, overlay RAM, camera, HUD
-  - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence, airports
+  - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR2 + migration), airports
+  - [notices.md](ui/notices.md) - flyover notices: n= flag + /v1/notice, radar banner, cockpit HUD, FM chime (KBNA egg), Z80-bus lesson
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
@@ -35,9 +36,9 @@
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
-  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v3): header, record, flags, transport, versioning
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v4): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
-  - [flyover-notices.md](plans/flyover-notices.md) - 0.4.0 goal: atc-mqtt MQTT -> relay -> cart notices (radar banner, cockpit HUD, chimes), done-criteria, phases
+  - [flyover-notices.md](plans/flyover-notices.md) - 0.4.0 flyover notices: goal, done-criteria status, what's left (cart check, tag)
 - tmp/ - git-ignored scratch

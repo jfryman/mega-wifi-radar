@@ -56,6 +56,10 @@
 - Mode overlay - `overlay_ram`: 36 KB that the radar (scope tiles, trails, tracks) or cockpit mode (`struct vox_ram`) owns at a time.
 - Sky delta - repaint only the sky rows a VRAM copy's terrain uncovered since that copy's last frame.
 - Reconnect - module reset (`mw_init`) + detect + join + relay lookup after 3 failed requests in a row, backing off 15/30/60 s (`feed_reconnect`).
-- Flyover notice - a short message on the cart when a plane passes over the owner's house, from atc-mqtt via the relay's MQTT subscription (0.4.0, planned).
+- Flyover notice - a short message on the cart when a plane passes over the owner's house, from atc-mqtt via the relay's MQTT subscription; `struct ar_notice`, three 26-char lines composed by the relay.
+- Banner - the 6-row window over the top of the scope that shows a flyover notice (`notice.c`).
+- Notice id / `n=` - u16 id of a notice (wraps, never 0); the cart sends the last one it saw as `n=` and the relay flags a newer one (`AR_H_NOTICE` / `AR_K_NOTICE`).
+- Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; setup's CHIME turns it off.
+- MWR2 - the settings record since 0.4.0 (adds `chime`); a 0.3.x `MWR1` record is upgraded on load.
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).

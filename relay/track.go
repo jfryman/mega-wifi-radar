@@ -22,6 +22,7 @@ const (
 	kGround     = 0x02
 	kEmerg      = 0x04
 	kAltUnk     = 0x08
+	kNotice     = 0x10
 	eyeM        = 3.0  // camera height on the ground
 	maxBankDeg  = 45.0 // estimated bank is clamped to this
 	gravity     = 9.81
@@ -184,7 +185,7 @@ func buildTrack(ctx context.Context, a *upstreamAC, g geom, el elevator, tr *tur
 	return t
 }
 
-func trackHandler(src *source, el elevator, tr *turns) http.HandlerFunc {
+func trackHandler(src *source, el elevator, tr *turns, ns *notices) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !versionOK(w, r) {
 			return
@@ -213,6 +214,9 @@ func trackHandler(src *source, el elevator, tr *turns) http.HandlerFunc {
 				at = at.Add(-time.Duration(*a.SeenPos * float64(time.Second)))
 			}
 			t = buildTrack(r.Context(), a, g, el, tr, hex, at)
+		}
+		if ns.waiting(r) {
+			t.flags |= kNotice
 		}
 		writeBinary(w, t.encode())
 		log.Printf("%s %s -> found %v, cell %.1f,%.1f z %.1f, bank %d", r.RemoteAddr, r.URL.RequestURI(),

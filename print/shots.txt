@@ -4,8 +4,9 @@ radar    | 14 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down
 popup    | 13.5 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down,12.2:P1 C
 cockpit  | 22 | 11:P1 Down,11.4:P1 Down,11.8:P1 Down,12.2:P1 C,13.5:P1 A
 setup    | 13 | 11:P1 Start
+notice   | 34 |
 stars    | 17 | 11:P1 Start,12:P1 Right,13:P1 Start
 zoom     | 14 | 11:P1 A,12:P1 A
-keyboard | 15 | 11:P1 Start,12:P1 Down,12.5:P1 Down,13:P1 Down,13.5:P1 Down,14:P1 Down,14.5:P1 A
+keyboard | 16 | 11:P1 Start,12:P1 Down,12.5:P1 Down,13:P1 Down,13.5:P1 Down,14:P1 Down,14.5:P1 Down,15:P1 A
 boot-taxi    | 2.7 |
 boot-takeoff | 7.4 |

@@ -13,14 +13,18 @@ import (
 	"hash/fnv"
 	"log"
 	"math"
+	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 const (
+	noticePath    = "/v1/notice"
+	noticeSize    = 88               // AR_NOTICE_SIZE
 	noticeKeep    = 4                // notices kept
-	noticeCols    = 26               // characters per line (the cart's banner width)
+	noticeCols    = 26               // AR_NOTICE_COLS: characters per line (the cart's banner width)
 	noticeSecs    = 15               // how long the cart shows one
 	noticeMaxAge  = 90 * time.Second // flights reported longer ago than this are dropped (a backlog, a slow broker)
 	matchMaxAge   = 15 * time.Second // the adsb.fi snapshot must be this fresh to match against
@@ -81,6 +85,22 @@ type notice struct {
 	flags uint8 // nICAO, nEmerg
 	secs  uint8
 	lines [3][noticeCols]byte
+}
+
+// encode writes struct ar_notice (src/arframe.h). The zero notice (id 0) means "none waiting".
+func (n *notice) encode() []byte {
+	b := make([]byte, noticeSize)
+	b[0], b[1], b[2], b[3] = 'A', 'N', frameVer, n.flags
+	binary.BigEndian.PutUint16(b[4:], n.id)
+	b[6], b[7], b[8], b[9] = byte(n.icao>>16), byte(n.icao>>8), byte(n.icao), n.secs
+	for i := range n.lines {
+		if n.id == 0 {
+			padASCII(b[10+i*noticeCols:10+(i+1)*noticeCols], "")
+		} else {
+			copy(b[10+i*noticeCols:], n.lines[i][:])
+		}
+	}
+	return b
 }
 
 func (n *notice) text() string {
@@ -161,9 +181,43 @@ func (ns *notices) add(f atcFlight) (notice, bool) {
 	return n, true
 }
 
+// waiting reports whether a notice newer than the request's n= is live (the AR_H_NOTICE / AR_K_NOTICE flag).
+// A nil ring (tests) or a missing n= never waits.
+func (ns *notices) waiting(r *http.Request) bool {
+	if ns == nil {
+		return false
+	}
+	id, err := strconv.ParseUint(r.URL.Query().Get("n"), 10, 16)
+	if err != nil {
+		return false
+	}
+	_, ok := ns.after(uint16(id))
+	return ok
+}
+
+// noticeHTTP serves GET /v1/notice?after=<id>&v=: the oldest live notice newer than id, or the zero notice.
+func noticeHTTP(ns *notices) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !versionOK(w, r) {
+			return
+		}
+		id, err := strconv.ParseUint(r.URL.Query().Get("after"), 10, 16)
+		if err != nil {
+			http.Error(w, "after must be a notice id (0-65535)", http.StatusBadRequest)
+			return
+		}
+		n, _ := ns.after(uint16(id))
+		writeBinary(w, n.encode())
+		log.Printf("%s %s -> notice %d", r.RemoteAddr, r.URL.RequestURI(), n.id)
+	}
+}
+
 // after returns the oldest live notice newer than id (0: none seen yet, so any live notice).
 // Ids wrap, so "newer" is a signed 16-bit difference.
 func (ns *notices) after(id uint16) (notice, bool) {
+	if ns == nil {
+		return notice{}, false
+	}
 	ns.mu.Lock()
 	defer ns.mu.Unlock()
 	now := ns.now()

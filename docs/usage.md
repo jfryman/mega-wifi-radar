@@ -37,6 +37,7 @@ Use up/down to move between rows; each row lists its controls below.
 | THEME | left/right: CLASSIC / STARS |
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | left/right: ALL / SELECTED / OFF |
+| CHIME | left/right: ON / OFF, the flyover notice chime; switching it on plays it |
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
@@ -60,9 +61,9 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 
 | Button | Action |
 |---|---|
-| A / B | zoom in / out (5 to 100 nm) |
+| A / B | zoom in / out (5 to 100 nm); B closes a flyover banner instead while one is up |
 | up / down | select the previous / next aircraft in the traffic list (hold to scroll) |
-| C | open the detail pop-up for the selected aircraft; C or B closes it |
+| C | open the detail pop-up for the selected aircraft (with a flyover banner up: for the banner's aircraft); C or B closes it |
 | A (in the pop-up) | cockpit view from that aircraft; B goes back to the radar |
 | hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude |
 | left / right | tags: all, selected only, off |
@@ -87,6 +88,14 @@ patch at a new scale. The bottom of the screen shows the
 callsign, altitude, ground speed, vertical speed, heading and bank. `NO SIGNAL` means updates have stopped; after
 20 seconds without one the cart goes back to the radar. B goes back at any time, with the aircraft still
 selected. Colours come from the terrain's height (water, low ground, forest, high ground, snow), not imagery.
+
+**Flyover notices:** if the relay is connected to a flyover feed (an MQTT topic announcing planes over your home;
+see [relay.md](relay.md#flyover-notices-mqtt)), a banner drops over the top of the scope for 15 seconds when one
+passes: a headline and the callsign, the airline and aircraft type, then the route, altitude and speed where
+they're known. When the relay finds the aircraft in its feed, it's selected on the radar and C opens its details.
+B dismisses the banner. If the detail pop-up is open, the banner waits until it closes. A chime plays as it
+arrives (setup's CHIME turns it off); some home airports have a tune of their own. In the cockpit view the notice
+never covers the view: `OVERHEAD!` shows next to the callsign and the three lines take turns on the bottom row.
 
 ## What's on screen
 

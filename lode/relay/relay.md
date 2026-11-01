@@ -27,25 +27,29 @@ flowchart LR
 
 ## Contract
 - **Version:** `version` (the release, `-ldflags -X main.version`; `VERSION` build arg from CI's semver tag or
-  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 3). Every route but `/healthz` needs
-  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v3: use the relay and cartridge
+  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 4). Every route but `/healthz` needs
+  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v4: use the relay and cartridge
   from the same release"*, logged with both versions. The start-up log names both.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&v=3`. `range` is clamped to 1–250 (the adsb.fi
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&v=4`. `range` is clamped to 1–250 (the adsb.fi
   limit) and `max` to 1–96. Missing or invalid `lat`/`lon` → `400`.
 - `200`, `application/octet-stream`, **explicit `Content-Length`**. Go's `net/http` would otherwise
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
-- `GET /v1/detail?icao=<6 hex>&v=3` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
+- `GET /v1/detail?icao=<6 hex>&v=4` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
   snapshot, any query) if it's < 30 s old and has the aircraft, else `/api/v2/hex/<icao>` through the same
   1 req/s limiter (`aircraft(ctx, hex, maxAge)`; a hex answer becomes `source.last` when there's no area snapshot). Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
   other bytes become `?` (`padASCII`, shared with callsigns).
-- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=3` → a 32,872 B terrain patch
+- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=4` → a 32,872 B terrain patch
   centred on the aircraft (`terrain.go`, elevation from `dem.go`; flat with `AR_T_FLAT` if the tiles can't be
   fetched; 404 if the aircraft isn't in the feed; centred 3 s ahead of the aircraft), `GET /v1/track?icao=&p=<patch
-  key>&v=3` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=3`
+  key>&n=&v=4` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=4`
   → more cells of that grid (`stripHandler`; 502 without elevation). Terrain and track look the aircraft up with a
   1.5 s snapshot age; strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
+- Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
+  `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=4` → one
+  88 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
+  The ring exists even without MQTT (then always empty); the frame cache holds no flag (set per request on a copy).
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
 - `-pack-cockpit OUT -lat -lon -cell M FILES...` writes the emulator's cockpit pack (`"FC"`, a terrain patch, then
@@ -75,15 +79,14 @@ empty variables count as unset. For containers and the planned cluster deploymen
   `-mdns=false`; the script's `RELAY_MDNS=0` skips the *host* advertisement).
 
 ## MQTT: flyover notices (`mqtt.go`, `notice.go`)
-Plan and goal: [../plans/flyover-notices.md](../plans/flyover-notices.md). The relay subscribes, turns entering
-flights into notices and logs them (`notice 23653 (icao ad4747): FLYBY!  AAL1103|AMERICAN  B738|12,275FT 363KT`).
-Serving them to the cart (`/v1/notice`, contract v4) is phase 2.
+Cart side and contract: [../ui/notices.md](../ui/notices.md). The relay subscribes, turns entering flights into
+notices, logs them (`notice 23653 (icao ad4747): FLYBY!  AAL1103|AMERICAN  B738|12,275FT 363KT`) and serves them.
 ```mermaid
 flowchart LR
   B[(broker atc/status)] --> M[mqtt.go runMQTT] --> P[parseATC: entering only] --> A{notices.add}
   A -- uuid seen / > 90 s old --> X[drop]
   A --> MA[source.match vs adsb.fi snapshot < 15 s] --> C[composeNotice: 3 x 26 chars] --> R[(ring of 4, TTL 30 s)]
-  R --> AF[after id: oldest live newer than id]
+  R --> AF[after id: oldest live newer than id] --> H[/v1/notice + the n= flags]
 ```
 - `mqtt.go`: minimal MQTT 3.1.1 client, stdlib. CONNECT (clean session, keep-alive 60 s, user/pass), SUBSCRIBE
   QoS 1, PUBLISH in at QoS 0/1 with PUBACK, PINGREQ every 30 s, read deadline 1.5 × keep-alive. `runMQTT`
@@ -178,7 +181,7 @@ resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `Meg
 
 ```sh
 scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
-dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=3 path=/v1/frame
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=4 path=/v1/frame
 cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ```
 

@@ -167,7 +167,7 @@ func writeBinary(w http.ResponseWriter, body []byte) {
 	w.Write(body)
 }
 
-func frameHandler(src *source) http.HandlerFunc {
+func frameHandler(src *source, ns *notices) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		if !versionOK(w, r) {
@@ -183,6 +183,9 @@ func frameHandler(src *source) http.HandlerFunc {
 			log.Printf("%s %s: %v", r.RemoteAddr, r.URL.RequestURI(), err)
 			http.Error(w, "upstream unavailable", http.StatusBadGateway)
 			return
+		}
+		if ns.waiting(r) {
+			f.hflags |= hNotice
 		}
 		body := f.encode()
 		writeBinary(w, body)
@@ -247,10 +250,12 @@ func main() {
 
 	mux := http.NewServeMux()
 	src := newSource(*upstream, *interval)
-	mux.Handle("GET "+framePath, frameHandler(src))
+	ns := newNotices(src, *noticeTTL)
+	mux.Handle("GET "+framePath, frameHandler(src, ns))
+	mux.Handle("GET "+noticePath, noticeHTTP(ns))
 	mux.Handle("GET "+detailPath, detailHandler(src))
 	mux.Handle("GET "+terrainPath, terrainHandler(src, el))
-	mux.Handle("GET "+trackPath, trackHandler(src, el, newTurns()))
+	mux.Handle("GET "+trackPath, trackHandler(src, el, newTurns(), ns))
 	mux.Handle("GET "+stripPath, stripHandler(el))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	if *mdns {
@@ -263,7 +268,7 @@ func main() {
 	}
 	if mq.host != "" {
 		log.Printf("mqtt: %s, topic %q, user %q, client %s", mq.addr(), mq.topic, mq.user, mq.clientID)
-		go runMQTT(context.Background(), mq, newNotices(src, *noticeTTL).handle)
+		go runMQTT(context.Background(), mq, ns.handle)
 	} else {
 		log.Printf("mqtt: off (no MQTT_BROKER_HOST): no flyover notices")
 	}
