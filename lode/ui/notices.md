@@ -36,8 +36,8 @@ sequenceDiagram
   Cockpit entry closes the banner; setup drops any notice.
 - **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), and a **ticker** on row 25 (the credit
   row, amber): the three lines joined (space runs squeezed, three spaces between lines) scroll in from the right and
-  across once, then the credit comes back (`secs` doesn't apply: a pass takes (len + 38) / 12 s, ~7 s). The window
-  plane can't scroll, so it steps a character every `TICKER_FRAMES` (5) by `vtimer`: even speed at 16-22 fps, and
+  across once, then the credit comes back (`secs` doesn't apply: a pass takes (len + 38) × 7 / 60 s, ~10 s). The window
+  plane can't scroll, so it steps a character every `TICKER_FRAMES` (7, ~8.5 a second; 5 was a bit fast on the cart) by `vtimer`: even speed at 16-22 fps, and
   the row is only redrawn when the position changes. Riding the notice's aircraft: `OVER HOME!` / `YOU ARE OVER HOME!`
   as the first line. (Owner's call, 2026-11-01: a scrolling ticker, not pages.)
 

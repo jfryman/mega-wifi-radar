@@ -22,7 +22,7 @@
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
 #define HUD_COL         1
 #define HUD_W           38                  /* HUD text columns (1..38) */
-#define TICKER_FRAMES   5                   /* a flyover notice scrolls a character every 5 frames: 12 a second */
+#define TICKER_FRAMES   7                   /* a flyover notice scrolls a character every 7 frames: ~8.5 a second */
 #define CREDIT          "ELEVATION DATA: AWS TERRAIN TILES"     /* attribution, as the radar credits adsb.fi */
 
 enum { ST_LIVE, ST_STALE, ST_LOADING, ST_LOST };
