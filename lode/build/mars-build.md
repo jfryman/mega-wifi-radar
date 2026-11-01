@@ -86,9 +86,11 @@ The spike boots in MAME: rows 1-3 pass (code at `$880994`, MARS ID, both SH-2 co
 buffer shows behind the VDP text. Rows 4+ fail by design (no MegaWiFi in MAME: SPR reads `00`).
 
 ## Lessons
-- **In 32X mode the 68000 can't write odd cartridge addresses while RV = 0** (/LWR held inactive), which covers every
-  MegaWiFi UART register. UART writes run from RAM with RV = 1 (`md/uart_ram.c`, `.ramcode` in `md.ld`). Code that
-  sets RV = 1 must not execute from or read `$88xxxx` until it clears RV again ([../plans/32x.md](../plans/32x.md)).
+- **In 32X mode the 68000 can't reach the MegaWiFi UART while RV = 0**: odd-address writes are dropped (/LWR held
+  inactive) and reads return open bus (`C0`, measured on the tower). All UART access runs from RAM with RV = 1
+  (`md/uart_ram.c`, `.ramcode` in `md.ld`). Code that sets RV = 1 must not execute from or read `$88xxxx` until it
+  clears RV again ([../plans/32x.md](../plans/32x.md)).
+- Put the build on screen (`BUILD=$(VERSION)`, git describe): photos of a cart run must say which ROM ran.
 - MAME returns `0000` for a 68000 **word** read of `$A15100`; byte reads give `80 80`. The spike reads bytes and
   treats "running at `$88xxxx`" as the ADEN proof.
 - A build flag that is computed but not passed fails silently: with `RELAY_HOST` empty, gcc drops the whole relay

@@ -20,9 +20,9 @@ flowchart TD
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
   **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
   reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
-- **The cart** holds the 32X MegaWiFi spike ROM (`out/mars/spike.32x`, branch `32x`, CRC32 `449DFB82`, build `v0.3.0-3-g2e4b8fb`, `RELAY=10.0.0.20:8080`):
-  the RV probe build (rows 2-4 show which RV setting lets UART reads/writes through) for the third run on the tower ([32x.md](32x.md)). `make flash` puts the radar back.
-  Settings and Wi-Fi live on the module, so they survive.
+- **The cart** holds the 32X MegaWiFi spike ROM (`out/mars/spike.32x`, branch `32x`, build `v0.3.0-3-g2e4b8fb`, CRC32
+  `449DFB82`, `RELAY=10.0.0.20:8080`): the RV probe build. Next on it: `v0.3.0-4-g84539ec` (quiet/busy loopback)
+  ([32x.md](32x.md)). `make flash` puts the radar back.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
   version (`mwradar-relay:v0.2.1-4-g6b4cf8f-dirty.…`), advertised by `dns-sd -P` from `scripts/relay start`.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
@@ -44,8 +44,8 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 ```
 
 ## Open decisions / ideas
-- [ ] A separate 32X ROM ([32x.md](32x.md)): toolchain + MegaWiFi spike ROM built. First cart run failed at
-  the UART (32X drops odd-address writes while RV = 0); the RV = 1 build is on the cart for the rerun.
+- [ ] A separate 32X ROM ([32x.md](32x.md)): toolchain + MegaWiFi spike ROM built. The UART works in 32X
+  mode with RV = 1 for reads and writes; open: a byte dropped in the 8 KiB loopback while an SH-2 read ROM.
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
 - [ ] Persist the host mDNS advertisement across reboots (launchd / systemd unit); today it's `scripts/relay advertise`.
