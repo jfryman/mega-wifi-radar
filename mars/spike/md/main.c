@@ -22,7 +22,7 @@
 #define NAME_X	3
 #define RES_X	18
 #define INFO_X	23
-#define FIRST_ROW 3
+#define FIRST_ROW 6
 
 #define REG8(a)		(*(volatile uint8_t *)(a))
 #define REG16(a)	(*(volatile uint16_t *)(a))
@@ -101,8 +101,8 @@ static void uart_setup(uint16_t divisor, uint8_t mcr)
 static void rx_flush(void)
 {
 	uint16_t n = 0;
-	while ((U_LSR & LSR_DR) && n++ < 64)
-		(void)U_RHR;
+	while ((uart_rd(R_LSR) & LSR_DR) && n++ < 64)
+		(void)uart_rd(R_RHR);
 }
 
 static void sh_net(uint16_t state, uint16_t bytes)
@@ -112,6 +112,48 @@ static void sh_net(uint16_t state, uint16_t bytes)
 }
 
 /* ------------------------------------------------------------------ 32X */
+
+#ifndef BUILD
+#define BUILD "dev"
+#endif
+
+/* Which RV setting lets UART writes / reads through? Raw dumps with RV = 0 and 1 (an idle
+ * TL16C550D reads LSR = 60), then SPR write/read with every RV combination. The first working
+ * combination is used for all later UART access. Returns 0 if none works. */
+static int uart_diag(uint8_t row)
+{
+	static const uint8_t combo[4][2] = { {0, 0}, {1, 0}, {0, 1}, {1, 1} };
+	uint8_t regs[8], rv, i, x;
+	int found = 0;
+	for (rv = 0; rv < 2; rv++) {
+		txt_clear_row(row + rv);
+		txt_put(0, row + rv, COL_WHITE, rv ? "RV1 regs" : "RV0 regs");
+		uart_dump(regs, rv);
+		for (i = 0; i < 8; i++)
+			txt_hex(9 + 3 * i, row + rv, i == 5 ? COL_YELLOW : COL_WHITE, regs[i], 2);
+	}
+	txt_clear_row(row + 2);
+	txt_put(0, row + 2, COL_WHITE, "SPR w/r");
+	for (i = 0, x = 8; i < 4; i++, x += 8) {
+		uint8_t a = uart_probe(0x5A, combo[i][0], combo[i][1]);
+		uint8_t b = uart_probe(0xA5, combo[i][0], combo[i][1]);
+		int ok = a == 0x5A && b == 0xA5;
+		txt_dec(x, row + 2, COL_WHITE, combo[i][0]);
+		txt_dec(x + 1, row + 2, COL_WHITE, combo[i][1]);
+		txt_put(x + 2, row + 2, COL_WHITE, ":");
+		txt_hex(x + 3, row + 2, ok ? COL_GREEN : COL_RED, a, 2);
+		if (ok && !found) {
+			uart_rv_wr = combo[i][0];
+			uart_rv_rd = combo[i][1];
+			found = 1;
+		}
+	}
+	if (!found) {
+		uart_rv_wr = 1;
+		uart_rv_rd = 1;
+	}
+	return found;
+}
 
 static int t_adapter(uint8_t row)
 {
@@ -153,8 +195,8 @@ static int t_spr(uint8_t row)
 	for (i = 0; i < sizeof(pat); i++) {
 		uint8_t r;
 		uart_wr(R_SPR, pat[i]);
-		(void)U_LSR;	/* different register in between: defeats open-bus echo */
-		r = U_SPR;
+		(void)uart_rd(R_LSR);	/* different register in between: defeats open-bus echo */
+		r = uart_rd(R_SPR);
 		if (r != pat[i]) {
 			wr_detail(row, pat[i], r);
 			return verdict(row, 0);
@@ -189,18 +231,18 @@ static int t_decode(uint8_t row)
 		uart_wr(R_LCR, v[i][1]);
 		uart_wr(R_IER, v[i][2]);
 		uart_wr(R_MCR, v[i][3]);
-		ok = check_reg(row, "SPR", v[i][0], U_SPR) &&
-		     check_reg(row, "LCR", v[i][1], U_LCR) &&
-		     check_reg(row, "IER", v[i][2], U_IER & 0x0F) &&
-		     check_reg(row, "MCR", v[i][3], U_MCR & 0x1F);
+		ok = check_reg(row, "SPR", v[i][0], uart_rd(R_SPR)) &&
+		     check_reg(row, "LCR", v[i][1], uart_rd(R_LCR)) &&
+		     check_reg(row, "IER", v[i][2], uart_rd(R_IER) & 0x0F) &&
+		     check_reg(row, "MCR", v[i][3], uart_rd(R_MCR) & 0x1F);
 	}
 	if (ok) {
 		uart_wr(R_LCR, 0x83);
 		uart_wr(R_DLL, 0x5A);
 		uart_wr(R_DLM, 0xA5);
-		ok = check_reg(row, "DLL", 0x5A, U_DLL) && check_reg(row, "DLM", 0xA5, U_DLM);
+		ok = check_reg(row, "DLL", 0x5A, uart_rd(R_DLL)) && check_reg(row, "DLM", 0xA5, uart_rd(R_DLM));
 		uart_wr(R_LCR, 0x03);
-		ok = ok && check_reg(row, "IER", 0x0A, U_IER & 0x0F);
+		ok = ok && check_reg(row, "IER", 0x0A, uart_rd(R_IER) & 0x0F);
 	}
 	uart_wr(R_IER, 0);
 	uart_wr(R_MCR, 0);
@@ -233,9 +275,9 @@ static int t_loop_data(uint8_t row)
 		lfsr = rx_lfsr;
 		t0 = now();
 		while (rcvd < sent) {
-			uint8_t lsr = U_LSR;
+			uint8_t lsr = uart_rd(R_LSR);
 			if (lsr & LSR_DR) {
-				uint8_t want = rnd(), got = U_RHR;
+				uint8_t want = rnd(), got = uart_rd(R_RHR);
 				if ((lsr & LSR_ERRS) || got != want) {
 					wr_detail(row, want, got);
 					return verdict(row, 0);
@@ -294,12 +336,12 @@ static enum lsd_err rx_byte(uint8_t *b, uint32_t tmo)
 {
 	uint32_t t0 = now();
 	uint8_t lsr;
-	while (!((lsr = U_LSR) & LSR_DR))
+	while (!((lsr = uart_rd(R_LSR)) & LSR_DR))
 		if (now() - t0 > tmo)
 			return LSD_RX_TMO;
 	if ((int32_t)(now() - rx_deadline) > 0)
 		return LSD_RX_TMO;
-	*b = U_RHR;
+	*b = uart_rd(R_RHR);
 	if (lsr & LSR_ERRS) {
 		last_lsr = lsr;
 		return LSD_LSR;
@@ -587,7 +629,9 @@ int main(void)
 			txt_clear_row(r);
 		sh_net(NET_IDLE, 0);
 		txt_put(1, 0, COL_YELLOW, "mega_wifi_radar 32X spike");
-		txt_put(1, 1, COL_WHITE, "MegaWiFi Rev.C with ADEN = 1");
+		txt_put(1, 1, COL_WHITE, "build");
+		txt_put(7, 1, COL_WHITE, BUILD);
+		uart_diag(2);
 
 		r = FIRST_ROW;
 		t_adapter(r); r += 2;

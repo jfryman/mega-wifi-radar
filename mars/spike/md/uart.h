@@ -58,9 +58,17 @@
 #define R_FCR	2
 #define R_LCR	3
 #define R_MCR	4
+#define R_RHR	0
+#define R_ISR	2
+#define R_LSR	5
+#define R_MSR	6
 #define R_SPR	7
 
+extern uint8_t uart_rv_wr, uart_rv_rd;
 void uart_wr(uint8_t reg, uint8_t v);
+uint8_t uart_rd(uint8_t reg);
 int uart_tx(const uint8_t *d, uint16_t n);
+void uart_dump(uint8_t *out, uint8_t rv);
+uint8_t uart_probe(uint8_t v, uint8_t wrv, uint8_t rrv);
 
 #endif

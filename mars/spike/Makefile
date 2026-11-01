@@ -11,7 +11,8 @@ ROMSIZE = 262144
 RELAY  ?=
 RELAY_HOST = $(word 1,$(subst :, ,$(RELAY)))
 RELAY_PORT = $(or $(word 2,$(subst :, ,$(RELAY))),8080)
-RELAY_DEFS = $(if $(RELAY),-DRELAY_HOST='"$(RELAY_HOST)"' -DRELAY_PORT='"$(RELAY_PORT)"')
+RELAY_DEFS = $(if $(RELAY),-DRELAY_HOST='"$(RELAY_HOST)"' -DRELAY_PORT='"$(RELAY_PORT)"') $(if $(BUILD),-DBUILD='"$(BUILD)"')
+BUILD  ?=
 
 COMMON  = -Os -Wall -Wextra -ffreestanding -fno-builtin -fomit-frame-pointer \
           -ffunction-sections -fdata-sections -fno-asynchronous-unwind-tables
@@ -56,9 +57,9 @@ $(ROM): $(OUT)/spike.elf
 	@test $$(wc -c < $@) -le $(ROMSIZE) || { echo "spike: ROM over $(ROMSIZE) bytes" >&2; exit 1; }
 	truncate -s $(ROMSIZE) $@
 
-# RELAY is baked into md/main.o: rebuild it whenever the value changes.
+# RELAY and BUILD are baked into md/main.o: rebuild it whenever they change.
 $(OUT)/relay.stamp: FORCE | $(OUT)
-	@echo "$(RELAY)" | cmp -s - $@ 2>/dev/null || echo "$(RELAY)" > $@
+	@echo "$(RELAY) $(BUILD)" | cmp -s - $@ 2>/dev/null || echo "$(RELAY) $(BUILD)" > $@
 
 $(OUT) $(OUT)/md $(OUT)/sh:
 	mkdir -p $@

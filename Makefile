@@ -119,7 +119,7 @@ mars-image:
 
 # out/mars/spike.32x. RELAY=host:port also makes it GET /healthz from that relay.
 mars-spike:
-	scripts/mars make -C mars/spike RELAY=$(RELAY)
+	scripts/mars make -C mars/spike RELAY=$(RELAY) BUILD=$(VERSION)
 
 mars-spike-flash: mars-spike
 	$(FLASHKIT) write-rom out/mars/spike.32x
