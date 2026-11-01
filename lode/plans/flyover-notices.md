@@ -1,7 +1,7 @@
 # Plan: flyover notices (0.4.0, contract v4)
 
-**Status (2026-11-01): built and verified in the emulator and against the dev relay; waiting for the real-cart
-check and the 0.4.0 release.** How it works now: [../ui/notices.md](../ui/notices.md) (cart, contract, chime) and
+**Status (2026-11-01): done and verified on the cart by the owner; only the 0.4.0 tag (and, later, the cluster
+broker) remain.** How it works now: [../ui/notices.md](../ui/notices.md) (cart, contract, chime) and
 [../relay/relay.md](../relay/relay.md) (MQTT client, env config, ring, composer, ICAO match, `/v1/notice`).
 
 ## Goal
@@ -18,22 +18,18 @@ flowchart LR
 ## Done when
 | # | Criterion | State |
 |---|---|---|
-| 1 | Radar banner within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | emulator ✓, relay ✓, cart ✓ |
-| 2 | Cockpit: `OVERHEAD!` + a ticker along the bottom, the view never stops | emulator ✓; cart ✓ with pages, **ticker: to check** |
-| 3 | Generic chime; KBNA plays the Nashville lick; `CHIME OFF` silences it | WAV pitch check ✓ both; **owner signs off the lick by ear** |
+| 1 | Radar banner within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | ✓ cart |
+| 2 | Cockpit: `OVERHEAD!` + a ticker along the bottom, the view never stops | ✓ cart (ticker at 7 frames/char) |
+| 3 | Generic chime; KBNA plays the Nashville lick; `CHIME OFF` silences it | ✓ cart, owner approved |
 | 4 | A relay without a broker behaves as 0.3.x (apart from v4); idle polling adds no requests | ✓ (the flag rides on existing polls) |
 | 5 | `go test`, contract test + lock, `make release` + ram-check, `make sim`, cart ROM boots in MAME | ✓ |
-| 6 | Docs, manual, CHANGELOG, lode; 0.4.0 tagged | docs/manual/CHANGELOG/lode ✓; **tag: after the cart check** |
+| 6 | Docs, manual, CHANGELOG, lode; 0.4.0 tagged | docs/manual/CHANGELOG/lode ✓; **tag: to do** |
 
 ## Left to do
-1. ~~Flash the cart~~ (done: `4598aef`, CRC32 `55845B99`, with the ticker and the instrument-strip HUD). Test on it; the dev relay on the Mac already runs v4 with the
-   local broker (`make mqtt-start relay-start`). On the cart: `make mqtt-pub` → banner + chime (KBNA lick at home);
-   C on the banner; B; a notice during cockpit mode; setup CHIME OFF / ON (preview); settings survive the update
-   (the `MWR1` → `MWR2` migration).
-2. Owner listens to the KBNA lick and the generic chime; adjust notes/patches in `src/chime.c` if wanted.
-3. Production: point the relay at the cluster broker (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`, atc-mqtt's names)
+1. Tag 0.4.0 (relay and cart from the same tag; set the CHANGELOG date). Built on the cart:
+   `4598aef`, CRC32 `55845B99` (notices, ticker, instrument-strip HUD).
+2. Production: point the relay at the cluster broker (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`, atc-mqtt's names)
    when it moves into the cluster. No code change.
-4. Tag 0.4.0 (relay and cart from the same tag; CHANGELOG date).
 
 ## Decisions (2026-11-01)
 Banner at the top of the scope; the relay composes the text; one generic chime for every airport plus a KBNA

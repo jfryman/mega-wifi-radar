@@ -30,7 +30,8 @@ flowchart TD
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
   persistence, the splash, mDNS discovery and mid-session re-discovery, setup RESET and the first-boot Wi-Fi flow,
   the Wi-Fi scan + rejoin from the radar's setup, and all of 0.2.0: traffic list, ▲▼ selection, hold-C sort, ◀▶ tags,
-  the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message.
+  the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message; and of 0.4.0: flyover notices (banner, C/B, chimes incl. the KBNA lick, cockpit
+  ticker), setup CHIME, the MWR1 → MWR2 settings upgrade, the instrument-strip HUD.
 
 ## Not yet checked on hardware
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
@@ -45,7 +46,7 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 
 ## Next: 0.4.0 flyover notices
 MQTT (`atc-mqtt`) → relay → cart notices: radar banner, cockpit HUD line, generic chime + a KBNA easter egg,
-contract v4. Built and emulator-verified; left: the real-cart check, the owner's ear on the chimes, the tag
+contract v4, plus the cockpit's instrument-strip HUD. Verified on the cart; left: the tag
 ([flyover-notices.md](flyover-notices.md)).
 
 ## Open decisions / ideas
