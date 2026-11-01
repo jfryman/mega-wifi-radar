@@ -15,6 +15,7 @@
   at(4.5mm, 3.2mm, box(width: 26mm, wordmark(size: 12pt)))
   at(4.5mm, 9.4mm, banner(copy.system, size: 4.4pt, pad: 1.1mm))
   at(w - 4.5mm - 10.5mm, 1.3mm, badge(d: 10.5mm))
+  if is32x { at(w - 4.5mm - 10.5mm - 22mm, 2.6mm, mark32x(h: 8mm)) }
 
   // key art
   let (ax, ay, aw, ah) = (4.5mm, 16.5mm, w - 9mm, 47mm)

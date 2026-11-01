@@ -1,13 +1,20 @@
 #!/bin/sh
-# Capture the manual's screenshots (print/shots.txt) from the emulator build in headless MAME.
-# Writes print/shots/<name>.png (committed: CI has no MAME). Needs `make sim` first.
+# Capture the manual's screenshots from the emulator build in headless MAME (committed: CI has no MAME).
+#   scripts/print-shots         # Genesis: print/shots.txt -> print/shots/ (needs `make sim`)
+#   scripts/print-shots 32x     # 32X: print/shots-32x.txt -> print/shots-32x/ (needs `make mars-sim`, bios/32x/)
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
-[ -f out/sim.bin ] || { echo "print-shots: run make sim first" >&2; exit 1; }
-grep -vE '^\s*(#|$)' print/shots.txt | while IFS='|' read -r name at presses; do
+if [ "${1:-}" = 32x ]; then
+    LIST=print/shots-32x.txt DIR=print/shots-32x ROM=out/mars/emu/mwradar.32x SIM=scripts/mars-sim SNAP=out/snap/32x
+else
+    LIST=print/shots.txt DIR=print/shots ROM=out/sim.bin SIM=scripts/sim SNAP=out/snap/genesis
+fi
+[ -f "$ROM" ] || { echo "print-shots: build $ROM first (make sim / make mars-sim)" >&2; exit 1; }
+mkdir -p "$DIR"
+grep -vE '^\s*(#|$)' "$LIST" | while IFS='|' read -r name at presses; do
     name=$(echo "$name" | xargs); at=$(echo "$at" | xargs); presses=$(echo "$presses" | xargs)
-    SIM_PRESS="$presses" scripts/sim out/sim.bin "$at" >/dev/null
-    cp out/snap/genesis/0000.png "print/shots/$name.png"
-    echo "print-shots: print/shots/$name.png"
+    SIM_PRESS="$presses" "$SIM" "$ROM" "$at" >/dev/null
+    cp "$SNAP/0000.png" "$DIR/$name.png"
+    echo "print-shots: $DIR/$name.png"
 done

@@ -109,10 +109,32 @@ spike-voxel-run: spike-voxel
 spike-voxel-flash: spike-voxel
 	$(FLASHKIT) write-rom spike/voxel/out/rom.bin
 
-# 32X (lode/plans/32x.md): its own image (mars/Dockerfile via scripts/mars) and the MegaWiFi spike ROM.
-# The Genesis build above doesn't use any of it.
-.PHONY: mars-image mars-spike mars-spike-flash mars-spike-sim mars-clean
+# 32X ROM (lode/mars/summary.md): its own image (mars/Dockerfile via scripts/mars). The Genesis build above
+# doesn't use any of it. out/mars/cart/mwradar.32x (relay feed), out/mars/emu/mwradar.32x (recorded demo).
+.PHONY: mars mars-sim mars-sim-run mars-flash print-32x print-shots-32x mars-image mars-spike mars-spike-flash mars-spike-sim mars-clean
 RELAY ?=
+MARS_BIOS ?= $(CURDIR)/bios/32x
+
+mars: version contract
+	scripts/mars make -C mars/rom
+
+mars-sim: version
+	scripts/mars make -C mars/rom FAKE=1
+
+# Headless MAME run of the 32X demo ROM (needs your 32X BIOS dumps in bios/32x/); PNGs in out/snap/32x/.
+mars-sim-run: mars-sim
+	MARS_BIOS=$(MARS_BIOS) scripts/mars-sim out/mars/emu/mwradar.32x $(SNAP)
+
+# The 32X edition's manual screenshots (print/shots-32x.txt) from the demo ROM in MAME.
+print-shots-32x: mars-sim
+	MARS_BIOS=$(MARS_BIOS) scripts/print-shots 32x
+
+# The 32X edition's printed pieces -> out/print/32x/.
+print-32x:
+	EDITION=32x scripts/print
+
+mars-flash: mars
+	$(FLASHKIT) write-rom out/mars/cart/mwradar.32x
 
 mars-image:
 	scripts/mars --image
@@ -125,9 +147,9 @@ mars-spike-flash: mars-spike
 	$(FLASHKIT) write-rom out/mars/spike.32x
 
 # Headless MAME with the 32X BIOS dumps in bios/32x/ (git-ignored; MARS_BIOS=dir overrides, see scripts/mars-sim).
-MARS_BIOS ?= $(CURDIR)/bios/32x
 mars-spike-sim: mars-spike
 	MARS_BIOS=$(MARS_BIOS) scripts/mars-sim out/mars/spike.32x $(SNAP)
 
 mars-clean:
 	scripts/mars make -C mars/spike clean
+	rm -rf out/mars/cart out/mars/emu

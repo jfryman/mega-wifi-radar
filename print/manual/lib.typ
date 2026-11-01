@@ -8,7 +8,7 @@
   let w = if type(width) == ratio { size.width * width } else { width }
   let s = w / 320
   box(width: w, height: 224 * s, stroke: 0.8pt + ink.black, {
-    place(top + left, image("/print/shots/" + name + ".png", width: w, scaling: "pixelated"))
+    place(top + left, image(shots-dir + name + ".png", width: w, scaling: "pixelated"))
     for (n, x, y) in callouts { place(top + left, dx: x * s - 2.1mm, dy: y * s - 2.1mm, marker(n)) }
   })
 })

@@ -264,8 +264,8 @@ void rsplash_frame(void)
     scenery(now);
 
     fb_text_big(16, 14, "MEGA WIFI RADAR", 2, C_LOGO, C_SHADOW);
-    fb_rect(260, 12, 48, 20, C_BADGE);                  /* the 32X badge */
-    fb_text_big(262, 14, "32X", 2, C_LOGO, 0);
+    fb_rect(264, 12, 48, 20, C_BADGE);                  /* the 32X badge */
+    fb_text_big(266, 14, "32X", 2, C_LOGO, 0);
     fb_hline(16, 304, 34, C_LOGO2);
     fb_text(16, 38, "LIVE ATC RADAR OVER MEGAWIFI", C_LOGO2, 0);
 

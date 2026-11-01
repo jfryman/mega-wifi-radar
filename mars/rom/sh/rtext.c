@@ -26,8 +26,8 @@ void rtext_frame(void)
     for (u16 b = 0; b < 56; b++) fb_fill_rows(b * 4, 4, C_BG0 + b);
     fb_rect(0, 4, FB_W, 14, C_BAND);                /* title band behind row 1 */
     fb_hline(0, FB_W - 1, 18, C_EDGE);
-    fb_rect(0, 196, FB_W, 14, C_BAND);              /* status band behind row 25 */
-    fb_hline(0, FB_W - 1, 195, C_EDGE);
+    fb_rect(0, 199, FB_W, 10, C_BAND);              /* status band behind row 25 */
+    fb_hline(0, FB_W - 1, 198, C_EDGE);
     fb_rect(FB_W - 40, 6, 32, 10, C_RED);           /* the 32X badge */
     fb_text(FB_W - 36, 7, "32X", C_TXT(0), 0);
     for (u16 r = 0; r < TEXT_ROWS; r++) {

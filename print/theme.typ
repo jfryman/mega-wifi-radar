@@ -3,7 +3,17 @@
 // Design: lode/print/print-assets.md.
 
 #let dims = toml("dims.toml")
-#let copy = toml("copy.toml")
+// Editions: "md" (the Genesis cartridge) or "32x" (the 32X ROM, lode/mars/summary.md). copy-32x.toml overrides
+// only what differs; screenshots come from shots-32x/; the pieces add the 32X mark.
+#let edition = sys.inputs.at("edition", default: "md")
+#let is32x = edition == "32x"
+#let merge(a, b) = {
+  let r = a
+  for (k, v) in b { r.insert(k, if type(v) == dictionary and k in a { merge(a.at(k), v) } else { v }) }
+  r
+}
+#let copy = if is32x { merge(toml("copy.toml"), toml("copy-32x.toml")) } else { toml("copy.toml") }
+#let shots-dir = if is32x { "/print/shots-32x/" } else { "/print/shots/" }
 #let marks = sys.inputs.at("marks", default: "true") == "true"
 #let version = sys.inputs.at("version", default: "dev")
 
@@ -22,6 +32,7 @@
   scope-bg: rgb("#03140a"),
   cyan: rgb("#5fe8ff"),
   amber: rgb("#ffcc33"),
+  yellow: rgb("#ffd21a"),
   paper: rgb("#ffffff"),
   text: rgb("#111111"),
 )
@@ -147,3 +158,8 @@
   place(top + left, body)
   place(top + left, dx: 1mm, dy: 1mm, rect(width: w - 2mm, height: h - 2mm, stroke: 0.4pt + ink.red))
 })
+
+// The 32X edition's mark (ours, not Sega's logo): "32X" in heavy italic on a red chevron with a yellow edge.
+#let mark32x(h: 10mm) = box(height: h, skew(ax: -14deg, box(fill: ink.red, stroke: (bottom: h * 0.08 + ink.yellow,
+  top: h * 0.08 + ink.yellow), inset: (x: h * 0.28, y: h * 0.06),
+  text(..cond, weight: "black", style: "italic", size: h * 0.8, fill: ink.yellow, tracking: -0.01em, "32X"))))

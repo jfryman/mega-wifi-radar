@@ -84,7 +84,11 @@ check: $(ROM)
 $(OUT) $(OUT)/md $(OUT)/sh:
 	mkdir -p $@
 
+# devcfg.c includes the generated src/version.h and the optional src/dev_config.h, which the rules above
+# can't see appear: rebuild it every time, as the Genesis build does.
+$(OUT)/md/devcfg.o $(OUT)/sh/devcfg.o: FORCE
+
 clean:
 	rm -rf $(OUT)
 
-.PHONY: all clean check
+.PHONY: all clean check FORCE

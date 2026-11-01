@@ -15,7 +15,10 @@
   place(top + left, dy: b + u(25mm), rect(width: w + 2 * b, height: u(0.9mm), fill: ink.red, stroke: none))
   at(u(7mm), u(6mm), box(width: u(40mm), wordmark(size: 19pt * k)))
   at(u(7mm), u(17.4mm), banner(copy.system, size: 6.6pt * k))
-  at(w - u(23mm), u(4.5mm), badge(d: u(16mm)))
+  if is32x {
+    at(w - u(54mm), u(7mm), mark32x(h: u(13mm)))
+    at(w - u(23mm), u(4.5mm), badge(d: u(16mm)))
+  } else { at(w - u(23mm), u(4.5mm), badge(d: u(16mm))) }
 
   // key art window
   let (aw, ah) = (w - u(14mm), h - u(68mm))

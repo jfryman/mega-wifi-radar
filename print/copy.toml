@@ -9,6 +9,7 @@ requires = "MEGAWIFI REV.C CARTRIDGE AND A NETWORK RELAY REQUIRED"
 badge = ["LIVE", "ADS-B", "DATA"]
 tagline = "Real aircraft. Real time. On your Genesis."
 home = "KBNA"
+machine = "Genesis"                   # what the manual says draws the picture
 url = "github.com/jfryman/mega-wifi-radar"
 disclaimer = "Not for navigation. Sega, Genesis and Mega Drive are trademarks of Sega Corporation. This is an unofficial homebrew product, not made, licensed or endorsed by Sega."
 

@@ -2,12 +2,12 @@
 // two trim-size pages per side at 100%, with crop marks and a fold mark. Print duplex,
 // "flip on short edge", stack the sheets in order, fold, staple. --input paper=us-letter|a4
 // and --input pages=N (scripts/print passes both).
-#import "theme.typ": dims, bleed, cond
+#import "theme.typ": dims, bleed, cond, is32x
 
 #let paper = sys.inputs.at("paper", default: "us-letter")
 #let n = int(sys.inputs.pages)
 #let (tw, th) = (dims.manual.width * 1mm, dims.manual.height * 1mm)
-#let src = "/out/print/manual-trim.pdf"
+#let src = if is32x { "/out/print/32x/manual-trim.pdf" } else { "/out/print/manual-trim.pdf" }
 #assert(calc.rem(n, 4) == 0, message: "manual page count must be a multiple of 4")
 
 #set page(paper: paper, flipped: true, margin: 0mm)

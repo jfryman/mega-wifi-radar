@@ -65,3 +65,7 @@
 - Sega boot code - the 1040-byte 68000 security/boot code every 32X cart has at `$3F0`; fetched from pinned marsdev, never in the repo.
 - COMM registers - sixteen bytes at `$A15120` (68k) / `$20004020` (SH-2) both sides read and write; the spike gives each one writer.
 - mwradar-mars - the 32X build image (`mars/Dockerfile`, `scripts/mars`), separate from `mwradar-sgdk`.
+- I/O processor - the 32X ROM's 68000: it serves the slave SH-2's RPCs with the Genesis feed/net code (`mars/rom/md/`).
+- Shared memory - section `.shared`, linked at the cache-through alias `$2603xxxx`, for state both SH-2s touch.
+- View - what the master SH-2 draws (`enum view`: splash, radar, text, cockpit), switched by the slave's `view_set()`.
+- Edition - the printed set's variant: `md` (Genesis) or `32x` (`EDITION=32x scripts/print`, `print/copy-32x.toml`).

@@ -22,9 +22,13 @@ before the next block. A message is a 2-byte length then the bytes, padded to wh
 ```c
 /* SH-2 -> 68000, one block (sh/link.c) */
 COMM(2) = w0; COMM(4) = w1; COMM(6) = w2;
-seq = (COMM(8) & 0xFF) + 1;  COMM(0) = seq;        /* 68000's ack + 1 */
-while ((COMM(8) & 0xFF) != seq) idle();            /* acked */
+was = COMM(8) & 0xFF;  COMM(0) = was + 1;          /* 68000's ack + 1 */
+while ((COMM(8) & 0xFF) == was) idle();            /* acked: it moved */
 ```
+**A writer waits for the ack to move off its previous value, not to equal its sequence**: the reader may ack the
+last block of a message and start the next message at once, so an exact match can be missed for good (seen in
+MAME: the slave stalled sending its settings).
+
 ~6 register accesses per block: tens of KB/s, well above the UART's real rate (the Genesis measured ~13 KB/s for
 terrain).
 

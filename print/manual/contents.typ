@@ -9,7 +9,7 @@
 #v(4mm)
 == What you will need
 
-- A Sega Genesis or Mega Drive (Model 1 shown in this manual).
+- A Sega Genesis or Mega Drive (Model 1 shown in this manual)#if is32x [ with a *Sega 32X* attached].
 - This cartridge: a MegaWiFi Rev.C, running Wi-Fi firmware *rev-c-1250k*.
 - A 2.4 GHz Wi-Fi network (WPA2). The cartridge can't see 5 GHz-only networks.
 - A *relay* running on a computer on the same network. The cartridge finds it by itself. See

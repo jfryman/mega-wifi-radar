@@ -1,0 +1,26 @@
+# The 32X edition's copy: only what differs from copy.toml (theme.typ merges them).
+
+system = "32-BIT WI-FI CARTRIDGE"
+platform = "FOR USE WITH THE SEGA 32X ON SEGA GENESIS AND MEGA DRIVE SYSTEMS"
+requires = "MEGAWIFI REV.C CARTRIDGE, 32X AND A NETWORK RELAY REQUIRED"
+tagline = "Real aircraft. Real time. Now in 32,768 colours."
+machine = "32X"
+
+[back]
+pitch = "Two 32-bit processors take over the scope: a smooth phosphor sweep, glowing targets and a cockpit view that flies over real terrain with haze and a moving horizon. Real aircraft around your home airport arrive live over Wi-Fi."
+features = [
+  "Live ADS-B traffic up to 100 nm from any of 1,143 airports",
+  "A 256-colour scope: long phosphor afterglow, glowing blips, leader-lined tags",
+  "Cockpit view in full 32X colour, with haze and a heading tape",
+  "Tap C for everything about an aircraft: type, operator, altitude, squawk",
+  "Classic green phosphor or a modern STARS display",
+  "Shares its Wi-Fi and settings with the Genesis edition",
+]
+captions = ["LIVE TRAFFIC", "COCKPIT VIEW", "STARS DISPLAY"]
+shots = ["radar", "cockpit", "stars"]
+need = [
+  "Sega Genesis or Mega Drive with a Sega 32X",
+  "MegaWiFi Rev.C cartridge (firmware rev-c-1250k)",
+  "A 2.4 GHz Wi-Fi network",
+  "The relay, running on a computer on your network",
+]

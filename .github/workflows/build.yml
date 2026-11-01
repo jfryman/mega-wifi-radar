@@ -69,8 +69,8 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  # 32X toolchain (mars/Dockerfile, its own GHCR image) and the MegaWiFi spike ROM (lode/plans/32x.md).
-  # Not part of releases yet.
+  # 32X ROMs (lode/mars/summary.md): its own toolchain image (mars/Dockerfile, cached in GHCR), the cart and
+  # emulator ROMs (released with the Genesis ones), and the MegaWiFi spike ROM (artifact only).
   mars:
     runs-on: ubuntu-latest
     permissions:
@@ -78,6 +78,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # git describe needs tags
 
       - name: Log in to GHCR
         if: env.PUSH == 'true'
@@ -101,16 +103,29 @@ jobs:
             fi
           fi
 
-      - name: Build the 32X spike ROM
+      - name: Build the 32X ROMs
         run: |
+          test ! -e src/dev_config.h
+          make mars-sim
+          make mars
           make mars-spike
-          mkdir dist && cp out/mars/spike.32x dist/mega-wifi-radar-32x-spike.32x
-          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          V=$(git describe --tags --always)
+          mkdir dist spike
+          cp out/mars/cart/mwradar.32x "dist/mega-wifi-radar-$V-32x.32x"
+          cp out/mars/emu/mwradar.32x "dist/mega-wifi-radar-$V-32x-emu.32x"
+          cp out/mars/spike.32x spike/mega-wifi-radar-32x-spike.32x
+          (cd dist && sha256sum *.32x > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mars
+          path: dist/
+          if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         with:
           name: mars-spike
-          path: dist/
+          path: spike/
           if-no-files-found: error
 
   relay:
@@ -178,6 +193,10 @@ jobs:
           cp out/print/cover-a4.pdf "dist/mega-wifi-radar-$V-cover-a4.pdf"
           cp out/print/manual-booklet-us-letter.pdf "dist/mega-wifi-radar-$V-manual-booklet-letter.pdf"
           cp out/print/manual-booklet-a4.pdf "dist/mega-wifi-radar-$V-manual-booklet-a4.pdf"
+          EDITION=32x scripts/print           # the 32X edition (lode/print/print-assets.md)
+          for f in label cover cover-a4 manual manual-booklet-us-letter manual-booklet-a4; do
+            cp "out/print/32x/$f.pdf" "dist/mega-wifi-radar-$V-32x-$f.pdf"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -187,7 +206,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [rom, relay, print]
+    needs: [rom, mars, relay, print]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -197,6 +216,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: roms
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mars
           path: dist
 
       - uses: actions/download-artifact@v4
@@ -215,6 +239,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          (cd dist && sha256sum *.bin *.pdf > SHA256SUMS)
+          (cd dist && sha256sum *.bin *.32x *.pdf > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --notes-file notes.md

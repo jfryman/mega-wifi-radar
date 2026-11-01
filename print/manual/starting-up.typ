@@ -9,10 +9,11 @@
 #align(center, model1-front(88mm, callouts: ((1, 106, 23),)))
 #v(2mm)
 
-#step(1, [Set up your Genesis system], [as described in its instruction manual. Plug Control Pad 1
-  into the port marked *CONTROL 1* on the front of the console.])
+#step(1, [Set up your Genesis system], [as described in its instruction manual#if is32x [, with the 32X
+  attached and connected as its manual shows]. Plug Control Pad 1 into the port marked *CONTROL 1* on the
+  front of the console.])
 #v(1mm)
-#step(2, [Make sure the power switch is OFF.], [Then insert the cartridge into the slot, label facing
+#step(2, [Make sure the power switch is OFF.], [Then insert the cartridge into the #if is32x [32X's ] else [] slot, label facing
   toward you, and press it down firmly until it's seated.])
 #v(1mm)
 #step(3, [Turn the power switch ON.], [Your flight, *MEGA 787*, appears at the gate. Follow its

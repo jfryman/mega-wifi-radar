@@ -1,5 +1,13 @@
 ## 0.3.1 (Unreleased)
 
+FEATURES:
+
+  * **32x:** a 32X edition of the cartridge ROM. The same radar, details, list, setup and cockpit view, drawn
+    by the 32X in 256 colours: a long phosphor afterglow, glowing targets, leader-lined tags, a dawn departure
+    while it connects, and a cockpit view with haze, a banking sky and a heading tape. It shares Wi-Fi and
+    settings with the Genesis edition. Release files: `*-32x.32x` (cartridge) and `*-32x-emu.32x` (recorded
+    demo for emulators), plus a 32X label, cover and manual (`*-32x-*.pdf`).
+
 ## 0.3.0 (October 31, 2026)
 
 BACKWARDS INCOMPATIBILITIES:

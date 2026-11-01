@@ -45,6 +45,14 @@ flowchart LR
 - The manual follows the structure of early Sega manuals, written in our own words: Starting Up
   (Model 1, numbered steps), Take Control!, the feature pages, Handling This Cartridge, warnings, and Notes pages as padding.
 
+## The 32X edition
+`EDITION=32x scripts/print` (`make print-32x`) builds the same pieces into `out/print/32x/`. `theme.typ` merges
+`copy-32x.toml` over `copy.toml` (only what differs: system line, platform, requirements, tagline, back pitch /
+features / captions / shots, `machine = "32X"`), takes screenshots from `print/shots-32x/` (`make print-shots-32x`:
+`print/shots-32x.txt` through `scripts/mars-sim`), and the front, back, spine and label add `mark32x()`: our own
+"32X" in yellow on a red chevron (not Sega's logo). The manual adds `manual/edition32x.typ` and switches a few
+lines with `is32x` (starting up, cockpit, credits). CI builds both editions; releases carry `-32x-*.pdf`.
+
 ## Contracts
 - Every page builds on a **print box** (`theme.printed`): the page is the trim size plus bleed plus a 9 mm slug
   that carries the crop marks. `--input marks=false` drops the slug (the booklet input and the previews use this).

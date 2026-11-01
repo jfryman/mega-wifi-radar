@@ -1,0 +1,11 @@
+# The 32X edition's screenshots, from its emulator ROM (make print-shots-32x; needs MAME and bios/32x/).
+# name | snapshot time (emulated s) | presses, as print/shots.txt
+radar    | 19 | 15:P1 Down,15.4:P1 Down,15.8:P1 Down
+popup    | 19 | 15:P1 Down,15.4:P1 Down,15.8:P1 Down,16.4:P1 C
+cockpit  | 36 | 18:P1 Down,18.5:P1 Down,19:P1 Down,19.5:P1 Down,20:P1 Down,20.5:P1 Down,21:P1 Down,23:P1 C,26:P1 A
+setup    | 17 | 15:P1 Start
+stars    | 22 | 15:P1 Start,16:P1 Right,17:P1 Start
+zoom     | 19 | 15:P1 A,16:P1 A
+keyboard | 20 | 15:P1 Start,16:P1 Down,16.5:P1 Down,17:P1 Down,17.5:P1 Down,18:P1 Down,18.5:P1 A
+boot-taxi    | 2.6 |
+boot-takeoff | 6.4 |

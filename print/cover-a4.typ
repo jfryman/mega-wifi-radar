@@ -12,7 +12,7 @@
 
 #set page(width: pw, height: ph, margin: 0mm, background: {
   place(top + left, dx: ox - bleed, dy: oy - bleed,
-    image("/out/print/cover-trim.pdf", width: w + 2 * bleed, height: h + 2 * bleed))
+    image(if is32x { "/out/print/32x/cover-trim.pdf" } else { "/out/print/cover-trim.pdf" }, width: w + 2 * bleed, height: h + 2 * bleed))
   let st = 0.3pt + black
   let len = oy - bleed - 3mm
   for x in (0mm, fw, fw + sp, w) {

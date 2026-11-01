@@ -7,8 +7,8 @@
 
 #let (w, h) = size-of("manual")
 #let sections = (
-  "handling", "contents", "starting-up", "controls", "relay", "setup", "scope", "details", "cockpit", "themes",
-  "troubleshooting", "credits",
+  "handling", "contents", "starting-up", ..if is32x { ("edition32x",) } else { () }, "controls", "relay", "setup",
+  "scope", "details", "cockpit", "themes", "troubleshooting", "credits",
 )
 
 #let back-art(w, h) = {

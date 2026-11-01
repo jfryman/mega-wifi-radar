@@ -6,7 +6,7 @@
 // A screenshot in a white frame, its caption on a red banner over the bottom-left corner.
 #let framed-shot(name, w, caption, k) = box(width: w, height: w * 224 / 320 + 3mm * k, {
   place(top + left, box(width: w, height: w * 224 / 320, stroke: 1.1pt + ink.white, clip: true,
-    image("/print/shots/" + name + ".png", width: w, scaling: "pixelated")))
+    image(shots-dir + name + ".png", width: w, scaling: "pixelated")))
   place(top + left, dx: -1.5mm * k, dy: w * 224 / 320 - 2.2mm * k, banner(caption, size: 6pt * k))
 })
 
@@ -23,6 +23,7 @@
   place(top + left, dy: b + u(25mm), rect(width: w + 2 * b, height: u(0.9mm), fill: ink.red, stroke: none))
   at(u(7mm), u(4.5mm), box(width: u(30mm), wordmark(size: 13pt * k)))
   at(u(7mm), u(11mm), title-lockup(size: 30pt * k, sub: false))
+  if is32x { at(w - u(7mm) - u(56mm) - u(26mm), u(9mm), mark32x(h: u(11mm))) }
   at(w - u(7mm) - u(56mm), u(9mm), box(width: u(56mm), align(right, {
     banner(copy.system, size: 6.2pt * k)
     v(u(1.5mm))
@@ -95,6 +96,7 @@
       title-lockup(size: 34pt * k, sub: false),
       h(16mm * k),
       banner(copy.system, size: 6.4pt * k),
+      ..if is32x { (h(4mm * k), mark32x(h: 12mm * k)) } else { () },
     )))))
   })
 }

@@ -6,6 +6,7 @@
   text(..cond, weight: "bold")[PROGRAM & DESIGN], [James Fryman],
   text(..cond, weight: "bold")[CARTRIDGE], [MegaWiFi by doragasu, Rev.C board by James Fryman],
   text(..cond, weight: "bold")[DEVELOPMENT KIT], [SGDK by Stephane Dallongeville],
+  ..if is32x { (text(..cond, weight: "bold")[32X START-UP], [after Chilly Willy's and marsdev's (andwn)]) } else { () },
   text(..cond, weight: "bold")[TRAFFIC DATA], [adsb.fi open data, from volunteer ADS-B receivers],
   text(..cond, weight: "bold")[AIRPORTS], [OurAirports (public domain)],
   text(..cond, weight: "bold")[ELEVATION], [AWS Terrain Tiles (Mapzen / Tilezen), from the sources below],

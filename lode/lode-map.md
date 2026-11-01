@@ -17,6 +17,10 @@
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
+- mars/
+  - [summary.md](mars/summary.md) - 32X ROM architecture: 68000 I/O processor, slave SH-2 app (shared src/), master SH-2 renderer; compat layers, shared memory, make targets
+  - [link.md](mars/link.md) - COMM-register RPC link 68000 <-> slave: blocks, ack rule, commands
+  - [renderer.md](mars/renderer.md) - master SH-2 views: splash, radar, text, Voxel Space cockpit; palettes, fill-page rule, camera
 - relay/
   - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery
 - ui/

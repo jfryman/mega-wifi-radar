@@ -1,7 +1,10 @@
 # 32X build (toolchain, spike ROM, CI)
 
 The 32X work builds in its own image, `mwradar-mars:<hash>`, kept apart from the Genesis image so the
-Genesis build, its hash and its CI cache are untouched. Plan and status: [../plans/32x.md](../plans/32x.md).
+Genesis build, its hash and its CI cache are untouched. It also carries SGDK's MegaWiFi driver sources
+(`comm.c`, `lsd.c`, `megawifi.c` + headers in `$MARS_MW`, same SGDK pin and `sgdk/patches/` as the Genesis image:
+the hash covers `mars/Dockerfile` and `sgdk/patches/`, and the build context is the repo root). The product ROM is
+`mars/rom/` ([../mars/summary.md](../mars/summary.md)); this file also covers the spike. Plan and status: [../plans/32x.md](../plans/32x.md).
 Genesis image: [container-build.md](container-build.md). CI overall: [ci-release.md](ci-release.md).
 
 ```mermaid

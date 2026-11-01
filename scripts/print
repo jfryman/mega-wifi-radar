@@ -3,6 +3,7 @@
 #   scripts/print                 # all pieces -> out/print/*.pdf + previews out/print/*.png
 #   scripts/print cover           # one piece (label, cover, manual); the cover also makes cover-a4.pdf
 #   scripts/print watch cover     # rebuild on change (marks off)
+#   EDITION=32x scripts/print     # the 32X edition (print/copy-32x.toml, print/shots-32x/) -> out/print/32x/
 # Fonts come only from print/fonts (--ignore-system-fonts), so output matches on every machine.
 set -eu
 
@@ -11,7 +12,9 @@ CTR=${CTR:-$(command -v podman || command -v docker || true)}
 [ -n "$CTR" ] || { echo "print: need podman or docker on PATH" >&2; exit 1; }
 IMAGE=ghcr.io/typst/typst:0.15.1@sha256:032e292249bcd378480cc7c142cfa324b63ef8aadeb88d7e7230320c4c9c422f
 VERSION=${VERSION:-$(cd "$ROOT" && git describe --tags --always --dirty 2>/dev/null || echo dev)}
+EDITION=${EDITION:-md}
 OUT=out/print
+[ "$EDITION" = md ] || OUT=out/print/$EDITION
 mkdir -p "$ROOT/$OUT"
 
 case "$(basename "$CTR")" in
@@ -23,7 +26,7 @@ typst() {
     # shellcheck disable=SC2086
     "$CTR" run --rm $USEROPT -v "$ROOT:/work" -w /work "$IMAGE" "$@" \
         --root /work --font-path /work/print/fonts --ignore-system-fonts \
-        --input "version=$VERSION"
+        --input "version=$VERSION" --input "edition=$EDITION"
 }
 
 piece() {   # piece <name>
