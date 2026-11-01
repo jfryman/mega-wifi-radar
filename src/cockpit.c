@@ -10,7 +10,9 @@
 #include "chime.h"
 #include "feed.h"
 #include "fmt.h"
+#include "geo.h"
 #include "notice.h"
+#include "settings.h"
 #include "voxel.h"
 
 #define TRACK_FRAMES    120                 /* a track every 2 s */
@@ -22,6 +24,8 @@
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
 #define HUD_COL         1
 #define HUD_W           38                  /* HUD text columns (1..38) */
+#define ROW_BACK        24                  /* "B  BACK TO RADAR" + fps */
+#define ROW_CREDIT      26                  /* the elevation credit; exit messages and the flyover ticker borrow it */
 #define TICKER_FRAMES   7                   /* a flyover notice scrolls a character every 7 frames: ~8.5 a second */
 #define CREDIT          "ELEVATION DATA: AWS TERRAIN TILES"     /* attribution, as the radar credits adsb.fi */
 
@@ -47,8 +51,11 @@ static const struct ar_notice *nt;          /* the notice on the HUD */
 static u16 nt_id;
 static u32 nt_at;
 static s16 nt_pos;                          /* ticker: characters scrolled in; -1 before the first */
+static s32 home_e, home_n;                  /* the patch centre, metres east / north of home */
+static char ident[16];                      /* "B737  SOUTHWEST" from /v1/detail, after the callsign */
 
-/* ------------------------------------------------------------ HUD (window plane, rows 16-27) */
+/* ------------------------------------------------------------ HUD (window plane, rows 16-27): ident 17, rule 18,
+ * the instrument strip 19-20, from home 22, B / fps 24, credit 26 */
 
 static void hud_text(u16 row, const char *s)
 {
@@ -65,10 +72,10 @@ static bool riding(void) { return (nt->nflags & AR_N_ICAO) && !memcmp(nt->icao, 
 
 static void hud_status(u8 st)
 {
-    static const char *const text[] = { "LIVE        ", "NO SIGNAL   ", "TERRAIN...  ", "SIGNAL LOST " };
+    static const char *const text[] = { "LIVE       ", "NO SIGNAL  ", "TERRAIN... ", "SIGNAL LOST" };
     status = st;
     VDP_setTextPalette(st == ST_LIVE && !nt ? PAL1 : PAL3);
-    VDP_drawText(st == ST_LIVE && nt ? (riding() ? "OVER HOME!  " : "OVERHEAD!   ") : text[st], 27, 17);
+    VDP_drawText(st == ST_LIVE && nt ? (riding() ? "OVER HOME! " : "OVERHEAD!  ") : text[st], 28, 17);  /* cols 28-38 */
     VDP_setTextPalette(PAL1);
 }
 
@@ -105,7 +112,7 @@ static void hud_notice(void)
     if (pos >= (s16)(len + HUD_W)) {         /* all the way across: done */
         notice_done();
         nt = NULL;
-        hud_text(25, CREDIT);
+        hud_text(ROW_CREDIT, CREDIT);
         hud_status(status);
         return;
     }
@@ -115,41 +122,138 @@ static void hud_notice(void)
     }
     row[HUD_W] = 0;
     VDP_setTextPalette(PAL3);
-    VDP_drawText(row, HUD_COL, 25);
+    VDP_drawText(row, HUD_COL, ROW_CREDIT);
     VDP_setTextPalette(PAL1);
 }
 
-/* One line per call (part 0-3): text costs render time, so it's spread over frames. */
+/* Right-justify s in w columns at dst; returns the end. */
+static char *field(char *dst, const char *s, u16 w)
+{
+    u16 n = strlen(s);
+    if (n > w) n = w;
+    memset(dst, ' ', w - n);
+    memcpy(dst + w - n, s, n);
+    return dst + w;
+}
+
+/* The patch centre's offset from home, once per patch: its key starts "lat,lon," (5 decimals). */
+static s32 key_deg(const char **p)
+{
+    const char *s = *p;
+    bool neg = *s == '-', dot = FALSE;
+    s32 v = 0;
+    u16 frac = 0;
+
+    if (neg) s++;
+    for (; *s && *s != ','; s++) {
+        if (*s == '.') { dot = TRUE; continue; }
+        if (dot && frac++ == 5) break;
+        v = v * 10 + (*s - '0');
+    }
+    while (frac < 5) { v *= 10; frac++; }
+    while (*s && *s != ',') s++;
+    if (*s) s++;
+    *p = s;
+    return neg ? -v : v;                    /* 1e-5 degrees */
+}
+
+static void home_offset(void)
+{
+    static const u16 cos_tab[10] = { 1024, 1008, 962, 887, 784, 658, 512, 350, 178, 0 };    /* x 1024, per 10 deg */
+    const char *p = hdr.key;
+    s32 lat = key_deg(&p), lon = key_deg(&p);
+    u16 deg = abs(lat) / 100000, i = deg / 10;
+    s32 c = i >= 9 ? 0 : cos_tab[i] - (s32)(cos_tab[i] - cos_tab[i + 1]) * (deg % 10) / 10;
+
+    home_n = (lat - settings.lat_e4 * 10) * 1113 / 1000;           /* 1e-5 deg of latitude ~ 1.113 m */
+    home_e = (lon - settings.lon_e4 * 10) * 1113 / 1000 * c / 1024;
+}
+
+/* Metres east (or north) of home for a camera coordinate (16.16 cells from the patch's SW corner). */
+static s32 from_home(s32 cells, s32 centre)
+{
+    s32 m = ((cells >> 16) - AR_TN / 2) * hdr.cell_m + ((((cells >> 8) & 0xFF) * hdr.cell_m) >> 8);
+    return centre + m;
+}
+
+/* 1/32 nm (the radar's unit), clamped */
+static s16 nm32(s32 m)
+{
+    s32 v = m * 32 / 1852;
+    return v > 32767 ? 32767 : v < -32767 ? -32767 : v;
+}
+
+/* The fixed parts of the HUD: drawn once. */
+static void hud_frame(void)
+{
+    char s[HUD_W + 1];
+
+    VDP_setTextPalette(PAL2);
+    memset(s, '-', HUD_W);
+    s[HUD_W] = 0;
+    VDP_drawText(s, HUD_COL, 18);
+    char *e = field(s, "ALT FT", 9);
+    *e++ = ' '; e = field(e, "GS KT", 7);
+    *e++ = ' '; e = field(e, "VS FPM", 8);
+    *e++ = ' '; e = field(e, "HDG", 5);
+    *e++ = ' '; e = field(e, "BANK", 5);
+    *e = 0;
+    VDP_drawText(s, HUD_COL, 19);
+    sprintf(s, "FROM %-4s   BRG       DIST", settings.icao);
+    hud_text(22, s);
+    VDP_setTextPalette(PAL1);
+    hud_text(ROW_BACK, "B  BACK TO RADAR");
+}
+
+/* One row per call (part 0-3): text costs render time, so it's spread over frames. */
 static void hud(u16 part)
 {
-    char s[48], a[16], b[16];
+    char s[HUD_W + 1], a[16], b[16];
+    char *e;
 
     switch (part) {
-    case 0: {
+    case 0: {                               /* identity: callsign (cyan, amber in an emergency), type, operator */
         char cs[9];
         memcpy(cs, trk.cs, 8);
         cs[8] = 0;
-        VDP_setTextPalette(PAL2);
+        VDP_setTextPalette((trk.kflags & AR_K_EMERG) ? PAL3 : PAL2);
         VDP_drawText(cs, HUD_COL, 17);
         VDP_setTextPalette(PAL1);
+        VDP_drawText(ident, HUD_COL + 10, 17);
         break;
     }
-    case 1:
-        if (trk.kflags & AR_K_GROUND) strcpy(a, "GROUND");
+    case 1:                                 /* the instrument strip's values, under their labels */
+        if (trk.kflags & AR_K_GROUND) strcpy(a, "GND");
         else if (trk.kflags & AR_K_ALT_UNK) strcpy(a, "--");
-        else { fmt_thousands(b, (s32)trk.alt * 25); sprintf(a, "%s FT", b); }
-        sprintf(s, "ALT %-12s GS %u KT", a, trk.gs);
-        hud_text(19, s);
-        break;
-    case 2:
+        else fmt_thousands(a, (s32)trk.alt * 25);
+        e = field(s, a, 9);
+        sprintf(a, "%u", trk.gs);
+        *e++ = ' '; e = field(e, a, 7);
         fmt_thousands(b, trk.vrate);
-        sprintf(s, "VS %s%-9s HDG %03u   BANK %c%u", trk.vrate > 0 ? "+" : "", b,
-                (u16)(((u32)cam.heading * 360 + 32768) >> 16), cam.bank < 0 ? 'L' : 'R', abs(cam.bank));
-        hud_text(21, s);
+        sprintf(a, "%s%s", trk.vrate > 0 ? "+" : "", b);
+        *e++ = ' '; e = field(e, a, 8);
+        sprintf(a, "%03u", (u16)(((u32)cam.heading * 360 + 32768) >> 16));
+        *e++ = ' '; e = field(e, a, 5);
+        if (cam.bank) sprintf(a, "%c%u", cam.bank < 0 ? 'L' : 'R', abs(cam.bank));
+        else strcpy(a, "0");
+        *e++ = ' '; e = field(e, a, 5);
+        *e = 0;
+        VDP_drawText(s, HUD_COL, 20);
         break;
+    case 2: {                               /* bearing and distance from home */
+        s16 x = nm32(from_home(cam.x, home_e)), y = nm32(from_home(cam.y, home_n));
+        u16 d10 = ((u32)isqrt32((u32)((s32)x * x) + (u32)((s32)y * y)) * 10) >> 5;
+        sprintf(a, "%03u", ((u16)geo_angle(x, y) * 45 + 16) >> 5);
+        VDP_drawText(a, HUD_COL + 16, 22);
+        sprintf(b, "%u.%u NM", d10 / 10, d10 % 10);
+        field(s, b, 10);
+        s[10] = 0;
+        VDP_drawText(s, HUD_COL + 27, 22);
+        break;
+    }
     default:
         sprintf(s, "%2u.%u FPS", fps10 / 10, fps10 % 10);
-        VDP_drawText(s, 30, 23);            /* right of "B  BACK TO RADAR" */
+        VDP_drawText(s, 30, ROW_BACK);            /* right of "B  BACK TO RADAR" */
         break;
     }
 }
@@ -168,10 +272,25 @@ static bool load_terrain(void)
     if (ok) {
         hdr = nh;
         wx = wy = 0;                        /* a new grid: its cells 0..127 */
+        home_offset();
     }
     PAL_setColors(PAL0 * 16, hdr.pal, 16, CPU);
     voxel_patch(&hdr);
     return ok;
+}
+
+/* Type and operator for the HUD (one /v1/detail on entry): "B737  SOUTHWEST", the operator's first word. */
+static void identify(void)
+{
+    const struct ar_detail *d;
+    u16 n = 0;
+
+    memset(ident, ' ', sizeof(ident) - 1);
+    ident[sizeof(ident) - 1] = 0;
+    if (feed_detail(icao, &d) != FEED_OK || !(d->dflags & AR_D_FOUND)) return;
+    for (u16 i = 0; i < 4 && d->type[i] != ' '; i++) ident[n++] = d->type[i];
+    n = 6;
+    for (u16 i = 0; i < 9 && d->owner[i] != ' '; i++) ident[n++] = d->owner[i];
 }
 
 /* Fetch a fix and steer the camera onto it; snap puts it there at once (a new patch, or the first fix). */
@@ -277,7 +396,7 @@ static void wait_release(void)
 
 static void message(const char *s)
 {
-    hud_text(25, s);
+    hud_text(ROW_CREDIT, s);
     for (u16 i = 0; i < 120; i++) SYS_doVBlankProcess();
 }
 
@@ -299,8 +418,9 @@ void cockpit_run(const u8 icao_in[3])
     PAL_setColor(PAL1 * 16 + 15, 0xEEE);    /* HUD white, callsign cyan, warnings amber */
     PAL_setColor(PAL2 * 16 + 15, 0xEE0);
     PAL_setColor(PAL3 * 16 + 15, 0x0AE);
-    hud_text(23, "B  BACK TO RADAR");
-    hud_text(25, CREDIT);
+    hud_frame();
+    hud_text(ROW_CREDIT, CREDIT);
+    identify();
     wait_release();
 
     if (!load_terrain()) {

@@ -85,7 +85,8 @@ console flies the camera smoothly in between, banking and pitching with the airc
 ahead of it as it goes. Entering takes a few seconds while the first patch loads; after that the view only pauses
 for a moment while an update loads, and for a few seconds if the aircraft climbs or descends far enough to need a
 patch at a new scale. The bottom of the screen shows the
-callsign, altitude, ground speed, vertical speed, heading and bank. `NO SIGNAL` means updates have stopped; after
+callsign, type and operator, then an instrument strip (altitude in feet, ground speed in knots, vertical speed in
+ft/min, heading, bank) and the aircraft's bearing and distance from your home airport. `NO SIGNAL` means updates have stopped; after
 20 seconds without one the cart goes back to the radar. B goes back at any time, with the aircraft still
 selected. Colours come from the terrain's height (water, low ground, forest, high ground, snow), not imagery.
 

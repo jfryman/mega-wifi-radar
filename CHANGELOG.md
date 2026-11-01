@@ -24,7 +24,10 @@ FEATURES:
 
 IMPROVEMENTS:
 
-  * **print:** the manual has a *Flyover Notices* page, and the setup page covers CHIME.
+  * **cockpit:** a tidier HUD: the aircraft's type and operator next to its callsign, an instrument strip
+    (altitude, ground speed, vertical speed, heading, bank) in fixed columns so the numbers don't jump around, and
+    its bearing and distance from your home airport.
+  * **print:** the manual has a *Flyover Notices* page, the setup page covers CHIME, and the cockpit page shows the new HUD.
   * **dev:** `make mqtt-start` runs a local MQTT broker the dev relay uses by itself; `make mqtt-pub`
     publishes a sample flyover. `scripts/sim` can record the sound (`SIM_WAV`).
 

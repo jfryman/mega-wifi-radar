@@ -34,7 +34,7 @@ sequenceDiagram
   (`main.c` takes B before zoom); C selects the banner's aircraft and opens the detail pop-up, which takes the
   window over and ends the banner. Pending notices wait while the pop-up is open, up to `WAIT_SECS` (30).
   Cockpit entry closes the banner; setup drops any notice.
-- **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), and a **ticker** on row 25 (the credit
+- **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), and a **ticker** on row 26 (the credit
   row, amber): the three lines joined (space runs squeezed, three spaces between lines) scroll in from the right and
   across once, then the credit comes back (`secs` doesn't apply: a pass takes (len + 38) × 7 / 60 s, ~10 s). The window
   plane can't scroll, so it steps a character every `TICKER_FRAMES` (7, ~8.5 a second; 5 was a bit fast on the cart) by `vtimer`: even speed at 16-22 fps, and

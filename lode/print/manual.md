@@ -21,7 +21,7 @@ flowchart LR
 | 9–10 | setup | `setup` shot + 7 keys (THEME/RANGE/TAGS/CHIME, CONTROLS, RESET), `keyboard` shot, persistence, airport count |
 | 11–12 | scope | `radar` shot + 7 keys (traffic list, theme/tags/data), tag colours table, stale/drop |
 | 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
-| 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, callsign/status, altitude, movement, credit), "what you're seeing" note |
+| 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
 | 15 | notices | `notice` shot (75%, callouts staggered into the banner's empty columns) + 4 keys, chime + cockpit line |
 | 16 | themes | Classic + STARS shots |
 | 17 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |

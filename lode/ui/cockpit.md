@@ -102,10 +102,24 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
   elapsed time. No good fix for 20 s: `SIGNAL LOST`, back to the radar.
 
 ## HUD (window rows 16-27)
-Row 17 callsign (PAL2 cyan) + status (`LIVE`, amber `NO SIGNAL` / `TERRAIN...` / `SIGNAL LOST`); 19 altitude, ground
-speed; 21 vertical speed, heading, bank; 23 `B  BACK TO RADAR` + fps (col 30); 25 the elevation credit
-(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages and a flyover notice's ticker borrow it, then
-it comes back). One line per frame. On return, the radar selects the same aircraft once the first poll has it.
+An instrument strip: fixed columns, values right-aligned under their labels so digits never shift; labels cyan,
+values white (owner's choice, 2026-11-01).
+```
+17  SWA692    B38M  SOUTHWEST  LIVE       callsign cyan (amber if AR_K_EMERG), ident, status at col 28 (11 chars)
+18  --------------------------------------   cyan rule
+19     ALT FT   GS KT   VS FPM   HDG  BANK   cyan labels: fields 9, 7, 8, 5, 5 + single spaces = 38 cols
+20      7,850     263   -1,280   018     0   white values (GND / -- for altitude, L12 / R12 / 0 bank)
+22  FROM KBNA   BRG 100   DIST      5.6 NM   labels cyan, values white
+24  B  BACK TO RADAR              16.0 FPS
+26  ELEVATION DATA: AWS TERRAIN TILES        required attribution; exit messages and the flyover ticker borrow it
+```
+- Static parts (`hud_frame`: rule, labels, FROM/BRG/DIST labels, B) are drawn once; `hud(part)` redraws one dynamic row
+  per frame (ident, values, distance, fps). `field()` right-justifies (SGDK's `sprintf` width isn't relied on).
+- **Ident** (`identify`): one `/v1/detail` on entry: ICAO type + the operator's first word (≤ 9). Blank if unknown.
+- **From home**: `home_offset()` per patch parses the key's centre (`"lat,lon,..."`, 1e-5 deg) against
+  `settings.lat_e4/lon_e4` (flat earth: 1.113 m per 1e-5 deg, longitude × a 10-entry cos table); `from_home()` adds
+  the camera's cells × `cell_m`; bearing = `geo_angle` and distance = `isqrt32` in the radar's 1/32 nm. No relay change.
+- On return, the radar selects the same aircraft once the first poll has it.
 A flyover notice ([notices.md](notices.md)) is fetched in a strip's slot and shows `OVERHEAD!` in the status slot;
 the cockpit loop also runs `chime_tick()`.
 
