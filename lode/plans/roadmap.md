@@ -20,8 +20,8 @@ flowchart TD
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
   **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
   reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
-- **The cart** holds the 32X MegaWiFi spike ROM (`out/mars/spike.32x`, branch `32x`, CRC32 `7B0B94CE`, `RELAY=10.0.0.20:8080`):
-  the build whose UART writes set RV = 1, for the second go/no-go run on the tower ([32x.md](32x.md)). `make flash` puts the radar back.
+- **The cart** holds the 32X MegaWiFi spike ROM (`out/mars/spike.32x`, branch `32x`, CRC32 `449DFB82`, build `v0.3.0-3-g2e4b8fb`, `RELAY=10.0.0.20:8080`):
+  the RV probe build (rows 2-4 show which RV setting lets UART reads/writes through) for the third run on the tower ([32x.md](32x.md)). `make flash` puts the radar back.
   Settings and Wi-Fi live on the module, so they survive.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
   version (`mwradar-relay:v0.2.1-4-g6b4cf8f-dirty.…`), advertised by `dns-sd -P` from `scripts/relay start`.

@@ -6,11 +6,13 @@
  *   3 SH-2 slave    - its ROM-read pass counter moves (COMM10): cart-bus traffic during the UART tests
  *   4 UART SPR      - the go/no-go: the TL16C550D at $A130C1 (/TIME) answers through the 32X
  *   5 reg decode    - A0..A2 decode and DLAB through the 32X
- *   6 loopback 8K   - 8 KiB through the UART's internal loop at 1.25 Mbaud
- *   7 ESP32 version - ESP reset via DTR, LSD/MW_CMD_VERSION
- *   8 echo x300     - MW_CMD_ECHO, sizes 1..1024, while the slave SH-2 reads ROM
- *   9 Wi-Fi join    - default AP slot, MW_CMD_AP_JOIN, wait for READY, show the IP
- *  10 relay GET     - TCP to RELAY_HOST:RELAY_PORT (build-time), GET /healthz, result to the SH-2
+ *   6 loop quiet    - 8 KiB through the UART's internal loop, slave SH-2 paused (cart bus quiet)
+ *   7 loop busy     - the same while the slave SH-2 reads ROM; counts dropped / corrupted bytes
+ *   8 ESP32 version - ESP reset via DTR, LSD/MW_CMD_VERSION
+ *   9 echo x300     - MW_CMD_ECHO, sizes 1..1024 (slave paused if row 7 failed)
+ *  10 Wi-Fi join    - default AP slot, MW_CMD_AP_JOIN, wait for READY, show the IP
+ *  11 relay GET     - TCP to RELAY_HOST:RELAY_PORT (build-time), GET /healthz, result to the SH-2
+ * Rows 2-4 above the list: raw UART reads with RV = 0 / 1 and the SPR write/read RV probe.
  * The UART, LSD and test code follows jfryman/mw-cart bringup-rom. Every UART write goes through
  * uart_ram.c (RV = 1, run from RAM): with RV = 0 the 32X drops odd-address writes. START reruns everything.
  */
@@ -250,17 +252,30 @@ static int t_decode(uint8_t row)
 	return verdict(row, ok);
 }
 
-static int t_loop_data(uint8_t row)
+/* Pause (1) or resume (0) the slave SH-2's ROM reads; returns 1 once it has acknowledged. */
+static int slave_pause(uint16_t on)
+{
+	uint32_t t0 = now();
+	MARS_COMM(COMM_SLAVE_PAUSE) = on;
+	while (MARS_COMM(COMM_SLAVE_PAUSED) != on)
+		if (now() - t0 > 60)
+			return 0;
+	return 1;
+}
+
+/* 8 KiB through the UART's internal loop. Counts dropped bytes (the next byte of the sequence
+ * arrives instead) and corrupted ones instead of stopping at the first. */
+static int t_loop(uint8_t row, const char *num, const char *name)
 {
 	const uint16_t total = 8192;
-	uint16_t sent = 0, rcvd = 0;
+	uint16_t sent = 0, pos = 0, drops = 0, bad = 0;
 	uint16_t tx_lfsr, rx_lfsr = 0x1D0F;
-	row_name(row, "6", "loopback 8K");
+	row_name(row, num, name);
 	uart_setup(LINK_DIVISOR, MCR_LOOP);
 	rx_flush();
 	lfsr = 0x1D0F;
 	tx_lfsr = lfsr;
-	while (rcvd < total) {
+	while (pos < total) {
 		uint8_t burst[8], k = 0;
 		uint32_t t0;
 		lfsr = tx_lfsr;
@@ -274,24 +289,34 @@ static int t_loop_data(uint8_t row)
 		tx_lfsr = lfsr;
 		lfsr = rx_lfsr;
 		t0 = now();
-		while (rcvd < sent) {
+		while (pos < sent) {
 			uint8_t lsr = uart_rd(R_LSR);
 			if (lsr & LSR_DR) {
 				uint8_t want = rnd(), got = uart_rd(R_RHR);
-				if ((lsr & LSR_ERRS) || got != want) {
-					wr_detail(row, want, got);
-					return verdict(row, 0);
+				pos++;
+				if (lsr & LSR_ERRS)
+					bad++;
+				if (got != want) {
+					if (pos < sent && got == rnd()) {
+						drops++;	/* byte pos-1 vanished: got is the next one */
+						pos++;
+					} else {
+						bad++;
+					}
 				}
-				rcvd++;
 			} else if (now() - t0 > 3) {
-				txt_put(INFO_X, row, COL_RED, "RX stall");
-				return verdict(row, 0);
+				drops += sent - pos;	/* sent, never received */
+				pos = sent;
 			}
 		}
 		rx_lfsr = lfsr;
 	}
 	uart_wr(R_MCR, 0);
-	return verdict(row, 1);
+	txt_put(INFO_X, row, drops ? COL_RED : COL_WHITE, "drop");
+	txt_dec(INFO_X + 5, row, drops ? COL_RED : COL_WHITE, drops);
+	txt_put(INFO_X + 10, row, bad ? COL_RED : COL_WHITE, "bad");
+	txt_dec(INFO_X + 14, row, bad ? COL_RED : COL_WHITE, bad);
+	return verdict(row, drops == 0 && bad == 0);
 }
 
 /* ------------------------------------------------------------- LSD / MW */
@@ -425,7 +450,7 @@ static int t_version(uint8_t row)
 {
 	uint16_t len = 0;
 	enum lsd_err e;
-	row_name(row, "7", "ESP32 version");
+	row_name(row, "8", "ESP32 version");
 	esp_boot();
 	e = mw_cmd(MW_CMD_VERSION, 0, &len, 60);
 	if (!e && len < 3)
@@ -455,7 +480,7 @@ static int t_echo(uint8_t row, uint16_t rounds)
 	static const uint16_t sizes[] = { 1, 16, 64, 255, 256, 512, 1000, 1024 };
 	uint16_t r, ok = 0, bad = 0;
 	enum lsd_err last = LSD_OK;
-	row_name(row, "8", "echo x300");
+	row_name(row, "9", "echo x300");
 	lfsr = 0xBEEF;
 	for (r = 0; r < rounds; r++) {
 		uint16_t n = sizes[r % (sizeof(sizes) / sizeof(sizes[0]))], i, len = 0;
@@ -496,7 +521,7 @@ static int t_wifi(uint8_t row)
 	uint8_t slot = 0;
 	enum lsd_err e;
 	uint32_t t0;
-	row_name(row, "9", "Wi-Fi join");
+	row_name(row, "10", "Wi-Fi join");
 	if (!mw_cmd(MW_CMD_DEF_AP_CFG_GET, 0, &len, 60) && len >= 1 && rxbuf[4] < 3)
 		slot = rxbuf[4];
 	txt_put(INFO_X, row, COL_WHITE, "slot");
@@ -553,7 +578,7 @@ static int t_relay(uint8_t row)
 	char *p, first[32];
 	uint8_t nfirst = 0;
 	uint32_t t0;
-	row_name(row, "10", "relay GET");
+	row_name(row, "11", "relay GET");
 	txt_clear_row(row + 1);
 	if (!host[0]) {
 		skip(row, "no RELAY=");
@@ -624,7 +649,7 @@ int main(void)
 	vdp_init();
 	for (;;) {
 		uint8_t r;
-		int bus_ok, mw_ok = 0;
+		int bus_ok, quiet, busy, mw_ok = 0;
 		for (r = 0; r < TXT_ROWS; r++)
 			txt_clear_row(r);
 		sh_net(NET_IDLE, 0);
@@ -639,7 +664,13 @@ int main(void)
 		t_counter(r++, "3", "SH-2 slave", COMM_SLAVE_PASSES);
 		bus_ok = t_spr(r++);
 		bus_ok &= t_decode(r); r += 2;
-		bus_ok &= t_loop_data(r++);
+		quiet = slave_pause(1) && t_loop(r, "6", "loop quiet");
+		r++;
+		slave_pause(0);
+		busy = t_loop(r++, "7", "loop busy");
+		bus_ok &= quiet || busy;
+		if (!busy)
+			slave_pause(1);	/* keep the SH-2 off the cart bus for the rest */
 		if (bus_ok && t_version(r)) {
 			r += 2;
 			mw_ok = t_echo(r, 300); r += 2;
@@ -648,10 +679,12 @@ int main(void)
 			else
 				sh_net(NET_FAILED, 0);
 		}
+		slave_pause(0);
 		txt_clear_row(22);
 		txt_put(1, 22, bus_ok ? (mw_ok ? COL_GREEN : COL_YELLOW) : COL_RED,
 			!bus_ok ? "UART not reachable in 32X mode" :
-			mw_ok ? "MegaWiFi works in 32X mode" : "UART ok, MegaWiFi checks failed");
+			!mw_ok ? "UART ok, MegaWiFi checks failed" :
+			busy ? "MegaWiFi works in 32X mode" : "MegaWiFi works, SH-2 off cart bus");
 		txt_put(1, 23, COL_YELLOW, "START = rerun");
 		while (!start_pressed())
 			(void)now();

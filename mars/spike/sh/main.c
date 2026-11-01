@@ -3,7 +3,7 @@
  * bottom band shows the relay result from the 68000 (grey idle/pending, green ok, red failed,
  * yellow skipped) with the response size in digits, and a block that moves every flip.
  * Slave: reads the cart ROM through the cache-through window forever, so the 68000's UART
- * tests run with SH-2 traffic on the cart bus. */
+ * tests run with SH-2 traffic on the cart bus; the 68000 can pause it (COMM_SLAVE_PAUSE). */
 #include <stdint.h>
 #include "../shared.h"
 
@@ -134,8 +134,15 @@ void s_main(void)
 	volatile uint32_t sink;
 	for (;;) {
 		uint32_t i, sum = 0;
-		for (i = 0; i < 0x8000; i++)	/* first 64 KiB of the cart */
+		for (i = 0; i < 0x8000; i++) {	/* first 64 KiB of the cart */
+			if (!(i & 255) && COMM(COMM_SLAVE_PAUSE)) {
+				COMM(COMM_SLAVE_PAUSED) = 1;
+				while (COMM(COMM_SLAVE_PAUSE))
+					;
+				COMM(COMM_SLAVE_PAUSED) = 0;
+			}
 			sum += ROM_NC[i];
+		}
 		sink = sum;
 		COMM(COMM_SLAVE_PASSES) = ++passes;
 	}
