@@ -22,6 +22,7 @@ SECTIONS
 
     .data : {
         __data_start = .;
+        *(.ramcode)
         *(.data .data.*)
         . = ALIGN(2);
         __data_end = .;

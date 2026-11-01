@@ -50,4 +50,17 @@
 
 #define FCR_TRIG14_RESET 0xC7	/* FIFO on, clear RX+TX, RX trigger 14 */
 
+/* Register numbers for uart_wr(). In 32X mode every write goes through uart_ram.c (RV = 1). */
+#define R_THR	0
+#define R_DLL	0
+#define R_IER	1
+#define R_DLM	1
+#define R_FCR	2
+#define R_LCR	3
+#define R_MCR	4
+#define R_SPR	7
+
+void uart_wr(uint8_t reg, uint8_t v);
+int uart_tx(const uint8_t *d, uint16_t n);
+
 #endif

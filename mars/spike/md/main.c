@@ -11,7 +11,8 @@
  *   8 echo x300     - MW_CMD_ECHO, sizes 1..1024, while the slave SH-2 reads ROM
  *   9 Wi-Fi join    - default AP slot, MW_CMD_AP_JOIN, wait for READY, show the IP
  *  10 relay GET     - TCP to RELAY_HOST:RELAY_PORT (build-time), GET /healthz, result to the SH-2
- * The UART, LSD and test code follows jfryman/mw-cart bringup-rom. START reruns everything.
+ * The UART, LSD and test code follows jfryman/mw-cart bringup-rom. Every UART write goes through
+ * uart_ram.c (RV = 1, run from RAM): with RV = 0 the 32X drops odd-address writes. START reruns everything.
  */
 #include <stdint.h>
 #include "vdp.h"
@@ -88,13 +89,13 @@ static void wr_detail(uint8_t row, uint8_t w, uint8_t r)
 
 static void uart_setup(uint16_t divisor, uint8_t mcr)
 {
-	U_LCR = 0x83;		/* DLAB=1, 8N1 */
-	U_DLL = divisor & 0xFF;
-	U_DLM = divisor >> 8;
-	U_LCR = 0x03;		/* DLAB=0, 8N1 */
-	U_IER = 0x00;
-	U_FCR = FCR_TRIG14_RESET;
-	U_MCR = mcr;
+	uart_wr(R_LCR, 0x83);		/* DLAB=1, 8N1 */
+	uart_wr(R_DLL, divisor & 0xFF);
+	uart_wr(R_DLM, divisor >> 8);
+	uart_wr(R_LCR, 0x03);		/* DLAB=0, 8N1 */
+	uart_wr(R_IER, 0x00);
+	uart_wr(R_FCR, FCR_TRIG14_RESET);
+	uart_wr(R_MCR, mcr);
 }
 
 static void rx_flush(void)
@@ -151,7 +152,7 @@ static int t_spr(uint8_t row)
 	row_name(row, "4", "UART SPR");
 	for (i = 0; i < sizeof(pat); i++) {
 		uint8_t r;
-		U_SPR = pat[i];
+		uart_wr(R_SPR, pat[i]);
 		(void)U_LSR;	/* different register in between: defeats open-bus echo */
 		r = U_SPR;
 		if (r != pat[i]) {
@@ -184,26 +185,26 @@ static int t_decode(uint8_t row)
 	int ok = 1;
 	row_name(row, "5", "reg decode");
 	for (i = 0; i < 2 && ok; i++) {
-		U_SPR = v[i][0];
-		U_LCR = v[i][1];
-		U_IER = v[i][2];
-		U_MCR = v[i][3];
+		uart_wr(R_SPR, v[i][0]);
+		uart_wr(R_LCR, v[i][1]);
+		uart_wr(R_IER, v[i][2]);
+		uart_wr(R_MCR, v[i][3]);
 		ok = check_reg(row, "SPR", v[i][0], U_SPR) &&
 		     check_reg(row, "LCR", v[i][1], U_LCR) &&
 		     check_reg(row, "IER", v[i][2], U_IER & 0x0F) &&
 		     check_reg(row, "MCR", v[i][3], U_MCR & 0x1F);
 	}
 	if (ok) {
-		U_LCR = 0x83;
-		U_DLL = 0x5A;
-		U_DLM = 0xA5;
+		uart_wr(R_LCR, 0x83);
+		uart_wr(R_DLL, 0x5A);
+		uart_wr(R_DLM, 0xA5);
 		ok = check_reg(row, "DLL", 0x5A, U_DLL) && check_reg(row, "DLM", 0xA5, U_DLM);
-		U_LCR = 0x03;
+		uart_wr(R_LCR, 0x03);
 		ok = ok && check_reg(row, "IER", 0x0A, U_IER & 0x0F);
 	}
-	U_IER = 0;
-	U_MCR = 0;
-	U_LCR = 0x03;
+	uart_wr(R_IER, 0);
+	uart_wr(R_MCR, 0);
+	uart_wr(R_LCR, 0x03);
 	return verdict(row, ok);
 }
 
@@ -218,16 +219,16 @@ static int t_loop_data(uint8_t row)
 	lfsr = 0x1D0F;
 	tx_lfsr = lfsr;
 	while (rcvd < total) {
-		uint8_t i;
-		uint32_t t0 = now();
-		while (!(U_LSR & LSR_THRE))
-			if (now() - t0 > 3) {
-				txt_put(INFO_X, row, COL_RED, "TX stuck");
-				return verdict(row, 0);
-			}
+		uint8_t burst[8], k = 0;
+		uint32_t t0;
 		lfsr = tx_lfsr;
-		for (i = 0; i < 8 && sent < total; i++, sent++)
-			U_THR = rnd();
+		while (k < 8 && sent + k < total)
+			burst[k++] = rnd();
+		if (uart_tx(burst, k)) {
+			txt_put(INFO_X, row, COL_RED, "TX stuck");
+			return verdict(row, 0);
+		}
+		sent += k;
 		tx_lfsr = lfsr;
 		lfsr = rx_lfsr;
 		t0 = now();
@@ -247,7 +248,7 @@ static int t_loop_data(uint8_t row)
 		}
 		rx_lfsr = lfsr;
 	}
-	U_MCR = 0;
+	uart_wr(R_MCR, 0);
 	return verdict(row, 1);
 }
 
@@ -276,27 +277,15 @@ static const char *const err_txt[] = { "ok", "CTS held", "no reply", "LSR err", 
 	"mismatch", "refused" };
 static uint8_t last_lsr;
 
-static enum lsd_err tx_byte(uint8_t b)
-{
-	uint32_t t0 = now();
-	while (!(U_LSR & LSR_THRE))
-		if (now() - t0 > 30)
-			return LSD_TX_TMO;	/* auto-CTS held off for 0.5 s */
-	U_THR = b;
-	return LSD_OK;
-}
-
 static enum lsd_err lsd_send(uint8_t ch, const uint8_t *d, uint16_t len)
 {
-	enum lsd_err e;
-	uint16_t i;
-	if ((e = tx_byte(LSD_STX_ETX)) || (e = tx_byte((ch << 4) | (len >> 8))) ||
-	    (e = tx_byte(len & 0xFF)))
-		return e;
-	for (i = 0; i < len; i++)
-		if ((e = tx_byte(d[i])))
-			return e;
-	return tx_byte(LSD_STX_ETX);
+	uint8_t hdr[3], etx = LSD_STX_ETX;	/* on the stack: uart_tx needs RAM */
+	hdr[0] = LSD_STX_ETX;
+	hdr[1] = (ch << 4) | (len >> 8);
+	hdr[2] = len & 0xFF;
+	if (uart_tx(hdr, 3) || uart_tx(d, len) || uart_tx(&etx, 1))
+		return LSD_TX_TMO;	/* auto-CTS held off for ~0.5 s */
+	return LSD_OK;
 }
 
 static uint32_t rx_deadline;	/* absolute frame count bounding a whole lsd_recv() */
@@ -376,11 +365,11 @@ static void esp_boot(void)
 	 * (RTS) high, release, let it boot, then enable RTS for auto flow. */
 	uart_setup(LINK_DIVISOR, MCR_AFE | MCR_DTR);
 	wait_frames(3);
-	U_MCR = MCR_AFE;
+	uart_wr(R_MCR, MCR_AFE);
 	wait_frames(60);
-	U_FCR = FCR_TRIG14_RESET;	/* drop the ROM bootloader's 115200 baud chatter */
+	uart_wr(R_FCR, FCR_TRIG14_RESET);	/* drop the ROM bootloader's 115200 baud chatter */
 	rx_flush();
-	U_MCR = MCR_AFE | MCR_RTS;
+	uart_wr(R_MCR, MCR_AFE | MCR_RTS);
 }
 
 static void show_err(uint8_t row, enum lsd_err e)

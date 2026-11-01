@@ -18,7 +18,7 @@ COMMON  = -Os -Wall -Wextra -ffreestanding -fno-builtin -fomit-frame-pointer \
 MDFLAGS = -m68000 $(COMMON)
 SHFLAGS = -m2 -mb $(COMMON)
 
-MDOBJS  = $(OUT)/md/boot.o $(OUT)/md/main.o $(OUT)/md/vdp.o $(OUT)/md/font.o
+MDOBJS  = $(OUT)/md/boot.o $(OUT)/md/main.o $(OUT)/md/uart_ram.o $(OUT)/md/vdp.o $(OUT)/md/font.o
 SHOBJS  = $(OUT)/sh/start.o $(OUT)/sh/main.o
 
 all: $(ROM) check
@@ -34,7 +34,7 @@ $(OUT)/md/boot.o: md/boot.s | $(OUT)/md
 	$(MD)as -m68000 -I$(BOOT) $< -o $@
 
 $(OUT)/md.elf: $(MDOBJS) md/md.ld
-	$(MD)gcc -m68000 -nostdlib -Wl,--build-id=none -Wl,--no-warn-execstack -T md/md.ld -Wl,--gc-sections \
+	$(MD)gcc -m68000 -nostdlib -Wl,--build-id=none -Wl,--no-warn-execstack -Wl,--no-warn-rwx-segments -T md/md.ld -Wl,--gc-sections \
 		-Wl,-Map=$(OUT)/md.map -o $@ $(MDOBJS) -lgcc
 
 $(OUT)/md.bin: $(OUT)/md.elf

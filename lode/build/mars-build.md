@@ -42,7 +42,7 @@ flowchart TD
 | `$100` | Mega Drive header, `"SEGA 32X"` | `sh/start.s` |
 | `$200` | 68000 jump table: `jmp $880800`, `jsr $880806`..., level 4 `$88080C`, level 6 `$880812` | `sh/start.s` |
 | `$3C0` | MARS header: `.data` source = `_stext`, size = `_sdata`, entries `$06000240`/`$06000244`, VBRs | `sh/start.s` |
-| `$3F0` | `md.bin`: Sega boot code (1040 bytes), then `_irq_jmptab` at `$880800`, then our 68000 code | `md/` |
+| `$3F0` | `md.bin`: Sega boot code (1040 bytes), then `_irq_jmptab` at `$880800`, then our 68000 code, then `.data` (with `.ramcode`) | `md/` |
 | after | SH-2 `.text` (runs from ROM via `$02000000`), then `.data` image copied to SDRAM `$06000000` | `sh/` |
 
 ```c
@@ -86,6 +86,9 @@ The spike boots in MAME: rows 1-3 pass (code at `$880994`, MARS ID, both SH-2 co
 buffer shows behind the VDP text. Rows 4+ fail by design (no MegaWiFi in MAME: SPR reads `00`).
 
 ## Lessons
+- **In 32X mode the 68000 can't write odd cartridge addresses while RV = 0** (/LWR held inactive), which covers every
+  MegaWiFi UART register. UART writes run from RAM with RV = 1 (`md/uart_ram.c`, `.ramcode` in `md.ld`). Code that
+  sets RV = 1 must not execute from or read `$88xxxx` until it clears RV again ([../plans/32x.md](../plans/32x.md)).
 - MAME returns `0000` for a 68000 **word** read of `$A15100`; byte reads give `80 80`. The spike reads bytes and
   treats "running at `$88xxxx`" as the ADEN proof.
 - A build flag that is computed but not passed fails silently: with `RELAY_HOST` empty, gcc drops the whole relay

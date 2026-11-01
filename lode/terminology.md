@@ -59,7 +59,7 @@
 - 32X - Sega's Genesis add-on (two SH-2s, 256 KB SDRAM, a 256-colour frame buffer); plan in `plans/32x.md`.
 - MARS ID - `"MARS"` read at `$A130EC` when a 32X is attached.
 - ADEN - 32X adapter-enable bit; once set, the cart ROM moves to `$880000` (fixed 512 KB) and `$900000` (1 MB bank).
-- RV bit - 32X bit (`$A15107`) that restores the Genesis ROM mapping for VDP DMA; the SH-2s can't read ROM while it's set.
+- RV bit - 32X bit (`$A15107`) that restores the Genesis ROM mapping for VDP DMA; the SH-2s can't read ROM while it's set, and the 68000 needs it set to write odd cartridge addresses (/LWR).
 - FM bit - bit 15 of the 32X adapter control register: set, the SH-2s own the 32X VDP (frame buffer, palette).
 - MARS header - the 32X block at ROM `$3C0`: where the boot ROMs copy SH-2 `.data` from, and the two SH-2 entry points.
 - Sega boot code - the 1040-byte 68000 security/boot code every 32X cart has at `$3F0`; fetched from pinned marsdev, never in the repo.
