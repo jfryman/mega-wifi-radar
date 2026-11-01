@@ -50,7 +50,8 @@
 - Cockpit mode - the view from one aircraft over real terrain, drawn by the cart (A in the pop-up, or Y); `cockpit.c`.
 - Voxel Space - the Comanche (1992) terrain technique: per screen column, march out in depth over a heightmap + colour map, drawing each column front to back; `voxel.c` + `vox.s`.
 - Terrain patch - 128×128 cells of height levels and palette indices from `GET /v1/terrain`, centred on the aircraft, cell size = height above ground / 5.
-- Patch key - `"lat,lon,cell,level,base"` in a patch's header; the cart sends it back as `p=` on `/v1/track`, so the relay stays stateless.
+- Patch key - `"lat,lon,cell,level,base,hi"` in a patch's header; the cart sends it back as `p=` on `/v1/track` and `/v1/strip`, so the relay stays stateless.
+- Strip - 8 × 128 cells of a patch's grid (`/v1/strip`), streamed into cockpit mode's wrapping buffer ahead of the aircraft.
 - Height level - a patch's vertical unit (`level_cm`, normally cell / 16: true scale); 0..63 above `base_m`.
 - Mode overlay - `overlay_ram`: 36 KB that the radar (scope tiles, trails, tracks) or cockpit mode (`struct vox_ram`) owns at a time.
 - Sky delta - repaint only the sky rows a VRAM copy's terrain uncovered since that copy's last frame.

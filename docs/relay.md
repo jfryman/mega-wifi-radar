@@ -81,6 +81,8 @@ ESP32 never joins the multicast group. Details: [lode/net/discovery.md](../lode/
   aircraft isn't in the feed.
 - `GET /v1/track?icao=<6 hex>&p=<patch key>&v=3` returns 40 bytes: the aircraft placed in that patch (position,
   height, velocity, heading, bank), for the cockpit camera.
+- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=3` returns more of the patch's grid (`w·h` heights,
+  then `w·h` colours; at most 1,024 cells), which the cart streams in ahead of the aircraft.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
   (the cart shows `UPSTRM ERR`). If there's no previous frame, it returns `502`.
 - `GET /healthz` returns `ok`.

@@ -109,7 +109,7 @@ var relayInts = map[string]int64{
 	"AR_D_QNH": dQNH, "AR_D_YEAR": dYear, "AR_D_SEEN": dSeen,
 	"AR_TN": tn, "AR_TERRAIN_HDR": terrainHdr, "AR_LEVELS": levels, "AR_KEY_LEN": keyLen, "AR_T_FLAT": tFlat,
 	"AR_TRACK_SIZE": trackSize, "AR_K_FOUND": kFound, "AR_K_GROUND": kGround, "AR_K_EMERG": kEmerg,
-	"AR_K_ALT_UNK": kAltUnk,
+	"AR_K_ALT_UNK": kAltUnk, "AR_STRIP_CELLS": stripCells,
 }
 
 // Items checked by their own tests below, or reserved values the relay never emits.
@@ -126,6 +126,8 @@ var checkedElsewhere = map[string]string{
 	"AR_TERRAIN_SIZE":  "TestContractConstants (derived)",
 	"AR_TRACK_PATH":    "TestContractHTTP",
 	"AR_TRACK_QUERY":   "TestContractHTTP",
+	"AR_STRIP_PATH":    "TestContractHTTP",
+	"AR_STRIP_QUERY":   "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
 	"AR_MDNS_SRC_PORT": "TestContractDiscovery",
@@ -425,9 +427,23 @@ func TestContractHTTP(t *testing.T) {
 	if rec.Code != 200 || len(body) != trackSize || body[3]&kFound == 0 {
 		t.Fatalf("track for the cart's query (key %q): status %d, % x", key, rec.Code, body)
 	}
-	// The patch is centred on the aircraft: it sits in the middle cell.
+	// A strip of the patch's grid, as the cart asks for one (negative x: west of the first patch).
+	if h.strs["AR_STRIP_PATH"] != stripPath {
+		t.Errorf("AR_STRIP_PATH %q, relay serves %q", h.strs["AR_STRIP_PATH"], stripPath)
+	}
+	sq := h.strs["AR_STRIP_QUERY"]
+	if strings.Count(sq, "%") != 6 {
+		t.Fatalf("AR_STRIP_QUERY %q: expected key, x, y, w, h, version", sq)
+	}
+	rec = httptest.NewRecorder()
+	stripHandler(el).ServeHTTP(rec, httptest.NewRequest("GET", stripPath+fmt.Sprintf(cFormat(sq), key, -8, 0, 8, tn, ver), nil))
+	if rec.Code != 200 || rec.Body.Len() != 2*8*tn || 8*tn > int(h.ints["AR_STRIP_CELLS"]) {
+		t.Errorf("strip for the cart's query: status %d, %d bytes", rec.Code, rec.Body.Len())
+	}
+
+	// The patch is centred on the aircraft (projected terrainLeadS ahead): it sits near the middle cell.
 	x, y := int32(binary.BigEndian.Uint32(body[4:])), int32(binary.BigEndian.Uint32(body[8:]))
-	if x < 63*256 || x > 65*256 || y < 63*256 || y > 65*256 {
+	if x < 62*256 || x > 66*256 || y < 62*256 || y > 66*256 {
 		t.Errorf("track at cell %.2f,%.2f, want the patch centre (64, 64)", float64(x)/256, float64(y)/256)
 	}
 }

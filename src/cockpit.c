@@ -1,8 +1,10 @@
 /* Cockpit mode (lode/ui/cockpit.md): load a terrain patch centred on the aircraft, then fetch its track
  * every TRACK_FRAMES and fly the camera along it between fixes, rendering with voxel.c. A new fix's error
- * is absorbed over BLEND frames (or snapped, if large). A new patch is fetched when the aircraft drifts
- * RECENTRE cells from the patch centre or its height leaves the patch's scale. All requests block, so the
- * view pauses while one runs; the camera catches up by elapsed time afterwards. */
+ * is absorbed over BLEND frames (or snapped, if large). As the aircraft moves, strips of new cells stream
+ * into the wrapping buffer (at most one per STREAM_FRAMES), keeping it centred on the camera; a whole new
+ * patch only when its height leaves the patch's scale, or streaming has fallen far behind. All requests
+ * block, so the view pauses while one runs (a strip ~0.2 s, a patch ~2.5 s); the camera catches up by
+ * elapsed time afterwards. */
 #include "cockpit.h"
 #include "feed.h"
 #include "fmt.h"
@@ -12,8 +14,9 @@
 #define LOST_SECS       20                  /* no good fix this long: back to the radar */
 #define BLEND           32                  /* frames to absorb a fix's correction */
 #define SNAP            (6L << 16)          /* corrections bigger than this (16.16 cells) jump */
-#define CENTRE          (AR_TN / 2 * 65536L)
-#define RECENTRE        (12L << 16)         /* drift from the patch centre before a new patch */
+#define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
+#define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
+#define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
 #define HUD_COL         1
 
 enum { ST_LIVE, ST_STALE, ST_LOADING, ST_LOST };
@@ -21,8 +24,9 @@ enum { ST_LIVE, ST_STALE, ST_LOADING, ST_LOST };
 static const u8 *icao;
 static struct ar_terrain hdr;
 static struct ar_track trk;                 /* last good fix */
-static u32 fix_at, req_at, load_x, load_y;  /* vtimer of the last good fix / request; position at the last patch */
-static s32 load_z;
+static u32 fix_at, req_at, strip_at, reload_at;    /* vtimer of the last good fix / requests */
+static s32 load_z;                          /* height when the patch was loaded */
+static s16 wx, wy;                          /* the buffer holds grid cells [wx, wx + 128) x [wy, wy + 128) */
 static struct vox_cam cam;
 static s32 z16;                             /* camera height, 16.16 levels */
 static s32 vx, vy, vz;                      /* per frame, 16.16 */
@@ -101,7 +105,10 @@ static bool load_terrain(void)
 
     hud_status(ST_LOADING);
     ok = feed_terrain(icao, &nh, VOX->h, VOX->c) == FEED_OK;
-    if (ok) hdr = nh;
+    if (ok) {
+        hdr = nh;
+        wx = wy = 0;                        /* a new grid: its cells 0..127 */
+    }
     PAL_setColors(PAL0 * 16, hdr.pal, 16, CPU);
     voxel_patch(&hdr);
     return ok;
@@ -145,15 +152,44 @@ static bool get_fix(bool snap)
     return TRUE;
 }
 
-/* A new patch centred on the aircraft: when it drifts off the middle of this one, or its height above
- * the ground no longer suits the cell size. Not again until it has moved as far from the last attempt
- * (an emulator pack, or a relay that can't move the patch, would otherwise reload every frame). */
+/* How far the buffer lags behind being centred on the camera, in cells. */
+static s16 lag_x(void) { return (s16)(cam.x >> 16) - AR_TN / 2 - wx; }
+static s16 lag_y(void) { return (s16)(cam.y >> 16) - AR_TN / 2 - wy; }
+
+/* A whole new patch: when the aircraft's height no longer suits the cell size (it has halved or doubled),
+ * or streaming has fallen too far behind (failed strips). Streaming handles ordinary movement. */
 static bool need_patch(void)
 {
-    bool off = abs(cam.x - CENTRE) > RECENTRE || abs(cam.y - CENTRE) > RECENTRE;
-    bool moved = abs(cam.x - (s32)load_x) > RECENTRE || abs(cam.y - (s32)load_y) > RECENTRE;
     bool scale = z16 > load_z * 2 + (16L << 16) || z16 < load_z / 2 - (16L << 16);
-    return (off && moved) || scale;
+    return scale || abs(lag_x()) > LAG_RELOAD || abs(lag_y()) > LAG_RELOAD;
+}
+
+/* One strip toward keeping the buffer centred: VOX_STRIP columns (or rows) ahead replace those furthest
+ * behind, which the wrap puts in the same place. The bigger lag goes first. A failed strip changes nothing
+ * that matters (its cells are converted as they're spread) and is asked for again next time. */
+static void stream(void)
+{
+    s16 lx = lag_x(), ly = lag_y(), x, y;
+    u16 w, h;
+    bool cols = abs(lx) >= abs(ly);
+
+    strip_at = vtimer;
+    if (abs(lx) < VOX_STRIP && abs(ly) < VOX_STRIP) return;
+    if (cols) { w = VOX_STRIP; h = AR_TN; y = wy; x = lx > 0 ? wx + AR_TN : wx - VOX_STRIP; }
+    else { w = AR_TN; h = VOX_STRIP; x = wx; y = ly > 0 ? wy + AR_TN : wy - VOX_STRIP; }
+    if (feed_strip(hdr.key, x, y, w, h, VOX->strip) != FEED_OK) return;
+
+    const u8 *sh = VOX->strip, *sc = VOX->strip + w * h;
+    for (u16 r = 0; r < h; r++) {
+        u16 row = ((y + r) & (AR_TN - 1)) << 7;
+        for (u16 k = 0; k < w; k++) {
+            u16 i = row | ((x + k) & (AR_TN - 1));
+            VOX->h[i] = *sh++ & 0x3E;       /* as voxel_patch: (level / 2) * 2, colour in both nibbles */
+            VOX->c[i] = (*sc++ & 0x0F) * 0x11;
+        }
+    }
+    if (cols) wx += lx > 0 ? VOX_STRIP : -VOX_STRIP;
+    else wy += ly > 0 ? VOX_STRIP : -VOX_STRIP;
 }
 
 static void advance(u16 frames)
@@ -214,10 +250,12 @@ void cockpit_run(const u8 icao_in[3])
         message("AIRCRAFT NOT IN THE FEED");
         goto out;
     }
-    load_x = cam.x; load_y = cam.y; load_z = z16;
+    load_z = z16;
+    reload_at = vtimer - RELOAD_RETRY;
     hud_status(ST_LIVE);
 
     u32 last = vtimer, win = vtimer;
+    strip_at = vtimer - STREAM_FRAMES / 2;  /* strips half way between track fetches */
     u16 frames = 0, part = 0;
     while (TRUE) {
         u32 now = vtimer;
@@ -233,14 +271,14 @@ void cockpit_run(const u8 icao_in[3])
                 break;
             }
         }
-        if (need_patch()) {
-            load_x = cam.x; load_y = cam.y; load_z = z16;
-            if (load_terrain() && get_fix(TRUE)) {
-                load_x = cam.x; load_y = cam.y; load_z = z16;
-            }
+        if (need_patch() && vtimer - reload_at >= RELOAD_RETRY) {
+            reload_at = vtimer;             /* a failing relay isn't asked every frame */
+            if (load_terrain() && get_fix(TRUE)) load_z = z16;
             hud_status(ST_LIVE);
             last = vtimer;
             advance(0);
+        } else if (vtimer - strip_at >= STREAM_FRAMES) {
+            stream();
         }
 
         voxel_render(&cam);

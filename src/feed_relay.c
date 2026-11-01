@@ -1,5 +1,5 @@
 /* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&v, /v1/detail?icao&v, and cockpit mode's
- * /v1/terrain?icao&v and /v1/track?icao&p&v over MegaWiFi.
+ * /v1/terrain?icao&v, /v1/track?icao&p&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
 
@@ -255,6 +255,19 @@ enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *out
     if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
     *out = *r;
     return counted(FEED_OK);
+}
+
+enum feed_err feed_strip(const char *key, s16 x, s16 y, u16 w, u16 h, u8 *buf)
+{
+    static char url[RELAY_LEN + 56 + AR_KEY_LEN];
+    struct collect_to t = { { 0, FALSE }, buf, 2 * w * h };
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    /* base (<= RELAY_LEN) + "/v1/strip?p=<key>&x=-30000&y=-30000&w=128&h=128&v=3" (<= 53 + key) */
+    sprintf(url, "%s" AR_STRIP_PATH AR_STRIP_QUERY, relay_url, key, (int)x, (int)y, w, h, AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    return counted(t.c.len == 2 * w * h ? FEED_OK : FEED_ERR_FORMAT);
 }
 
 #endif

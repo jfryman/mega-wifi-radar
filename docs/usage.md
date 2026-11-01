@@ -80,8 +80,10 @@ without closing it. `--` means the aircraft doesn't report that value.
 **Cockpit view:** A in the pop-up (or Y) puts you in the selected aircraft, looking ahead over the real terrain
 around it, drawn by the console as the aircraft flies. The relay sends a patch of terrain (elevation from the
 public AWS Terrain Tiles) centred on the aircraft, scaled to its height, and its position every 2 seconds; the
-console flies the camera smoothly in between, banking and pitching with the aircraft. The view pauses briefly
-while each update loads, and for a second or so when a new patch is needed. The bottom of the screen shows the
+console flies the camera smoothly in between, banking and pitching with the aircraft, and streams in new terrain
+ahead of it as it goes. Entering takes a few seconds while the first patch loads; after that the view only pauses
+for a moment while an update loads, and for a few seconds if the aircraft climbs or descends far enough to need a
+patch at a new scale. The bottom of the screen shows the
 callsign, altitude, ground speed, vertical speed, heading and bank. `NO SIGNAL` means updates have stopped; after
 20 seconds without one the cart goes back to the radar. B goes back at any time, with the aircraft still
 selected. Colours come from the terrain's height (water, low ground, forest, high ground, snow), not imagery.

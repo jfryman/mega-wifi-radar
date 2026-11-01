@@ -14,11 +14,13 @@
 #define VOX_HORIZON 44          /* level flight */
 #define VOX_LEVELS  32          /* row table entries: height / 2 */
 #define VOX_NZ_MAX  64
+#define VOX_STRIP   8           /* cells per streamed strip (a strip is VOX_STRIP x AR_TN) */
 
 struct vox_col { s16 top; s16 roll; u32 cmd; };     /* layout shared with vox.s */
 
 /* The patch and render state, in the mode overlay. h and c are loaded from /v1/terrain, then
- * voxel_patch() converts them in place for vox.s. */
+ * voxel_patch() converts them in place for vox.s. They wrap: grid cell (x, y) lives at (y & 127) * 128 +
+ * (x & 127), so strips of new cells (/v1/strip) overwrite the ones furthest behind. */
 struct vox_ram {
     u8 h[AR_TN * AR_TN];        /* height level, then (level / 2) * 2: byte offset into the row table */
     u8 c[AR_TN * AR_TN];        /* palette index, then the byte written to VRAM (both nibbles) */
@@ -26,6 +28,7 @@ struct vox_ram {
     s16 prev_top[2][VOX_COLS];  /* per copy: its terrain top last time, for the sky delta */
     s16 ytab[VOX_LEVELS];
     u16 zt[VOX_NZ_MAX];         /* depth steps, cells 8.8 */
+    u8 strip[2 * VOX_STRIP * AR_TN];    /* one /v1/strip body, before it's spread into h and c */
 };
 #define VOX ((struct vox_ram *)(overlay_ram + OV_COCKPIT))
 

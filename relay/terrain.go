@@ -22,8 +22,11 @@ import (
 const (
 	terrainPath   = "/v1/terrain"
 	trackPath     = "/v1/track"
-	tn            = 128 // AR_TN: cells per side
-	terrainHdr    = 104 // AR_TERRAIN_HDR
+	stripPath     = "/v1/strip"
+	stripCells    = 1024 // AR_STRIP_CELLS: w * h at most
+	terrainLeadS  = 3.0  // centre a patch where the aircraft will be once the cart has it
+	tn            = 128  // AR_TN: cells per side
+	terrainHdr    = 104  // AR_TERRAIN_HDR
 	terrainSize   = terrainHdr + 2*tn*tn
 	levels        = 64 // AR_LEVELS: heights 0..63
 	keyLen        = 56 // AR_KEY_LEN
@@ -61,36 +64,40 @@ var terrainPal = [16]uint16{
 	0x666, 0xEEE, // urban, snow
 }
 
-// geom is a patch's placement: everything /v1/track needs to put an aircraft in it.
+// geom is a patch's placement and scale: everything /v1/track and /v1/strip need. Its cell grid goes on past
+// the patch's own 128 cells, so the cart can stream more of it (strips) as the aircraft moves, at the same
+// scale and colouring.
 type geom struct {
-	lat, lon float64 // centre
+	lat, lon float64 // centre of the first patch
 	cellM    int
 	levelCm  int
 	baseM    int
+	hiM      int // top of the colour bands
 }
 
 func (g geom) key() string {
-	return fmt.Sprintf("%.5f,%.5f,%d,%d,%d", g.lat, g.lon, g.cellM, g.levelCm, g.baseM)
+	return fmt.Sprintf("%.5f,%.5f,%d,%d,%d,%d", g.lat, g.lon, g.cellM, g.levelCm, g.baseM, g.hiM)
 }
 
 func parseKey(s string) (geom, error) {
 	p := strings.Split(s, ",")
-	if len(p) != 5 {
-		return geom{}, errors.New("patch key: want lat,lon,cell,level,base")
+	if len(p) != 6 {
+		return geom{}, errors.New("patch key: want lat,lon,cell,level,base,hi")
 	}
 	var g geom
-	var err [5]error
+	var err [6]error
 	g.lat, err[0] = strconv.ParseFloat(p[0], 64)
 	g.lon, err[1] = strconv.ParseFloat(p[1], 64)
 	g.cellM, err[2] = strconv.Atoi(p[2])
 	g.levelCm, err[3] = strconv.Atoi(p[3])
 	g.baseM, err[4] = strconv.Atoi(p[4])
+	g.hiM, err[5] = strconv.Atoi(p[5])
 	for _, e := range err {
 		if e != nil {
 			return geom{}, fmt.Errorf("patch key: %w", e)
 		}
 	}
-	if math.Abs(g.lat) > 85 || math.Abs(g.lon) > 180 || g.cellM <= 0 || g.levelCm <= 0 {
+	if math.Abs(g.lat) > 85 || math.Abs(g.lon) > 180 || g.cellM <= 0 || g.levelCm <= 0 || g.hiM < g.baseM {
 		return geom{}, errors.New("patch key: out of range")
 	}
 	return g, nil
@@ -103,7 +110,7 @@ func (g geom) cellXY(lat, lon float64) (float64, float64) {
 	return e/float64(g.cellM) + tn/2, n/float64(g.cellM) + tn/2
 }
 
-// latLon is the centre of cell (col, row).
+// latLon is the centre of cell (col, row); any col, row, not only the patch's own.
 func (g geom) latLon(col, row int) (float64, float64) {
 	e := (float64(col) + 0.5 - tn/2) * float64(g.cellM)
 	n := (float64(row) + 0.5 - tn/2) * float64(g.cellM)
@@ -128,6 +135,78 @@ func cellFor(aglM float64) int {
 	return int(math.Round(math.Min(math.Max(aglM/cellsAbove, minCellM), maxCellM)))
 }
 
+// cells is elevation for a w x h rectangle of a patch's grid from (x0, y0), plus each cell's north-west
+// neighbour (for shading): (w+1) x (h+1) samples, column 0 is x0-1 and the last row is y0+h.
+type cells struct {
+	x0, y0, w, h int
+	elev         []float64
+}
+
+func (c *cells) at(col, row int) float64 { return c.elev[(row-c.y0)*(c.w+1)+col-c.x0+1] }
+
+func sampleCells(ctx context.Context, el elevator, g geom, x0, y0, w, h int) (cells, error) {
+	c := cells{x0, y0, w, h, make([]float64, (w+1)*(h+1))}
+	z := demZoom(g.lat, float64(g.cellM))
+	for r := 0; r <= h; r++ {
+		for k := 0; k <= w; k++ {
+			la, lo := g.latLon(x0-1+k, y0+r)
+			e, err := el.elevation(ctx, z, la, lo)
+			if err != nil {
+				return c, err
+			}
+			c.elev[r*(w+1)+k] = e
+		}
+	}
+	return c, nil
+}
+
+// code is one cell's height level and palette index. Sea: Terrarium carries bathymetry, so open water is
+// well below 0 m (a few metres below is a lake artefact, seen near Nashville, and is ground); its surface is
+// 0 m. Ground below the base is clamped to it. Colours are bands of baseM..hiM, lit from the north-west so
+// slopes read in the voxel view.
+func (g geom) code(e, nw float64, col, row int, flat bool) (uint8, uint8) {
+	lo, hi := float64(g.baseM), float64(g.hiM)
+	sea := e < seaBelowM && !flat
+	if sea {
+		e = 0
+	}
+	if nw < seaBelowM && !flat {
+		nw = 0
+	}
+	e, nw = math.Max(e, lo), math.Max(nw, lo)
+	h := uint8(math.Min(math.Max(math.Round(g.level(e)), 0), levels-1))
+	if sea {
+		return h, uint8(cWater + (row+col)&1)
+	}
+	slope := (e - nw) / float64(g.cellM) // facing the light: positive
+	shade := 1
+	if slope > 0.03 {
+		shade = 2
+	} else if slope < -0.03 {
+		shade = 0
+	}
+	t := (e - lo) / math.Max(hi-lo, 1)
+	switch {
+	case e > 2800:
+		return h, cSnow
+	case t < 0.4:
+		return h, uint8(cLow + shade)
+	case t < 0.8:
+		return h, uint8(cMid + shade)
+	}
+	return h, uint8(cHigh + min(shade, 1))
+}
+
+// fill writes the rectangle's heights and colours, row by row from the south, each row west to east.
+func (g geom) fill(c *cells, flat bool, height, colour []uint8) {
+	for r := 0; r < c.h; r++ {
+		for k := 0; k < c.w; k++ {
+			col, row := c.x0+k, c.y0+r
+			height[r*c.w+k], colour[r*c.w+k] = g.code(c.at(col, row), c.at(col-1, row+1), col, row, flat)
+		}
+	}
+}
+
 // buildPatch samples elevation for a patch centred on lat, lon. cellM 0 picks the size from altM (metres
 // above sea level; NaN = on the ground). Without elevation data the patch is flat (tFlat).
 func buildPatch(ctx context.Context, el elevator, lat, lon, altM float64, cellM int) patch {
@@ -143,39 +222,27 @@ func buildPatch(ctx context.Context, el elevator, lat, lon, altM float64, cellM 
 			cellM = cellFor(altM - math.Max(ground, 0))
 		}
 	}
-	p.g = geom{lat: lat, lon: lon, cellM: cellM}
-	z := demZoom(lat, float64(cellM))
-	elev := make([]float64, tn*tn)
-	var err error
-	for r := 0; r < tn && err == nil; r++ {
-		for c := 0; c < tn; c++ {
-			la, lo := p.g.latLon(c, r)
-			var e float64
-			if e, err = el.elevation(ctx, z, la, lo); err != nil {
-				break
-			}
-			elev[r*tn+c] = e
-		}
-	}
-	if err != nil {
+	// The centre as the key spells it (5 decimals), so strips sample exactly where the patch did.
+	p.g = geom{lat: math.Round(lat*1e5) / 1e5, lon: math.Round(lon*1e5) / 1e5, cellM: cellM}
+	c, err := sampleCells(ctx, el, p.g, 0, 0, tn, tn)
+	flat := err != nil
+	if flat {
 		log.Printf("terrain %.4f,%.4f: %v: serving flat ground", lat, lon, err)
 		p.flags |= tFlat
-		clear(elev)
+		clear(c.elev)
 	}
 
-	// Sea: Terrarium carries bathymetry, so open water is well below 0 m; its surface is at 0 m. A few
-	// metres below 0 is a void or artefact in a lake (seen near Nashville), and is ground.
-	// The base is the 1st percentile of the ground, so one bad pixel can't sink the whole patch; lower
-	// ground is clamped to it.
-	sea := make([]bool, tn*tn)
+	// The base is the 1st percentile of the patch's ground, so one bad pixel can't sink it; sea pulls it to 0.
 	var land []float64
 	anySea := false
-	for i, e := range elev {
-		if e < seaBelowM && p.flags&tFlat == 0 {
-			sea[i], elev[i], anySea = true, 0, true
-			continue
+	for r := 0; r < tn; r++ {
+		for k := 0; k < tn; k++ {
+			if e := c.at(k, r); e < seaBelowM && !flat {
+				anySea = true
+			} else {
+				land = append(land, e)
+			}
 		}
-		land = append(land, e)
 	}
 	lo, hi := 0.0, 0.0
 	if len(land) > 0 {
@@ -185,54 +252,14 @@ func buildPatch(ctx context.Context, el elevator, lat, lon, altM float64, cellM 
 	if anySea {
 		lo = math.Min(lo, 0)
 	}
-	for i := range elev {
-		elev[i] = math.Max(elev[i], lo)
-	}
-	p.g.baseM = int(math.Floor(lo))
+	p.g.baseM, p.g.hiM = int(math.Floor(lo)), int(math.Ceil(math.Max(hi, lo)))
 	levelM := math.Max(float64(cellM)/16, (hi-float64(p.g.baseM))/(levels-1)) // true scale, unless that won't fit
 	p.g.levelCm = int(math.Ceil(levelM * 100))
-	for i, e := range elev {
-		h := uint8(math.Min(math.Max(math.Round(p.g.level(e)), 0), levels-1))
-		p.height[i] = h
+	p.g.fill(&c, flat, p.height[:], p.colour[:])
+	for _, h := range p.height {
 		p.hmax = max(p.hmax, h)
 	}
-	p.colourise(elev, sea, lo, hi)
 	return p
-}
-
-// colourise picks each cell's palette index: sea, then bands of the patch's own relief (lo..hi), lit from
-// the north-west so slopes read in the voxel view.
-func (p *patch) colourise(elev []float64, sea []bool, lo, hi float64) {
-	span := math.Max(hi-lo, 1)
-	for r := 0; r < tn; r++ {
-		for c := 0; c < tn; c++ {
-			i := r*tn + c
-			e := elev[i]
-			if sea[i] {
-				p.colour[i] = uint8(cWater + (r+c)%2)
-				continue
-			}
-			nw := elev[min(r+1, tn-1)*tn+max(c-1, 0)] // north is row+1, west is col-1
-			slope := (e - nw) / float64(p.g.cellM)    // facing the light: positive
-			shade := 1
-			if slope > 0.03 {
-				shade = 2
-			} else if slope < -0.03 {
-				shade = 0
-			}
-			t := (e - lo) / span
-			switch {
-			case e > 2800:
-				p.colour[i] = cSnow
-			case t < 0.4:
-				p.colour[i] = uint8(cLow + shade)
-			case t < 0.8:
-				p.colour[i] = uint8(cMid + shade)
-			default:
-				p.colour[i] = uint8(cHigh + min(shade, 1))
-			}
-		}
-	}
 }
 
 // encode writes struct ar_terrain and the two maps (AR_TERRAIN_SIZE bytes).
@@ -290,11 +317,65 @@ func terrainHandler(src *source, el elevator) http.HandlerFunc {
 			return
 		}
 		alt, _ := altMetres(a)
-		p := buildPatch(r.Context(), el, *a.Lat, *a.Lon, alt, 0)
+		lat, lon := *a.Lat, *a.Lon
+		if a.GS != nil && a.Track != nil { // where it will be when the download is done
+			d, t := *a.GS*0.514444*terrainLeadS, *a.Track*math.Pi/180
+			lat += d * math.Cos(t) / metresPerDegN
+			lon += d * math.Sin(t) / (metresPerDegN * math.Cos(lat*math.Pi/180))
+		}
+		p := buildPatch(r.Context(), el, lat, lon, alt, 0)
 		body := p.encode()
 		writeBinary(w, body)
 		log.Printf("%s %s -> %d m cells, %d cm levels, base %d m, hmax %d, flags %#x, %d B, %v", r.RemoteAddr,
 			r.URL.RequestURI(), p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, len(body),
 			time.Since(start).Round(time.Millisecond))
 	}
+}
+
+// stripHandler serves GET /v1/strip?p=<key>&x=&y=&w=&h=&v=3: w*h height levels, then w*h palette indices, for a
+// rectangle of a patch's grid (any x, y: the grid goes on past the patch), row by row from the south, each
+// row west to east. Cockpit mode streams strips into its wrapping 128 x 128 buffer as the aircraft moves.
+// Without elevation data it fails (502): the cart keeps what it has and asks again.
+func stripHandler(el elevator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		if !versionOK(w, r) {
+			return
+		}
+		q := r.URL.Query()
+		g, err := parseKey(q.Get("p"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var v [4]int
+		for i, k := range []string{"x", "y", "w", "h"} {
+			if v[i], err = strconv.Atoi(q.Get(k)); err != nil {
+				http.Error(w, k+" must be an integer", http.StatusBadRequest)
+				return
+			}
+		}
+		x, y, cw, ch := v[0], v[1], v[2], v[3]
+		if cw < 1 || ch < 1 || cw > tn || ch > tn || cw*ch > stripCells || abs(x) > 30000 || abs(y) > 30000 {
+			http.Error(w, "strip out of range", http.StatusBadRequest)
+			return
+		}
+		c, err := sampleCells(r.Context(), el, g, x, y, cw, ch)
+		if err != nil {
+			log.Printf("%s %s: %v", r.RemoteAddr, r.URL.RequestURI(), err)
+			http.Error(w, "elevation unavailable", http.StatusBadGateway)
+			return
+		}
+		body := make([]byte, 2*cw*ch)
+		g.fill(&c, false, body[:cw*ch], body[cw*ch:])
+		writeBinary(w, body)
+		log.Printf("%s %s -> %d B, %v", r.RemoteAddr, r.URL.RequestURI(), len(body), time.Since(start).Round(time.Millisecond))
+	}
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }

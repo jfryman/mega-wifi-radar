@@ -33,8 +33,7 @@ flowchart TD
   the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message.
 
 ## Not yet checked on hardware
-- Cockpit mode ([cockpit-mode.md](cockpit-mode.md) "Left before 0.3.0"): byte writes to the VDP, terrain fetch time,
-  fps, banks and pitch, the round trip back to the radar.
+- Cockpit terrain streaming ([cockpit-mode.md](cockpit-mode.md) "Left before 0.3.0"); cockpit mode itself is verified.
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
   close the Mac's lid ~2 min, open it; expect `STALE` → `RECONNECT` → `NET OK` within ≤ 60 s. Also confirm the
   patched `mw_http_cleanup` doesn't upset normal polling.

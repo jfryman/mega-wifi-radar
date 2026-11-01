@@ -38,6 +38,8 @@ enum feed_err feed_detail(const u8 icao[3], const struct ar_detail **d);
  * the aircraft in the patch with that key; without AR_K_FOUND the relay doesn't know it. */
 enum feed_err feed_terrain(const u8 icao[3], struct ar_terrain *hdr, u8 *h, u8 *c);
 enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *t);
+/* /v1/strip: w * h heights then w * h colours of the patch's grid from cell (x, y), into buf (2 * w * h). */
+enum feed_err feed_strip(const char *key, s16 x, s16 y, u16 w, u16 h, u8 *buf);
 
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG

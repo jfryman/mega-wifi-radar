@@ -56,6 +56,21 @@ enum feed_err feed_terrain(const u8 icao[3], struct ar_terrain *hdr, u8 *h, u8 *
     return FEED_OK;
 }
 
+/* The pack has one patch: its grid repeats every AR_TN cells. */
+enum feed_err feed_strip(const char *key, s16 x, s16 y, u16 w, u16 h, u8 *buf)
+{
+    const u8 *hm = fake_cockpit_rom + FC_TERRAIN + AR_TERRAIN_HDR, *cm = hm + AR_TN * AR_TN;
+
+    (void)key;
+    for (u16 r = 0; r < h; r++)
+        for (u16 k = 0; k < w; k++) {
+            u16 i = (((y + r) & (AR_TN - 1)) << 7) | ((x + k) & (AR_TN - 1));
+            buf[r * w + k] = hm[i];
+            buf[w * h + r * w + k] = cm[i];
+        }
+    return FEED_OK;
+}
+
 /* The recording plays in real time from the first request, looping; age is the time since its frame. */
 enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *t)
 {

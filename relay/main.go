@@ -242,6 +242,7 @@ func main() {
 	mux.Handle("GET "+detailPath, detailHandler(src))
 	mux.Handle("GET "+terrainPath, terrainHandler(src, el))
 	mux.Handle("GET "+trackPath, trackHandler(src, el, newTurns()))
+	mux.Handle("GET "+stripPath, stripHandler(el))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprintln(w, "ok") })
 	if *mdns {
 		_, p, err := net.SplitHostPort(*listen)

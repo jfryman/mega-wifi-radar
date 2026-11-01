@@ -80,6 +80,14 @@
 #define AR_TRACK_QUERY   "?icao=%02x%02x%02x&p=%s&v=%u"
 #define AR_TRACK_SIZE    40
 
+/* GET <relay> AR_STRIP_PATH AR_STRIP_QUERY (the patch's key, x, y, w, h in cells, AR_VER): w * h height levels,
+ * then w * h palette indices, for a rectangle of the patch's cell grid, which goes on past its AR_TN cells at
+ * the same scale and colouring (rows from the south, each row west to east). w, h <= AR_TN, w * h <=
+ * AR_STRIP_CELLS. Cockpit mode streams strips into its wrapping AR_TN x AR_TN buffer as the aircraft moves. */
+#define AR_STRIP_PATH    "/v1/strip"
+#define AR_STRIP_QUERY   "?p=%s&x=%d&y=%d&w=%u&h=%u&v=%u"
+#define AR_STRIP_CELLS   1024
+
 /* struct ar_track.kflags */
 #define AR_K_FOUND       0x01
 #define AR_K_GROUND      0x02

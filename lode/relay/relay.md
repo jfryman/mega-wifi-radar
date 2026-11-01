@@ -41,8 +41,10 @@ flowchart LR
   other bytes become `?` (`padASCII`, shared with callsigns).
 - Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=3` → a 32,872 B terrain patch
   centred on the aircraft (`terrain.go`, elevation from `dem.go`; flat with `AR_T_FLAT` if the tiles can't be
-  fetched; 404 if the aircraft isn't in the feed), and `GET /v1/track?icao=&p=<patch key>&v=3` → a 40 B
-  `ar_track` placed in that patch (`track.go`). Both look the aircraft up with a 1.5 s snapshot age. Flag
+  fetched; 404 if the aircraft isn't in the feed; centred 3 s ahead of the aircraft), `GET /v1/track?icao=&p=<patch
+  key>&v=3` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=3`
+  → more cells of that grid (`stripHandler`; 502 without elevation). Terrain and track look the aircraft up with a
+  1.5 s snapshot age; strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).

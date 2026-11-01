@@ -29,7 +29,7 @@ func (failDEM) elevation(context.Context, int, float64, float64) (float64, error
 }
 
 func TestKeyRoundTrip(t *testing.T) {
-	g := geom{lat: 36.12345, lon: -86.67891, cellM: 183, levelCm: 1144, baseM: -12}
+	g := geom{lat: 36.12345, lon: -86.67891, cellM: 183, levelCm: 1144, baseM: -12, hiM: 430}
 	got, err := parseKey(g.key())
 	if err != nil || got != g {
 		t.Fatalf("parseKey(%q) = %+v, %v", g.key(), got, err)
@@ -37,7 +37,7 @@ func TestKeyRoundTrip(t *testing.T) {
 	if len(g.key()) >= keyLen {
 		t.Errorf("key %q doesn't fit AR_KEY_LEN with its NUL", g.key())
 	}
-	for _, bad := range []string{"", "1,2,3,4", "91,0,100,100,0", "1,2,0,100,0", "a,b,c,d,e"} {
+	for _, bad := range []string{"", "1,2,3,4,5", "91,0,100,100,0,0", "1,2,0,100,0,0", "1,2,100,100,50,0", "a,b,c,d,e,f"} {
 		if _, err := parseKey(bad); err == nil {
 			t.Errorf("parseKey(%q) accepted", bad)
 		}
@@ -132,5 +132,39 @@ func TestBuildTrack(t *testing.T) {
 	k = buildTrack(ctx, &a, g, flatDEM(150), newTurns(), "abcdef", time.Unix(1000, 0))
 	if k.flags&kGround == 0 || math.Abs(float64(k.z)/256-(150+eyeM-100)/12.5) > 0.01 || k.vz != 0 || k.bank != 0 {
 		t.Errorf("ground track %+v", k)
+	}
+}
+
+// A strip from inside the patch is the patch, cell for cell; past its edge the grid goes on. The strip's
+// geometry comes from the key, as the cart sends it (an off-grid centre: the key rounds it).
+func TestStripMatchesPatch(t *testing.T) {
+	ctx := context.Background()
+	p := buildPatch(ctx, rampDEM{}, 0.5000037, 0.2000041, 5000, 0)
+	g, err := parseKey(p.g.key())
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.g = g
+	const x0, y0, w, h = 10, 20, 8, 100
+	c, err := sampleCells(ctx, rampDEM{}, p.g, x0, y0, w, h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	height, colour := make([]uint8, w*h), make([]uint8, w*h)
+	p.g.fill(&c, false, height, colour)
+	for r := 0; r < h; r++ {
+		for k := 0; k < w; k++ {
+			i := (y0+r)*tn + x0 + k
+			if height[r*w+k] != p.height[i] || colour[r*w+k] != p.colour[i] {
+				t.Fatalf("cell %d,%d: strip %d/%d, patch %d/%d", x0+k, y0+r, height[r*w+k], colour[r*w+k],
+					p.height[i], p.colour[i])
+			}
+		}
+	}
+	// East of the patch the ramp keeps rising (until it tops out at the last level).
+	c, _ = sampleCells(ctx, rampDEM{}, p.g, tn, 64, 8, 1)
+	p.g.fill(&c, false, height[:8], colour[:8])
+	if height[7] < p.height[64*tn+127] {
+		t.Errorf("past the east edge: %d, edge %d", height[7], p.height[64*tn+127])
 	}
 }

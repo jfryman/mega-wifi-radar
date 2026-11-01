@@ -61,6 +61,6 @@ Ordering, units, `GND` and stale flags match the relay's output.
   `get_cb()` with its own chunk sink (the body is bigger than `struct collect`'s u16 count). Must be exactly
   `AR_TERRAIN_SIZE`, magic `AT`, `n == AR_TN`, `ver == AR_VER`. `feed_track(icao, key, &t)`:
   `/v1/track?icao=&p=<key>&v=` into a 48-byte buffer, exactly `AR_TRACK_SIZE`, magic `AK`. Both count failures
-  for the reconnect like the others. The fake feed serves `res/fake/kbna_cockpit.bin`, the track played in real time.
+  for the reconnect like the others. `feed_strip(key, x, y, w, h, buf)`: `/v1/strip` into `buf` (exactly `2·w·h`). The fake feed serves `res/fake/kbna_cockpit.bin`, the track played in real time.
 
 Related: [net-layer.md](net-layer.md), [../relay/relay.md](../relay/relay.md).
