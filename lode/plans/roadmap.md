@@ -17,9 +17,9 @@ flowchart TD
 ## Status (current)
 - **Released:** v0.1.0 (radar), v0.1.1 (print assets), v0.1.2 (boot splash), v0.1.3 (mDNS discovery / AUTO relay,
   setup RESET, contract check, Wi-Fi fixes), **v0.2.0** (traffic list, new controls, detail pop-up + `/v1/detail`, setup
-  CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet).
-  **0.3.0** is open in `CHANGELOG.md`: cockpit mode ([cockpit-mode.md](cockpit-mode.md), contract v3) and the
-  reconnect after a lost relay host, both committed; cockpit mode works on the cart, the manual page is left.
+  CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
+  **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
+  reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
 - **The cart** runs the cockpit streaming build (`6b4cf8f`, CRC32 `0459FBA2`, contract v3) with the dev relay from
   the same commit (a cockpit build needs the relay from the same checkout). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.

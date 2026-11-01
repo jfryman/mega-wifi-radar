@@ -1,4 +1,4 @@
-# Plan: cockpit mode (0.3.0)
+# Cockpit mode: status and history (released in 0.3.0)
 
 **Status:** working on the cart, streaming included (2026-11-01, live aircraft near KBNA): solid colours,
 16-22 fps, smooth, no visible stutter. One `/v1/terrain` on entry, then `/v1/strip` as the aircraft moves (a
@@ -7,9 +7,7 @@ centre), tracks every 2 s. The patch's 3 s lead put the aircraft at cell 64.0, 6
 release. The design, as built, is in [../ui/cockpit.md](../ui/cockpit.md); this file holds what's left and
 the speed spike's measurements.
 
-## Left before 0.3.0
-1. **Release 0.3.0** (contract v3: relay and cart together). The manual (page 14, *Cockpit View*), docs and the
-   elevation credits (HUD, manual, docs, README) are in place.
+Released in **v0.3.0** with the manual page (14, *Cockpit View*) and the elevation credits.
 
 ## Done on the cart
 Byte writes to the VDP duplicate the byte (solid colours). 16-22 fps. A whole patch takes ~2.5 s (~13 KB/s); strips
