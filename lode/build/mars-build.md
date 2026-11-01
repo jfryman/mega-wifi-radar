@@ -91,6 +91,9 @@ buffer shows behind the VDP text. Rows 4+ fail by design (no MegaWiFi in MAME: S
   (`md/uart_ram.c`, `.ramcode` in `md.ld`). Code that sets RV = 1 must not execute from or read `$88xxxx` until it
   clears RV again ([../plans/32x.md](../plans/32x.md)).
 - Put the build on screen (`BUILD=$(VERSION)`, git describe): photos of a cart run must say which ROM ran.
+- SH-2 cartridge reads while the 68000 talks to the UART drop and corrupt UART bytes (tower: drop 51 / bad 658 per
+  8 KiB). Keep the SH-2s off the cart during networking ([../plans/32x.md](../plans/32x.md) rule 2).
+- `MW_CMD_IP_CURRENT` replies `cfg_slot, reserved[3]`, then the address: the IP is at data + 4.
 - MAME returns `0000` for a 68000 **word** read of `$A15100`; byte reads give `80 80`. The spike reads bytes and
   treats "running at `$88xxxx`" as the ADEN proof.
 - A build flag that is computed but not passed fails silently: with `RELAY_HOST` empty, gcc drops the whole relay

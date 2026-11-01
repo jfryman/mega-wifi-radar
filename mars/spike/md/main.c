@@ -545,10 +545,11 @@ static int t_wifi(uint8_t row)
 		wait_frames(30);
 	}
 	txt_put(INFO_X, row, COL_WHITE, "        ");
-	if (!mw_cmd(MW_CMD_IP_CURRENT, 0, &len, 60) && len >= 4) {
+	/* struct mw_msg_ip_cfg: cfg_slot, reserved[3], then the address */
+	if (!mw_cmd(MW_CMD_IP_CURRENT, 0, &len, 60) && len >= 8) {
 		uint8_t x = INFO_X, i;
 		for (i = 0; i < 4; i++) {
-			x += txt_dec(x, row, COL_WHITE, rxbuf[4 + i]);
+			x += txt_dec(x, row, COL_WHITE, rxbuf[8 + i]);
 			if (i < 3)
 				txt_put(x++, row, COL_WHITE, ".");
 		}
