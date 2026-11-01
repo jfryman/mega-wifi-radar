@@ -17,7 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
@@ -39,4 +39,5 @@
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
+  - [flyover-notices.md](plans/flyover-notices.md) - 0.4.0 goal: atc-mqtt MQTT -> relay -> cart notices (radar banner, cockpit HUD, chimes), done-criteria, phases
 - tmp/ - git-ignored scratch

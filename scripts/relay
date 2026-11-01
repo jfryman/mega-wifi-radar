@@ -14,6 +14,10 @@
 # Discovery (lode/net/discovery.md): a bridged or VM container never sees LAN multicast, so the
 # container runs with -mdns=false and the HOST advertises _mwradar._tcp for it: dns-sd -P on
 # macOS, avahi-publish on Linux. Set RELAY_MDNS=0 to skip that.
+#
+# Configuration (relay/main.go serverEnv): RELAY_* and MQTT_* variables in this shell are passed to the
+# container (MQTT_BROKER_HOST, MQTT_BROKER_PORT, MQTT_USERNAME, MQTT_PASSWORD, MQTT_TOPIC, ...). With the dev
+# broker up (scripts/mqtt start) and no MQTT_BROKER_HOST set, the relay joins its network and uses it.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -61,6 +65,19 @@ advertise() {
     fi
 }
 
+# Container args for configuration: the dev broker's network, and the relay's env variables.
+config_args() {
+    if "$CTR" network inspect mwradar >/dev/null 2>&1; then printf '%s\n' --network mwradar; fi
+    if [ -z "${MQTT_BROKER_HOST:-}" ] && "$CTR" container inspect -f '{{.State.Running}}' mwradar-mqtt 2>/dev/null | grep -q true; then
+        printf '%s\n' -e MQTT_BROKER_HOST=mwradar-mqtt
+        echo "relay: using the dev MQTT broker (mwradar-mqtt)" >&2
+    fi
+    # Names only (-e VAR), so values such as MQTT_PASSWORD never show in ps. RELAY_PORT/IMAGE/MDNS are this script's.
+    env | grep -E '^(RELAY|MQTT)_[A-Z_]*=' | cut -d= -f1 | grep -v -x -e RELAY_PORT -e RELAY_IMAGE -e RELAY_MDNS \
+        | while read -r v; do printf '%s\n' -e "$v"; done
+    return 0
+}
+
 need_image() {
     "$CTR" image inspect "$IMAGE" >/dev/null 2>&1 && return 0
     if [ -n "${RELAY_IMAGE:-}" ]; then "$CTR" pull "$IMAGE"; else "$0" build; fi
@@ -73,11 +90,18 @@ case "$cmd" in
     run)   need_image
            advertise
            trap unadvertise EXIT INT TERM
-           "$CTR" run --rm -it --init -p "$PORT:8080" "$IMAGE" -listen :8080 -mdns=false "$@" ;;
+           # shellcheck disable=SC2046 # one arg per line, none with spaces
+           IFS='
+'
+           "$CTR" run --rm -it --init -p "$PORT:8080" $(config_args) "$IMAGE" -listen :8080 -mdns=false "$@" ;;
     start) need_image
            "$CTR" rm -f "$NAME" >/dev/null 2>&1 || true
-           "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" \
+           IFS='
+'
+           # shellcheck disable=SC2046 # one arg per line, none with spaces
+           "$CTR" run -d --name "$NAME" --restart unless-stopped -p "$PORT:8080" $(config_args) \
                "$IMAGE" -listen :8080 -mdns=false "$@"
+           unset IFS
            advertise
            echo "relay: $IMAGE" ;;
     stop)  unadvertise; "$CTR" rm -f "$NAME" ;;

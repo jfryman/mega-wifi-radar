@@ -2,7 +2,7 @@
 
 A small HTTP service that polls adsb.fi over HTTPS, turns its JSON into the compact frame
 ([../architecture/frame-format.md](../architecture/frame-format.md)), and serves it over plain HTTP
-to the console. Pure Go stdlib, no dependencies. Builds natively on macOS and Arch (`go` is packaged on both).
+to the console, and (optionally) subscribes to the owner's MQTT flight feed for flyover notices. Pure Go stdlib, no dependencies. Builds natively on macOS and Arch (`go` is packaged on both).
 
 ```mermaid
 flowchart LR
@@ -55,6 +55,48 @@ flowchart LR
 
 The relay's constants, encoder, route and mDNS strings are held to `src/arframe.h` by `contract_test.go`
 ([../architecture/contract.md](../architecture/contract.md)).
+
+## Configuration: flags and environment
+Every server flag has an env fallback (`serverEnv` + `envFlags` in `main.go`): **command-line flag > env > default**;
+empty variables count as unset. For containers and the planned cluster deployment next to `atc-mqtt`.
+| Flag | Env | Flag | Env |
+|---|---|---|---|
+| `-listen` | `RELAY_LISTEN` | `-mqtt-host` (empty = off) | `MQTT_BROKER_HOST` |
+| `-upstream` | `RELAY_UPSTREAM` | `-mqtt-port` (1883) | `MQTT_BROKER_PORT` |
+| `-min-interval` | `RELAY_MIN_INTERVAL` | `-mqtt-user` | `MQTT_USERNAME` |
+| `-mdns` | `RELAY_MDNS` | `-mqtt-topic` (`atc/status`) | `MQTT_TOPIC` |
+| `-dem` | `RELAY_DEM` | `-mqtt-clear` | `MQTT_CLEAR` |
+| | | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
+
+- The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
+- `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
+  only) for the same reason.
+- The script's own `RELAY_PORT`, `RELAY_IMAGE`, `RELAY_MDNS` aren't passed in (the container always runs
+  `-mdns=false`; the script's `RELAY_MDNS=0` skips the *host* advertisement).
+
+## MQTT: flyover notices (`mqtt.go`, `notice.go`)
+Plan and goal: [../plans/flyover-notices.md](../plans/flyover-notices.md). Today the relay subscribes and logs
+entering flights; the notice ring, text composer and `/v1/notice` (contract v4) come next.
+- `mqtt.go`: minimal MQTT 3.1.1 client, stdlib. CONNECT (clean session, keep-alive 60 s, user/pass), SUBSCRIBE
+  QoS 1, PUBLISH in at QoS 0/1 with PUBACK, PINGREQ every 30 s, read deadline 1.5 × keep-alive. `runMQTT`
+  reconnects with 5/10/30/60 s back-off, reset by a CONNACK. `mqttServe` takes a `net.Conn`, so tests drive it
+  over `net.Pipe` with a fake broker (`mqtt_test.go`).
+- **Clear:** with `-mqtt-clear`, a *retained* message is answered with an empty retained PUBLISH (QoS 0) on its
+  topic. Empty payloads are ignored (that's our own clear echoed back). `atc/status` itself isn't retained.
+- **Client id** is random per process: the broker kicks an older session with the same id (two relays, or a pod
+  restart overlapping the old one).
+- `notice.go` `parseATC`: the consolidated `atc/status` (`entering_flights[]`; an `error` field → error) or a single
+  flight object (legacy `atc/incoming`; `exiting` ignored).
+```go
+go runMQTT(context.Background(), mq, noticeHandler) // main.go, only when mq.host != ""
+```
+
+### Dev broker (`scripts/mqtt`, `scripts/mosquitto.conf`)
+`make mqtt-start` runs `eclipse-mosquitto:2` as `mwradar-mqtt` (anonymous, no persistence) on the container network
+**`mwradar`**, port 1883 published on the host. `scripts/relay run|start` joins `mwradar` when it exists and, if
+`MQTT_BROKER_HOST` is unset and `mwradar-mqtt` is running, sets it to `mwradar-mqtt` (the cluster shape: the broker by
+service name). `make mqtt-pub` publishes `relay/testdata/atc/entering.json`; `scripts/mqtt sub` watches `atc/#`.
+Verified 2026-11-01: messages logged, reconnect after a broker restart (~5 s), retained clear.
 
 ## Running it
 | How | Command |
@@ -128,4 +170,4 @@ Austria, Canada, EU-DEM, ETOPO1, Mexico INEGI, LINZ, Kartverket, UK EA, USGS 3DE
 reasonable to the medium". Credited: the cockpit HUD (`ELEVATION DATA: AWS TERRAIN TILES`), the full list in the
 manual's credits (small print), `docs/relay.md` "Data terms", and the README.
 
-Related: [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).
+Related: [../plans/flyover-notices.md](../plans/flyover-notices.md), [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).

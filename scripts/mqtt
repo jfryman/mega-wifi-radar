@@ -1,0 +1,40 @@
+#!/bin/sh
+# Dev MQTT broker for flyover notices (lode/plans/flyover-notices.md): eclipse-mosquitto in a container.
+#   scripts/mqtt start|stop|logs   # detached container mwradar-mqtt, port ${MQTT_PORT:-1883} on the host
+#   scripts/mqtt pub [file]        # publish an atc/status message (default: relay/testdata/atc/entering.json)
+#   scripts/mqtt sub               # watch atc/# on the broker
+# The broker sits on the "mwradar" container network, where scripts/relay finds it as mwradar-mqtt:1883
+# (the same shape as the cluster, where the relay reaches the broker by service name).
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+[ -n "$CTR" ] || { echo "mqtt: need podman or docker on PATH" >&2; exit 1; }
+IMAGE=${MQTT_IMAGE:-docker.io/library/eclipse-mosquitto:2}
+NAME=mwradar-mqtt
+NET=mwradar
+PORT=${MQTT_PORT:-1883}
+TOPIC=${MQTT_TOPIC:-atc/status}
+
+# mosquitto_pub/sub from the host if installed, else from the broker's own image.
+client() {
+    tool=$1; shift
+    if command -v "$tool" >/dev/null 2>&1; then "$tool" -h localhost -p "$PORT" "$@"
+    else "$CTR" exec -i "$NAME" "$tool" "$@"; fi
+}
+
+cmd=${1:-start}; [ $# -gt 0 ] && shift
+case "$cmd" in
+    start) "$CTR" network inspect "$NET" >/dev/null 2>&1 || "$CTR" network create "$NET" >/dev/null
+           "$CTR" rm -f "$NAME" >/dev/null 2>&1 || true
+           "$CTR" run -d --name "$NAME" --restart unless-stopped --network "$NET" -p "$PORT:1883" \
+               -v "$ROOT/scripts/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro" "$IMAGE" >/dev/null
+           echo "mqtt: $NAME on localhost:$PORT (containers on $NET: $NAME:1883)" ;;
+    stop)  "$CTR" rm -f "$NAME" ;;
+    logs)  exec "$CTR" logs -f "$NAME" ;;
+    pub)   file=${1:-$ROOT/relay/testdata/atc/entering.json}
+           client mosquitto_pub -q 1 -t "$TOPIC" -s < "$file"
+           echo "mqtt: published $(basename "$file") to $TOPIC" ;;
+    sub)   client mosquitto_sub -v -t 'atc/#' ;;
+    *)     echo "usage: scripts/mqtt start|stop|logs|pub [file]|sub" >&2; exit 2 ;;
+esac

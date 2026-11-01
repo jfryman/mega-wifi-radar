@@ -56,3 +56,6 @@
 - Mode overlay - `overlay_ram`: 36 KB that the radar (scope tiles, trails, tracks) or cockpit mode (`struct vox_ram`) owns at a time.
 - Sky delta - repaint only the sky rows a VRAM copy's terrain uncovered since that copy's last frame.
 - Reconnect - module reset (`mw_init`) + detect + join + relay lookup after 3 failed requests in a row, backing off 15/30/60 s (`feed_reconnect`).
+- Flyover notice - a short message on the cart when a plane passes over the owner's house, from atc-mqtt via the relay's MQTT subscription (0.4.0, planned).
+- atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
+- Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).

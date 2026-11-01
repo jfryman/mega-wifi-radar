@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-11-01T14:30:00.123Z",
+  "entering_flights": [
+    {
+      "flight_uuid": "550e8400-e29b-41d4-a716-446655440000",
+      "flight_number": "SW1234",
+      "airline": "Southwest Airlines",
+      "aircraft_type": "Boeing 737-800",
+      "origin": "BNA",
+      "destination": "MDW",
+      "heading": 20,
+      "altitude_feet": 1800,
+      "latitude": 36.1301,
+      "longitude": -86.6750,
+      "ground_speed_knots": 160,
+      "timestamp": "2026-11-01T14:30:00.123Z",
+      "event_type": "entering"
+    }
+  ],
+  "exiting_flights": [],
+  "tracked_flights": [],
+  "summary": { "entering_count": 1, "exiting_count": 0, "currently_tracked_count": 1 }
+}

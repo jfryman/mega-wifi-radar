@@ -50,17 +50,45 @@ responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _
 The cart sends a *legacy unicast* query (from UDP port 5354), and responders answer it directly, so the
 ESP32 never joins the multicast group. Details: [lode/net/discovery.md](../lode/net/discovery.md).
 
-### Flags
+### Flags and environment
 
-| Flag | Default | |
-|---|---|---|
-| `-listen` | `:8080` | HTTP listen address |
-| `-upstream` | `https://opendata.adsb.fi` | Any adsb.fi-compatible base URL |
-| `-min-interval` | `1s` | Minimum time between upstream requests (adsb.fi allows 1 per second) |
-| `-mdns` | `true` | Advertise `_mwradar._tcp` over mDNS (UDP 5353) |
-| `-convert FILE -o OUT -lat -lon -range` | | Convert a saved upstream JSON file into one frame, then exit |
-| `-pack OUT FILES...` | | Pack several JSON snapshots into a fake-feed file for the emulator build |
-| `-pack-detail OUT FILES...` | | Pack the details of every aircraft in the snapshots for the emulator build's pop-up |
+Every server setting can also come from an environment variable (for containers and Kubernetes). A flag on
+the command line wins over the variable, which wins over the default. The MQTT variables use the same names
+as the `atc-mqtt` service, so both can share one secret or config map.
+
+| Flag | Variable | Default | |
+|---|---|---|---|
+| `-listen` | `RELAY_LISTEN` | `:8080` | HTTP listen address |
+| `-upstream` | `RELAY_UPSTREAM` | `https://opendata.adsb.fi` | Any adsb.fi-compatible base URL |
+| `-min-interval` | `RELAY_MIN_INTERVAL` | `1s` | Minimum time between upstream requests (adsb.fi allows 1 per second) |
+| `-mdns` | `RELAY_MDNS` | `true` | Advertise `_mwradar._tcp` over mDNS (UDP 5353) |
+| `-dem` | `RELAY_DEM` | AWS Terrain Tiles | Terrarium elevation tile base URL, for cockpit mode |
+| `-convert FILE -o OUT -lat -lon -range` |  | | Convert a saved upstream JSON file into one frame, then exit |
+| `-pack OUT FILES...` |  | | Pack several JSON snapshots into a fake-feed file for the emulator build |
+| `-pack-detail OUT FILES...` |  | | Pack the details of every aircraft in the snapshots for the emulator build's pop-up |
+| `-mqtt-host` | `MQTT_BROKER_HOST` | (off) | MQTT broker for flyover notices; empty turns them off |
+| `-mqtt-port` | `MQTT_BROKER_PORT` | `1883` | |
+| `-mqtt-user` | `MQTT_USERNAME` | | Password: `MQTT_PASSWORD` only (never a flag, so it can't show in `ps`) |
+| `-mqtt-topic` | `MQTT_TOPIC` | `atc/status` | The topic `atc-mqtt` publishes flights to |
+| `-mqtt-clear` | `MQTT_CLEAR` | `false` | After a *retained* message, publish an empty retained one to clear the topic |
+| `-mqtt-client-id` | `MQTT_CLIENT_ID` | `mwradar-relay-<random>` | Unique per process; the relay always uses a clean session |
+
+### Flyover notices (MQTT)
+
+With `MQTT_BROKER_HOST` set, the relay subscribes to `atc-mqtt`'s `atc/status` topic (QoS 1) and reads the
+flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. The cart side
+of this feature is planned for 0.4.0. For development, run a local broker:
+
+```sh
+make mqtt-start      # eclipse-mosquitto container mwradar-mqtt, localhost:1883, network "mwradar"
+make relay-start     # finds the running broker and uses it (MQTT_BROKER_HOST=mwradar-mqtt)
+make mqtt-pub        # publish relay/testdata/atc/entering.json to atc/status
+scripts/relay logs   # mqtt: atc/status: entering SW1234 (...)
+scripts/mqtt sub     # watch atc/#
+```
+
+`scripts/relay` passes any exported `RELAY_*` and `MQTT_*` variables to the container by name, so
+`MQTT_BROKER_HOST=broker.lan MQTT_USERNAME=radar MQTT_PASSWORD=... make relay-start` points it at another broker.
 
 ## HTTP API
 

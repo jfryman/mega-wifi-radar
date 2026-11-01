@@ -43,6 +43,10 @@ make relay-stop && make relay-start   # exercise AUTO re-discovery mid-session
 dns-sd -B _mwradar._tcp        # is the relay advertised?
 ```
 
+## Next: 0.4.0 flyover notices
+MQTT (`atc-mqtt`) → relay → cart notices: radar banner, cockpit HUD line, generic chime + a KBNA easter egg,
+contract v4. Goal, done-criteria and phases: [flyover-notices.md](flyover-notices.md).
+
 ## Open decisions / ideas
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
@@ -50,7 +54,7 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 - [ ] STARS polish: data blocks with leader lines.
 - [ ] Y / Z on 6-button pads (reserved).
 - [ ] Persist the sort order (RAM only today; adding it to `struct settings` would invalidate saved `MWR1` records).
-- [ ] Sound (PSG engine noise on the splash), non-KBNA fake feeds for emulator demos.
+- [ ] More sound (engine noise on the splash; the 0.4.0 chime adds FM code to reuse), non-KBNA fake feeds for emulator demos.
 
 ## Decided
 SGDK master `9a78a44` in a container; V-Int renderer, so blocking polls never stall the sweep; compact frame over HTTP GET

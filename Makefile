@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop print print-shots splash-art contract contract-lock fake-feed spike-voxel spike-voxel-run spike-voxel-flash
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop mqtt-start mqtt-stop mqtt-pub print print-shots splash-art contract contract-lock fake-feed spike-voxel spike-voxel-run spike-voxel-flash
 
 all: release
 
@@ -85,6 +85,17 @@ relay-start:
 
 relay-stop:
 	scripts/relay stop
+
+# Dev MQTT broker for flyover notices (scripts/mqtt); start it before relay-start and the relay uses it.
+mqtt-start:
+	scripts/mqtt start
+
+mqtt-stop:
+	scripts/mqtt stop
+
+# Publish relay/testdata/atc/entering.json to atc/status, as atc-mqtt would.
+mqtt-pub:
+	scripts/mqtt pub
 
 # Printed pieces (print/, Typst): label, cover, manual + booklets -> out/print/.
 print:

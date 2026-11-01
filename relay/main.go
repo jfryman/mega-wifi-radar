@@ -207,6 +207,14 @@ func main() {
 		"Terrarium elevation tiles base URL, for cockpit mode's terrain")
 	packCockpit := flag.String("pack-cockpit", "", "pack a terrain patch at -lat/-lon with -cell metre cells, and every aircraft's track in it from the upstream JSON files given as arguments, and exit")
 	cell := flag.Int("cell", 750, "cell size in metres for -pack-cockpit")
+	mq := mqttConfig{pass: os.Getenv("MQTT_PASSWORD")} // env only: a flag would show in ps
+	flag.StringVar(&mq.host, "mqtt-host", "", "MQTT broker host for flyover notices (empty: off)")
+	flag.IntVar(&mq.port, "mqtt-port", 1883, "MQTT broker port")
+	flag.StringVar(&mq.user, "mqtt-user", "", "MQTT user name (password: MQTT_PASSWORD)")
+	flag.StringVar(&mq.topic, "mqtt-topic", "atc/status", "MQTT topic atc-mqtt publishes flights to")
+	flag.BoolVar(&mq.clear, "mqtt-clear", false, "clear a retained message on the topic after reading it")
+	flag.StringVar(&mq.clientID, "mqtt-client-id", mqttClientID(), "MQTT client id")
+	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
 
 	el := newDEM(*demURL)
@@ -252,8 +260,42 @@ func main() {
 			go serveMDNS(newAdvert(host, uint16(port)))
 		}
 	}
+	if mq.host != "" {
+		log.Printf("mqtt: %s, topic %q, user %q, client %s", mq.addr(), mq.topic, mq.user, mq.clientID)
+		go runMQTT(context.Background(), mq, noticeHandler)
+	} else {
+		log.Printf("mqtt: off (no MQTT_BROKER_HOST): no flyover notices")
+	}
 	log.Printf("relay %s (contract v%d) listening on %s (upstream %s)", version, frameVer, *listen, *upstream)
 	log.Fatal(http.ListenAndServe(*listen, mux))
+}
+
+// serverEnv maps the server's flags to environment variables, for containers and the cluster. The MQTT
+// names are atc-mqtt's own, so both services can share one secret / config map.
+var serverEnv = map[string]string{
+	"listen":         "RELAY_LISTEN",
+	"upstream":       "RELAY_UPSTREAM",
+	"min-interval":   "RELAY_MIN_INTERVAL",
+	"mdns":           "RELAY_MDNS",
+	"dem":            "RELAY_DEM",
+	"mqtt-host":      "MQTT_BROKER_HOST",
+	"mqtt-port":      "MQTT_BROKER_PORT",
+	"mqtt-user":      "MQTT_USERNAME",
+	"mqtt-topic":     "MQTT_TOPIC",
+	"mqtt-clear":     "MQTT_CLEAR",
+	"mqtt-client-id": "MQTT_CLIENT_ID",
+}
+
+// envFlags sets flags from non-empty environment variables before Parse, so a command-line flag
+// still wins over the variable, which wins over the default.
+func envFlags(fs *flag.FlagSet, names map[string]string) {
+	for name, env := range names {
+		if v := os.Getenv(env); v != "" {
+			if err := fs.Set(name, v); err != nil {
+				log.Fatalf("%s=%q: %v", env, v, err)
+			}
+		}
+	}
 }
 
 func loadFrame(in string, lat, lon float64, rangeNM int, seq uint16) ([]byte, int, error) {
