@@ -20,8 +20,9 @@ flowchart TD
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
   **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
   reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
-- **The cart** holds the 32X MegaWiFi spike ROM (`out/mars/spike.32x`, branch `32x`, build `v0.3.0-5-g88f7b5d`, CRC32
-  `280FC12A`, `RELAY=10.0.0.20:8080`): the run that passed ([32x.md](32x.md)). `make flash` puts the radar back.
+- **The cart** holds the 32X ROM (`out/mars/cart/mwradar.32x`, branch `32x`, build `v0.3.0-9-g981d85e`, CRC32
+  `019C5BF3`), flashed 2026-11-01 for its first run on the tower ([../mars/summary.md](../mars/summary.md)).
+  `make flash` puts the Genesis radar back; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
   version (`mwradar-relay:v0.2.1-4-g6b4cf8f-dirty.…`), advertised by `dns-sd -P` from `scripts/relay start`.
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
