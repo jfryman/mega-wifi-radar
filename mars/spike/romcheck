@@ -1,0 +1,23 @@
+#!/bin/sh
+# Check a 32X cartridge image against what the 32X boot ROMs expect (sh/start.s, md/md.ld).
+#   ./romcheck out/mars/spike.32x
+set -eu
+ROM=$1
+fail() { echo "romcheck: $ROM: $*" >&2; exit 1; }
+hex() { od -An -tx1 -j "$1" -N "$2" "$ROM" | tr -d ' \n'; }
+str() { dd if="$ROM" bs=1 skip="$1" count="$2" 2>/dev/null; }
+u32() { printf '%d' "0x$(hex "$1" 4)"; }
+
+SIZE=$(wc -c < "$ROM")
+[ "$(hex 0 8)" = "01000000000003f0" ] || fail "68000 vectors: want SSP 01000000, PC 000003F0"
+[ "$(str 256 8)" = "SEGA 32X" ] || fail "no 'SEGA 32X' at \$100"
+[ "$(hex 512 6)" = "4ef900880800" ] || fail "\$200 jump table: want jmp \$880800"
+[ "$(hex 1008 6)" = "287cffffffc0" ] || fail "\$3F0: Sega boot code missing"
+[ "$(hex 2048 2)" = "4ef9" ] || fail "\$800: hot-start jmp missing (boot code not 1040 bytes?)"
+SRC=$(u32 980); LEN=$(u32 988)
+[ "$(hex 992 4)" = "06000240" ] || fail "MARS header: master entry != 06000240"
+[ "$(hex 996 4)" = "06000244" ] || fail "MARS header: slave entry != 06000244"
+[ $((SRC % 4)) -eq 0 ] || fail "MARS header: .data source $SRC not long-aligned"
+[ "$LEN" -gt 0 ] && [ $((SRC + LEN)) -le "$SIZE" ] || fail "MARS header: .data $SRC+$LEN outside the ROM ($SIZE)"
+[ "$SIZE" -le 4194304 ] || fail "over 4 MiB: the SH-2s only see 4 MiB of cart"
+echo "romcheck: $ROM OK ($SIZE bytes, SH-2 .data $LEN bytes at ROM $SRC)"

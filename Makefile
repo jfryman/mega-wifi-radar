@@ -108,3 +108,26 @@ spike-voxel-run: spike-voxel
 
 spike-voxel-flash: spike-voxel
 	$(FLASHKIT) write-rom spike/voxel/out/rom.bin
+
+# 32X (lode/plans/32x.md): its own image (mars/Dockerfile via scripts/mars) and the MegaWiFi spike ROM.
+# The Genesis build above doesn't use any of it.
+.PHONY: mars-image mars-spike mars-spike-flash mars-spike-sim mars-clean
+RELAY ?=
+
+mars-image:
+	scripts/mars --image
+
+# out/mars/spike.32x. RELAY=host:port also makes it GET /healthz from that relay.
+mars-spike:
+	scripts/mars make -C mars/spike RELAY=$(RELAY)
+
+mars-spike-flash: mars-spike
+	$(FLASHKIT) write-rom out/mars/spike.32x
+
+# Headless MAME with the 32X BIOS dumps in bios/32x/ (git-ignored; MARS_BIOS=dir overrides, see scripts/mars-sim).
+MARS_BIOS ?= $(CURDIR)/bios/32x
+mars-spike-sim: mars-spike
+	MARS_BIOS=$(MARS_BIOS) scripts/mars-sim out/mars/spike.32x $(SNAP)
+
+mars-clean:
+	scripts/mars make -C mars/spike clean

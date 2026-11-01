@@ -1,0 +1,27 @@
+#!/bin/sh
+# Run a 32X ROM headless in MAME (the mw-cart bring-up image has MAME) and save PNG snapshots.
+#   scripts/mars-sim out/mars/spike.32x 3,8
+# MAME's 32x driver needs the three 32X BIOS dumps (32x_g_bios.bin, 32x_m_bios.bin, 32x_s_bios.bin),
+# which can't ship with this repo: put your own in MARS_BIOS (default bios/32x/,
+# git-ignored). MAME has no MegaWiFi, so the spike's UART rows fail here by design; this checks
+# the boot path, the SH-2 handshake and the frame buffer.
+set -eu
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CTR=${CTR:-$(command -v podman || command -v docker || true)}
+IMG=${SIM_IMAGE:-mw-bringup-rom:fedora42}
+ROM=${1:-out/mars/spike.32x}
+BIOS=${MARS_BIOS:-$ROOT/bios/32x}
+for f in 32x_g_bios.bin 32x_m_bios.bin 32x_s_bios.bin; do
+    [ -f "$BIOS/$f" ] || { echo "mars-sim: $BIOS/$f missing (MAME's 32x driver needs your own 32X BIOS dumps)" >&2; exit 2; }
+done
+OUT="$ROOT/out/snap"
+rm -rf "$OUT" && mkdir -p "$OUT"
+"$CTR" run --rm --user "$(id -u):$(id -g)" -v "$ROOT:/w" -v "$BIOS:/bios/32x:ro" -w /w -e HOME=/tmp \
+    -e XDG_CONFIG_HOME=/tmp -e XDG_DATA_HOME=/tmp -e XDG_STATE_HOME=/tmp \
+    -e SIM_SNAP_AT="${2:-3,8}" -e SIM_PRESS="${SIM_PRESS:-}" \
+    -e SDL_VIDEODRIVER=dummy -e SDL_AUDIODRIVER=dummy "$IMG" \
+    mame 32x -rompath /bios -cart "/w/$ROM" -noautosave -video none -sound none -nothrottle \
+        -skip_gameinfo -state_directory /tmp/sta -cfg_directory /tmp/cfg -nvram_directory /tmp/cfg \
+        -snapshot_directory /w/out/snap -autoboot_script /w/sim/snap.lua 2>&1 \
+    | grep -vE "osd_subst_env|^$" || true
+ls "$OUT"/32x/ 2>/dev/null

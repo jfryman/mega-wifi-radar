@@ -56,3 +56,12 @@
 - Mode overlay - `overlay_ram`: 36 KB that the radar (scope tiles, trails, tracks) or cockpit mode (`struct vox_ram`) owns at a time.
 - Sky delta - repaint only the sky rows a VRAM copy's terrain uncovered since that copy's last frame.
 - Reconnect - module reset (`mw_init`) + detect + join + relay lookup after 3 failed requests in a row, backing off 15/30/60 s (`feed_reconnect`).
+- 32X - Sega's Genesis add-on (two SH-2s, 256 KB SDRAM, a 256-colour frame buffer); plan in `plans/32x.md`.
+- MARS ID - `"MARS"` read at `$A130EC` when a 32X is attached.
+- ADEN - 32X adapter-enable bit; once set, the cart ROM moves to `$880000` (fixed 512 KB) and `$900000` (1 MB bank).
+- RV bit - 32X bit (`$A15107`) that restores the Genesis ROM mapping for VDP DMA; the SH-2s can't read ROM while it's set.
+- FM bit - bit 15 of the 32X adapter control register: set, the SH-2s own the 32X VDP (frame buffer, palette).
+- MARS header - the 32X block at ROM `$3C0`: where the boot ROMs copy SH-2 `.data` from, and the two SH-2 entry points.
+- Sega boot code - the 1040-byte 68000 security/boot code every 32X cart has at `$3F0`; fetched from pinned marsdev, never in the repo.
+- COMM registers - sixteen bytes at `$A15120` (68k) / `$20004020` (SH-2) both sides read and write; the spike gives each one writer.
+- mwradar-mars - the 32X build image (`mars/Dockerfile`, `scripts/mars`), separate from `mwradar-sgdk`.

@@ -77,6 +77,6 @@ presses buttons (MAME field names: `P1 A/B/C`, `P1 Start`, `P1 Up`...). Generate
 2. In a checkout at the new SHA, re-make the four edits and `git diff > sgdk/patches/000N-*.patch`.
 3. Run `make image`. The guard step must pass.
 
-CI and releases: [ci-release.md](ci-release.md).
+CI and releases: [ci-release.md](ci-release.md). The 32X image is separate: [mars-build.md](mars-build.md).
 
 Related: [../platform/sgdk-megawifi.md](../platform/sgdk-megawifi.md), [../practices.md](../practices.md).

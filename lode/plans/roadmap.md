@@ -44,6 +44,8 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 ```
 
 ## Open decisions / ideas
+- [ ] A separate 32X ROM ([32x.md](32x.md)): toolchain + MegaWiFi spike ROM built; run `make mars-spike-flash` on the
+  tower to answer the go/no-go (does the UART at `$A130C1` work with the 32X enabled?).
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
 - [ ] Persist the host mDNS advertisement across reboots (launchd / systemd unit); today it's `scripts/relay advertise`.

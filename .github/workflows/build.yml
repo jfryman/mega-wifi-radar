@@ -1,4 +1,4 @@
-# Builds the cart + emulator ROMs and the relay image; publishes a release on v* tags.
+# Builds the cart + emulator ROMs, the 32X spike ROM and the relay image; publishes a release on v* tags.
 # The SGDK build image is cached in GHCR under the same content hash scripts/md uses.
 name: build
 
@@ -14,6 +14,7 @@ permissions:
 
 env:
   SDK_IMAGE: ghcr.io/${{ github.repository_owner }}/mega-wifi-radar-sgdk
+  MARS_IMAGE: ghcr.io/${{ github.repository_owner }}/mega-wifi-radar-mars
   RELAY_IMAGE: ghcr.io/${{ github.repository_owner }}/mega-wifi-radar-relay
   PUSH: ${{ github.event_name != 'pull_request' }}
   CTR: docker
@@ -65,6 +66,50 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: roms
+          path: dist/
+          if-no-files-found: error
+
+  # 32X toolchain (mars/Dockerfile, its own GHCR image) and the MegaWiFi spike ROM (lode/plans/32x.md).
+  # Not part of releases yet.
+  mars:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get 32X build image (pull, else build and push)
+        run: |
+          LOCAL=$(scripts/mars --name)
+          REMOTE="$MARS_IMAGE:${LOCAL#*:}"
+          if docker pull "$REMOTE"; then
+            docker tag "$REMOTE" "$LOCAL"
+          else
+            docker build -t "$LOCAL" -f mars/Dockerfile \
+              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" mars
+            if [ "$PUSH" = true ]; then
+              docker tag "$LOCAL" "$REMOTE" && docker push "$REMOTE"
+            fi
+          fi
+
+      - name: Build the 32X spike ROM
+        run: |
+          make mars-spike
+          mkdir dist && cp out/mars/spike.32x dist/mega-wifi-radar-32x-spike.32x
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mars-spike
           path: dist/
           if-no-files-found: error
 

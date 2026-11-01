@@ -11,6 +11,7 @@
   - [container-build.md](build/container-build.md) - image, pins, hash-tagging, GHCR pull, Rev.C guard, make targets
   - [ram-budget.md](build/ram-budget.md) - static RAM vs SGDK's start-up heap, ram-check, the mode overlay, the 2 KiB DMA buffer patch
   - [ci-release.md](build/ci-release.md) - GitHub Actions, GHCR images, release assets, version stamp, published data terms
+  - [mars-build.md](build/mars-build.md) - 32X: mwradar-mars image (m68k + sh-elf), Sega boot code from pinned marsdev, spike ROM layout, romcheck, MAME + bios/, CI job
 - net/
   - [net-layer.md](net/net-layer.md) - blocking net helpers, dev settings, ROM header, debugging playbook
   - [discovery.md](net/discovery.md) - relay discovery: mDNS legacy unicast from the cart, AUTO mode, host proxy advertisement
@@ -39,4 +40,5 @@
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
+  - [32x.md](plans/32x.md) - separate 32X ROM next to the Genesis ROM, shared C, SH-2 rendering; MegaWiFi spike ROM (go/no-go pending on the cart)
 - tmp/ - git-ignored scratch

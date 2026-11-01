@@ -25,6 +25,9 @@ flowchart LR
   same content hash as `scripts/md`. `scripts/md` pulls that tag before building locally (`MD_REGISTRY=`
   disables this), so users skip the 15–30 min gcc build. CI adds the `org.opencontainers.image.source` label
   at build time instead of in the Dockerfile, which would change the hash.
+- **32X image cache + spike:** job `mars` does the same for `ghcr.io/jfryman/mega-wifi-radar-mars:<hash>`
+  (`scripts/mars`, `MARS_REGISTRY=`), builds `make mars-spike` and uploads the `mars-spike` artifact. It ships in no
+  release ([mars-build.md](mars-build.md)).
 - **Relay image tags:** `:edge` (main), `:<semver>` and `:latest` (tags), `:pr-N` (PRs, never pushed).
   `relay/Dockerfile` cross-compiles (`FROM --platform=$BUILDPLATFORM`, `GOOS/GOARCH` from `TARGET*`), so arm64 needs no QEMU.
 - **Release ROMs never contain credentials:** CI asserts that `src/dev_config.h` is absent. The cart ROM

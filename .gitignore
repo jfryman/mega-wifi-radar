@@ -4,3 +4,5 @@ out/
 src/dev_config.h
 res/resources.h
 src/version.h
+# Console BIOS dumps for emulators (owner-supplied, never committed): bios/32x/ for MAME 32x
+bios/
