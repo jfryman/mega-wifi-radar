@@ -20,6 +20,8 @@ enum splash_phase {
 void splash_start(enum splash_phase at);
 /* Move to the next phase once the current call has been on screen long enough (START skips). */
 void splash_phase(enum splash_phase p, const char *detail);
+/* Wait until the current call has been on screen long enough to read (START skips). */
+void splash_wait(void);
 /* Dim status line under the wordmark (firmware, IP). */
 void splash_status(const char *s);
 /* After SP_TAKEOFF: wait for the departure and "radar contact", fade out, stop. */

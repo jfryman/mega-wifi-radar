@@ -1,7 +1,7 @@
 /* Boot splash (lode/ui/boot-splash.md). Window (rows 0-7): the wordmark and the status line.
  * Plane B: the scene, with the speech bubble's body written over it. Plane A: only the bubble
- * text, its 2-cell columns scrolled up and down in a wave. Sprites (low priority): the 787, so
- * it climbs out *behind* the wordmark. Everything moves in the V-Int; main only requests phases. */
+ * text. Sprites (low priority): the 787, so it climbs out *behind* the wordmark. Everything
+ * moves in the V-Int; main only requests phases. */
 #include "splash.h"
 #include "airports.h"
 #include "resources.h"
@@ -26,7 +26,7 @@
 #define HOLD_X      (103 << 8)  /* nose just short of the hold bars at x = 200 */
 #define GROUND_Y    (161 << 8)  /* wheels on the runway centre line */
 #define DWELL       90          /* frames a call stays up before the next phase */
-#define LINGER      40          /* ...and at least this long after its last letter */
+#define LINGER      90          /* ...and at least this long after its last letter, to read it */
 #define TYPE_RATE   1           /* frames per typed character */
 
 enum { PAL_CALL = PAL1, PAL_RED = PAL2, PAL_BUB = PAL3, PAL_DIM = PAL3 };
@@ -51,8 +51,6 @@ static u16 clr_x, clr_y, clr_w, clr_h;          /* body + tail: what to give bac
 static char status[STATUS_W + 1];
 static volatile u16 status_dirty;
 
-/* letter wave: px of vertical scroll per 2-cell column, a travelling sine */
-static const s16 wave[16] = { 0, 1, 1, 2, 2, 2, 1, 1, 0, -1, -1, -2, -2, -2, -1, -1 };
 
 static s32 px, py, vx, vy;              /* 8.8 */
 static u16 frame_no;
@@ -267,8 +265,8 @@ static void move(void)
     case SP_READBACK:                           /* taxi on to the hold line and wait there */
         vx = px < HOLD_X ? 128 : 0;
         if (px > HOLD_X) px = HOLD_X;
-        if (phase == SP_TAKEOFF && call_done(0, 50)) switch_phase(SP_READBACK, NULL);
-        else if (phase == SP_READBACK && call_done(0, 45) && px >= HOLD_X) switch_phase(SP_ROLL, NULL);
+        if (phase == SP_TAKEOFF && call_done(0, LINGER)) switch_phase(SP_READBACK, NULL);
+        else if (phase == SP_READBACK && call_done(0, LINGER) && px >= HOLD_X) switch_phase(SP_ROLL, NULL);
         break;
     default:                                    /* takeoff roll and climb */
         if (px < (150 << 8)) {
@@ -285,7 +283,7 @@ static void move(void)
     s16 x = px >> 8;
     frame_no = x < 135 || phase < SP_ROLL ? 0 : x < 150 ? 1 : x < 170 ? 2 : 3;
     if (phase == SP_ROLL && (py >> 8) < 40) switch_phase(SP_CONTACT, NULL);
-    if (phase == SP_CONTACT && (x >= 330 || (py >> 8) < -48) && typed >= typed_end) phase = SP_GONE;
+    if (phase == SP_CONTACT && (x >= 330 || (py >> 8) < -48) && call_done(0, LINGER)) phase = SP_GONE;
 }
 
 static void build_sprites(void)
@@ -342,13 +340,6 @@ static void splash_vint(void)
     PAL_setColors(0, pal_now, 64, CPU);
     VDP_setAutoInc(2);
 
-    /* letter wave: plane A's 2-cell columns bob; plane B stays put */
-    *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VSRAM_ADDR(0);
-    for (u16 c = 0; c < 20; c++) {
-        *(vu16 *)VDP_DATA_PORT = wave[(c * 3 + (ticks >> 2)) & 15];
-        *(vu16 *)VDP_DATA_PORT = 0;
-    }
-
     /* typewriter: redraw the bubble text from (lines, typed), so it's pure state */
     if (typed < typed_end && !(phase_frames % TYPE_RATE)) {
         u16 n = typed / BUB_TW;
@@ -396,7 +387,6 @@ void splash_start(enum splash_phase at)
     VDP_setPlaneSize(64, 32, TRUE);
     VDP_setWindowHPos(FALSE, 0);
     VDP_setWindowVPos(FALSE, WIN_ROWS);
-    VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_COLUMN);
     VDP_setHorizontalScroll(BG_A, 0);
     VDP_setHorizontalScroll(BG_B, 0);
     VDP_setVerticalScroll(BG_A, 0);
@@ -436,9 +426,14 @@ void splash_start(enum splash_phase at)
     SYS_setVIntCallback(splash_vint);
 }
 
-void splash_phase(enum splash_phase p, const char *detail)
+void splash_wait(void)
 {
     while (!skip && !call_done(DWELL, LINGER)) {}
+}
+
+void splash_phase(enum splash_phase p, const char *detail)
+{
+    splash_wait();
     update_city();
     set_phase(p, detail);
 }
@@ -471,9 +466,6 @@ void splash_stop(void)
     VDP_clearPlane(BG_B, TRUE);
     VDP_clearPlane(WINDOW, TRUE);
     VDP_setWindowVPos(FALSE, 0);
-    VDP_setScrollingMode(HSCROLL_PLANE, VSCROLL_PLANE);  /* nothing else sets it back; the radar would wobble */
-    VDP_setVerticalScroll(BG_A, 0);
-    VDP_setVerticalScroll(BG_B, 0);
     VDP_resetSprites();
     VDP_updateSprites(1, CPU);
 }

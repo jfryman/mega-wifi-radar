@@ -2,8 +2,8 @@
 
 IMPROVEMENTS:
 
-  * **boot:** the radio calls pop up in speech bubbles from whoever is talking, the tower or the 787, with
-    letters that bob in a wave. The wordmark moves to the top and the airport fills the rest of the screen; the
+  * **boot:** the radio calls pop up in speech bubbles from whoever is talking, the tower or the 787, and
+    each one stays up long enough to read. The wordmark moves to the top and the airport fills the rest of the screen; the
     pilot reads the takeoff clearance back at the hold line, then rolls and climbs out behind the logo.
   * **print:** the manual's start-up page shows the new boot screen.
 

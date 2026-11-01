@@ -25,12 +25,6 @@
 #define STALE_SECS      15      /* panel shows STALE after this without data */
 
 #ifndef FAKE_FEED
-static void wait_frames(u16 n)
-{
-    u32 t = vtimer;
-    while (vtimer - t < n) {}
-}
-
 /* One frame from the relay before takeoff, so a relay from another release (lock-step: relay vX
  * serves cart vX) is reported at boot rather than as an error on the radar. Typed URLs too. */
 static enum feed_err relay_probe(void)
@@ -79,7 +73,7 @@ static void boot_network(void)
             if (fe == FEED_ERR_VERSION) sprintf(buf, "RELAY MISMATCH: RUN RELAY %s", app_version);
             splash_phase(SP_HOLD_POS, !joined ? "WI-FI FAILED: OPENING SETUP" :
                          fe == FEED_ERR_VERSION ? buf : "NO RELAY FOUND: OPENING SETUP");
-            wait_frames(120);
+            splash_wait();
         }
         splash_stop();
         setup_run(TRUE);
