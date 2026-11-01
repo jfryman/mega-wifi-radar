@@ -26,7 +26,7 @@
 #v(1mm)
 Each radio call is a real step: *radio check* (finding the Wi-Fi module), *taxi* (settings
 loaded), *hold short* (joining Wi-Fi), *request radar service* (finding the relay), *cleared for
-takeoff* (connected). Press *Start* to skip ahead.
+takeoff* (connected). With *Sound* on, you hear the engines and the radio too. Press *Start* to skip ahead.
 
 #grid(columns: (26mm, 1fr), column-gutter: 5mm,
   cartridge(24mm, art: (w, h) => {

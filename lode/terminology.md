@@ -27,6 +27,7 @@
 - Home point - the scope centre (airport ICAO + lat/lon in 1e-4 deg + range nm). Dev default KBNA.
 - KBNA - Nashville International, the dev home point (36.1245, -86.6782, 599 ft).
 - Speech bubble - a boot radio call in a ToeJam & Earl-style bubble whose tail points at the speaker (tower cab or 787); body on plane B, text on plane A, up 1.5 s after its last letter.
+- Boot sound - PSG engines (whine + noise roar following rpm) and radio squelch + garbled voice during the boot splash (`sfx.c`).
 - Config screen - the setup screen (`setup.c`): theme, range, tags, airport, Wi-Fi, relay; opens on START or when boot can't connect.
 - Squawk 7500/7600/7700 - hijack / radio failure / emergency transponder codes.
 - H40 - the 320×224 VDP display mode.
@@ -60,7 +61,7 @@
 - Flyover notice - a short message on the cart when a plane passes over the owner's house, from atc-mqtt via the relay's MQTT subscription; `struct ar_notice`, three 24-char lines composed by the relay.
 - Notice box - the bordered box on plane A over the scope's centre that grows open, shows a flyover notice and shrinks shut (`radar_box_*`).
 - Notice id / `n=` - u16 id of a notice (wraps, never 0); the cart sends the last one it saw as `n=` and the relay flags a newer one (`AR_H_NOTICE` / `AR_K_NOTICE`).
-- Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; setup's CHIME turns it off.
-- MWR2 - the settings record since 0.4.0 (adds `chime`); a 0.3.x `MWR1` record is upgraded on load.
+- Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; setup's SOUND turns it off (with the boot sound).
+- MWR2 - the settings record since 0.4.0 (adds the `sound` byte, called `chime` in 0.4.0); a 0.3.x `MWR1` record is upgraded on load.
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).

@@ -8,7 +8,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | THEME | L/R: CLASSIC / STARS |
 | RANGE | L/R: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | L/R: ALL / SELECTED / OFF |
-| CHIME | L/R: ON / OFF, the flyover notice chime ([notices.md](notices.md)); switching to ON plays it (`ui_pad` ticks it) |
+| SOUND | L/R: ON / OFF, the boot sound ([boot-sound.md](boot-sound.md)) and the flyover notice chime ([notices.md](notices.md)); switching to ON plays the chime (`ui_pad` ticks it) |
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
 | WI-FI | A: scan (`net_scan`), pick, keyboard password, `net_connect` (slot 0, DHCP, saved) |
 | RELAY | `AUTO <found host>` or `AUTO (MDNS)` when empty (mDNS, [../net/discovery.md](../net/discovery.md)); A: keyboard edit (empty = AUTO); C: back to AUTO |
@@ -50,7 +50,7 @@ struct settings {               /* src/settings.h; saved as "MWR2" + struct + ch
     char icao[5];
     s32 lat_e4, lon_e4;
     char relay[RELAY_LEN + 1];  /* "" = AUTO (mDNS) */
-    u8 chime;                   /* CHIME_ON / CHIME_OFF */
+    u8 sound;                   /* SOUND_ON / SOUND_OFF (was CHIME: same byte, same values) */
 };
 ```
 

@@ -77,9 +77,9 @@ labels, compass; trail dots are on plane B). The V-Int's `box_tick()`:
 - `chime_play()` (main loop) picks the tune: home airport **KBNA → "Music City"** (steel-guitar patch, an original
   lick E4 G4 A4, B4 grace → C5, A4 C5, held E5, ~2 s) — an easter egg for the owner's home; every other airport →
   **generic** (FM bell, C5 E5 G5 C6 a note per 9 frames, ringing ~45). No public catalogue of airport chimes with
-  notes exists (searched 2026-11-01), so there's no per-airport table. `settings.chime` = `CHIME_OFF` silences it.
+  notes exists (searched 2026-11-01), so there's no per-airport table. `settings.sound` = `SOUND_OFF` silences it (and the boot sound, [boot-sound.md](boot-sound.md)).
 - Loads the patch on FM channels 1-4 with interrupts off; `chime_tick()` keys notes on/off by `vtimer`. It runs
-  from the radar V-Int, the cockpit loop and `ui_pad()` (setup's preview: switching CHIME on plays it).
+  from the radar V-Int, the cockpit loop and `ui_pad()` (setup's preview: switching SOUND on plays it).
 - Patches: `struct fm_patch` = FB/ALG + 4 × (DT/MUL, TL, RS/AR, D1R, D2R, D1L/RR), OP1..OP4 at register offsets
   0, 8, 4, 12. Pitch: F-number table for block 4 (A4 = 1083), block = octave.
 - **Lesson (2026-11-01): the YM2612 is in the Z80's window (`$A04000`).** The 68000 must hold the Z80 bus

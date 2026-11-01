@@ -10,15 +10,15 @@ a firmware extension (option B); see [architecture/data-path-options.md](archite
 The rendering layer also runs against a fake in-ROM feed (`make sim`) for emulator work and manual screenshots.
 
 Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44` patched for
-Rev.C); see [build/container-build.md](build/container-build.md). The ROM boots through a 787 departure splash narrated by the real boot steps
-([ui/boot-splash.md](ui/boot-splash.md)), then runs the full radar:
+Rev.C); see [build/container-build.md](build/container-build.md). The ROM boots through a 787 departure splash narrated by the real boot steps in speech bubbles
+([ui/boot-splash.md](ui/boot-splash.md)), with PSG engine and radio sound ([ui/boot-sound.md](ui/boot-sound.md)), then runs the full radar:
 a V-Int renderer (thin-line sweep, blips, trails, tags, Classic/STARS themes) fed once per sweep from the relay, a side
 panel with a sortable traffic list ([ui/traffic-list.md](ui/traffic-list.md)), a detail pop-up per aircraft fed by the relay's
 `/v1/detail` ([ui/detail-popup.md](ui/detail-popup.md)), **cockpit mode**: the view from one aircraft over real terrain,
 Voxel Space drawn by the 68000 straight into VRAM from a relay terrain patch and live track
 ([ui/cockpit.md](ui/cockpit.md)), **flyover notices**: a box popping open over the scope (and an FM chime, with a KBNA easter egg) when a plane passes over the
 owner's house, from the owner's `atc-mqtt` feed via the relay's MQTT subscription ([ui/notices.md](ui/notices.md)),
-and a setup screen (Wi-Fi, home airport, chime, relay, controls, reset,
+and a setup screen (Wi-Fi, home airport, sound, relay, controls, reset,
 saved to ESP32 flash). The cart finds the relay itself over mDNS
 (AUTO; [net/discovery.md](net/discovery.md)). The data path is a relay (option A) serving the compact frame
 ([architecture/frame-format.md](architecture/frame-format.md)). The relay is part of the product: relay vX serves cart vX,

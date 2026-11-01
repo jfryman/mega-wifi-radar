@@ -192,7 +192,7 @@ curl -s 'http://localhost:8080/v1/notice?after=0&v=4' | xxd
 | `mqtt: atc/status: invalid character ...` | Not valid JSON |
 | `notice` lines, but nothing on screen | The cartridge isn't polling this relay, or not within 30 s; check its panel says `NET OK`, and that it's the same release as the relay |
 
-No chime? Setup's **CHIME** row may be OFF.
+No chime? Setup's **SOUND** row may be OFF.
 
 Related: [relay.md](relay.md) (all relay settings and its HTTP API), [usage.md](usage.md) (what the notice
 looks like on screen).

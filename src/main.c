@@ -54,6 +54,7 @@ static void boot_network(void)
     bool dev = !settings_dev_suppressed();      /* a setup reset turns dev defaults off */
     if (dev) settings_dev_defaults();
     bool loaded = settings_load();
+    splash_sound(settings.sound == SOUND_ON);   /* settings live on the module: known only now */
     sprintf(buf, "%s  FW %u.%u %s  %s", app_version, mod.major, mod.minor, mod.variant,
             !dev ? "DEV OFF" : loaded ? "SETTINGS LOADED" : "DEFAULTS");
     splash_status(buf);
@@ -79,6 +80,7 @@ static void boot_network(void)
         setup_run(TRUE);
         setup = FALSE;
         splash_start(SP_HOLD);
+        splash_sound(settings.sound == SOUND_ON);
     }
     sprintf(buf, "IP %u.%u.%u.%u  RELAY %s", ip[0], ip[1], ip[2], ip[3], feed_relay_host());
     splash_status(buf);
@@ -91,6 +93,7 @@ static void boot_network(void)
 static void boot_network(void)
 {
     splash_start(SP_GATE);
+    splash_sound(settings.sound == SOUND_ON);
     splash_status("EMULATOR BUILD  RECORDED FEED");     /* no version: shots go in the manual */
     splash_phase(SP_TAXI, NULL);
     splash_phase(SP_HOLD, NULL);

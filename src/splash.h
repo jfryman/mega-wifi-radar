@@ -22,6 +22,8 @@ void splash_start(enum splash_phase at);
 void splash_phase(enum splash_phase p, const char *detail);
 /* Wait until the current call has been on screen long enough to read (START skips). */
 void splash_wait(void);
+/* Boot sound on or off (settings.sound): engines start spooling up from now (lode/ui/boot-sound.md). */
+void splash_sound(bool on);
 /* Dim status line under the wordmark (firmware, IP). */
 void splash_status(const char *s);
 /* After SP_TAKEOFF: wait for the departure and "radar contact", fade out, stop. */

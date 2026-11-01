@@ -127,4 +127,6 @@ wordmark at the top, a 45° path leaves through the right edge; a realistic 15°
   `call_done(min, linger)` checks both; every wait uses `LINGER` (90), main's also `DWELL` (90).
 - Moving text is hard to read on a CRT: the letter wave looked lively in the emulator but was too much on the cart.
 
+Sound: [boot-sound.md](boot-sound.md) (engines + radio, driven from this V-Int).
+
 Related: [radar-renderer.md](radar-renderer.md) (same V-Int ownership rules), [config-screen.md](config-screen.md).

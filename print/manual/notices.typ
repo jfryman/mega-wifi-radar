@@ -13,5 +13,5 @@ flyover feed, a service that announces planes overhead (see _The Relay_).
 #key(4)[Buttons][*C* opens the aircraft's details. *B* dismisses the notice; it goes by itself after
   15 seconds.]
 
-A chime plays as it arrives (*CHIME* in Setup turns it off). Some home airports have a tune of their
+A chime plays as it arrives (*SOUND* in Setup turns it off). Some home airports have a tune of their
 own. In the Cockpit View, *OVERHEAD!* shows next to the callsign and the notice scrolls along the bottom.

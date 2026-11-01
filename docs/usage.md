@@ -3,7 +3,8 @@
 ## Boot
 
 The boot is a departure: your flight, **MEGA 787**, waits at the gate beside the tower, and each
-real boot step is a radio call.
+real boot step is a radio call, in a speech bubble from whoever is talking. With SOUND on you hear it too:
+the engines spool up, idle through taxi and roar on takeoff, and every call crackles over the radio.
 
 | Radio call | What the cartridge is doing |
 |---|---|
@@ -15,8 +16,8 @@ real boot step is a radio call.
 | *Hold position* (red reason) | Wi-Fi failed or no relay found: setup opens, then the 787 resumes at the hold line |
 | *No reply: MegaWiFi module not found* (red) | The module didn't answer; the 787 stays at the gate |
 
-The tower uses the first word of your home airport's name (*Nashville Ground*). The bottom line shows
-the ROM version and module firmware, then the cart's IP and the relay in use. Press **START** to skip the waits and
+The tower uses the first word of your home airport's name (*Nashville Ground*). The line under the logo
+shows the ROM version and module firmware, then the cart's IP and the relay in use. Press **START** to skip the waits and
 the takeoff. **Hold START while powering on** to go straight to setup.
 
 ```mermaid
@@ -37,7 +38,7 @@ Use up/down to move between rows; each row lists its controls below.
 | THEME | left/right: CLASSIC / STARS |
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | left/right: ALL / SELECTED / OFF |
-| CHIME | left/right: ON / OFF, the flyover notice chime; switching it on plays it |
+| SOUND | left/right: ON / OFF, the boot sounds and the flyover notice chime; switching it on plays the chime |
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
@@ -96,7 +97,7 @@ passes (and shrinks shut again): a headline and the callsign, the airline and ai
 they're known. When the relay finds the aircraft in its feed, it's selected on the radar and C opens its details.
 B dismisses it. Tags move out of its way while it's open. If the detail pop-up is open, the notice waits
 until it closes. A chime plays as it
-arrives (setup's CHIME turns it off); some home airports have a tune of their own. In the cockpit view the notice
+arrives (setup's SOUND turns it off); some home airports have a tune of their own. In the cockpit view the notice
 never covers the view: `OVERHEAD!` shows next to the callsign and the notice scrolls across the bottom row once.
 
 ## What's on screen

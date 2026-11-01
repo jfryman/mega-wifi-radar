@@ -10,7 +10,7 @@ struct settings settings;
 /* Flash record in ESP32 user_data sector 0 (mw_flash_*: 4 KiB sectors). */
 #define SAVE_SECTOR     0
 #define SAVE_MAGIC      "MWR2"
-#define SAVE_MAGIC_V1   "MWR1"          /* 0.3.x: no chime; loaded with the chime on */
+#define SAVE_MAGIC_V1   "MWR1"          /* 0.3.x: no sound byte; loaded with sound on */
 #define MARK_SECTOR     1               /* dev-defaults-off marker, written by a reset */
 #define MARK_MAGIC      "MWRN"
 #define ROM_CHECKSUM    rom_checksum()  /* header checksum: differs per build */
@@ -39,7 +39,7 @@ struct saved_v1 {
     char relay[RELAY_LEN + 1];
     u16 sum;
 };
-_Static_assert(__builtin_offsetof(struct settings, chime) == __builtin_offsetof(struct saved_v1, sum) - 4,
+_Static_assert(__builtin_offsetof(struct settings, sound) == __builtin_offsetof(struct saved_v1, sum) - 4,
                "struct settings must start with the 0.3.x fields, unchanged");
 
 /* Over the record's bytes up to its sum (n). */
@@ -77,7 +77,7 @@ void settings_init(void)
     for (u16 i = 0; i < 4 && devcfg_home_icao[i]; i++) settings.icao[i] = devcfg_home_icao[i];
     settings.lat_e4 = devcfg_home_lat_e4;
     settings.lon_e4 = devcfg_home_lon_e4;
-    settings.chime = CHIME_ON;
+    settings.sound = SOUND_ON;
 }
 
 void settings_dev_defaults(void)
@@ -98,13 +98,13 @@ bool settings_load(void)
     if (!p) return FALSE;
     memcpy(&v, p, sizeof(v));
     if (!memcmp(v.magic, SAVE_MAGIC_V1, 4) && o->sum == checksum(o, sizeof(*o) - sizeof(o->sum))) {
-        memcpy(v.magic, SAVE_MAGIC, 4);                 /* same fields, plus the chime */
-        v.s.chime = CHIME_ON;
+        memcpy(v.magic, SAVE_MAGIC, 4);                 /* same fields, plus the sound byte */
+        v.s.sound = SOUND_ON;
         v.sum = checksum(&v, sizeof(v) - sizeof(v.sum));
     }
     if (memcmp(v.magic, SAVE_MAGIC, 4) || v.sum != checksum(&v, sizeof(v) - sizeof(v.sum)) ||
             v.s.theme >= THEME_COUNT || v.s.range_idx >= RANGE_COUNT || v.s.tag_mode >= TAGS_MODES ||
-            v.s.chime >= CHIME_MODES)
+            v.s.sound >= SOUND_MODES)
         return FALSE;
     v.s.icao[4] = 0;
     v.s.relay[RELAY_LEN] = 0;

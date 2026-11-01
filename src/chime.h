@@ -2,7 +2,7 @@
 #define CHIME_H
 
 /* The flyover notice chime (lode/ui/notices.md): an FM bell on the YM2612, or for home airport KBNA a short
- * steel-guitar lick. settings.chime turns it off. */
+ * steel-guitar lick. settings.sound turns it off. */
 #include <genesis.h>
 
 /* Start it (cuts off one that's playing). Main loop. */

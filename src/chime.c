@@ -66,7 +66,7 @@ static void key(u16 i, bool on)
 
 void chime_play(void)
 {
-    if (settings.chime == CHIME_OFF) return;
+    if (settings.sound == SOUND_OFF) return;
     const struct tune *t = memcmp(settings.icao, "KBNA", 4) ? &generic : &nashville;
     const struct fm_patch *p = t->patch;
 

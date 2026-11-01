@@ -7,6 +7,7 @@
 #include "resources.h"
 #include "settings.h"
 #include "splash_data.h"
+#include "sfx.h"
 
 #define WIN_ROWS    8           /* window plane rows 0..7: wordmark + status, never scrolled */
 #define LOGO_X      2           /* wordmark cell position (36x6 cells) */
@@ -57,6 +58,8 @@ static u16 frame_no;
 static u16 spr[6][4];
 static u16 pal_now[64];
 static u16 ticks;
+static u16 talker;                      /* who the current bubble belongs to */
+static u16 rpm;                         /* engines, 0..255 (lode/ui/boot-sound.md) */
 
 /* ------------------------------------------------------------ VDP helpers */
 
@@ -230,8 +233,12 @@ static void switch_phase(u16 p, const char *detail)
     typed = 0;
     typed_end = nlines * BUB_TW;
     typed_at = 0;
+    talker = who;
     bubble_close();
-    if (who != NOBODY) bubble_open(who);
+    if (who != NOBODY) {
+        bubble_open(who);
+        sfx_squelch(6, 3);              /* squelch opens the call */
+    }
 }
 
 /* From main: the V-Int also writes the VDP, so keep it out while we do. */
@@ -331,6 +338,30 @@ static void palette_tick(void)
     if (k < 8) for (u16 i = 0; i < 64; i++) pal_now[i] = scale(pal_now[i], k);
 }
 
+/* ------------------------------------------------------------ sound */
+
+/* Engines: spool to idle, a little more while taxiing, full power from the roll; quieter and lower
+ * as the 787 climbs away, ducked under a radio call. */
+static void engines(void)
+{
+    u16 target = phase >= SP_ROLL ? 255 : vx ? 110 : 90;
+    u16 step = phase >= SP_ROLL ? 3 : 1;
+
+    if (rpm + step <= target) rpm += step;
+    else if (rpm > target) rpm--;
+    else rpm = target;
+
+    s16 climb = (s16)((GROUND_Y - py) >> 12);           /* 16 px steps above the runway */
+    if (climb < 0) climb = 0;
+    if (climb > 15) climb = 15;
+    u16 away = climb + (fade >> 1);
+    if ((px >> 8) >= 320 || (py >> 8) <= -48) away += 4;
+    u16 sag = climb << 2;                               /* pitch drops as it leaves (Doppler-ish) */
+    u16 pitch = rpm > sag ? rpm - sag : 0;
+    u16 duck = talker != NOBODY && typed < typed_end ? 3 : 0;
+    sfx_tick(rpm, pitch, duck, away > 15 ? 15 : away);
+}
+
 /* ------------------------------------------------------------ V-Int */
 
 static void splash_vint(void)
@@ -343,8 +374,13 @@ static void splash_vint(void)
     /* typewriter: redraw the bubble text from (lines, typed), so it's pure state */
     if (typed < typed_end && !(phase_frames % TYPE_RATE)) {
         u16 n = typed / BUB_TW;
-        typed = typed % BUB_TW < line_len[n] ? typed + 1 : (n + 1) * BUB_TW;
-        if (typed >= typed_end) typed_at = phase_frames;
+        u16 i = typed % BUB_TW;
+        sfx_letter(talker == TOWER, i < line_len[n] ? lines[n][i] : ' ');
+        typed = i < line_len[n] ? typed + 1 : (n + 1) * BUB_TW;
+        if (typed >= typed_end) {
+            typed_at = phase_frames;
+            sfx_squelch(4, 5);          /* ...and its tail closes it */
+        }
     }
     for (u16 n = 0; n < nlines; n++) {
         u16 shown = typed >= (n + 1) * BUB_TW ? line_len[n] : typed > n * BUB_TW ? typed - n * BUB_TW : 0;
@@ -365,6 +401,7 @@ static void splash_vint(void)
     if (skip && phase >= SP_TAKEOFF && phase != SP_NO_MODULE && phase < SP_GONE) phase = SP_GONE;
     build_sprites();
     palette_tick();
+    engines();
 }
 
 /* ------------------------------------------------------------ API */
@@ -420,6 +457,9 @@ void splash_start(enum splash_phase at)
     status_dirty = 1;
     nlines = 0;
     clr_w = bub_w = 0;
+    rpm = 0;
+    talker = NOBODY;
+    sfx_on(FALSE);                      /* silent until main knows the SOUND setting */
     set_phase(at, NULL);
     build_sprites();
     palette_tick();
@@ -457,9 +497,18 @@ void splash_finish(void)
     splash_stop();
 }
 
+void splash_sound(bool on)
+{
+    SYS_disableInts();
+    rpm = 0;
+    sfx_on(on);
+    SYS_enableInts();
+}
+
 void splash_stop(void)
 {
     SYS_setVIntCallback(NULL);
+    sfx_on(FALSE);
     VDP_setAutoInc(2);
     PAL_setColors(0, palette_black, 64, CPU);
     VDP_clearPlane(BG_A, TRUE);
