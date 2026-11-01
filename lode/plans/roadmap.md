@@ -20,12 +20,11 @@ flowchart TD
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
   **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
   reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
-- **The cart** runs the cockpit streaming build (`6b4cf8f`, CRC32 `0459FBA2`, contract v3) with the dev relay from
-  the same commit (a cockpit build needs the relay from the same checkout). The dev file (`src/dev_config.h`) is gone, so dev builds are
+- **The cart** runs the flyover notices build (`a81f738`, CRC32 `85958703`, contract v4, flashed 2026-11-01) with the
+  dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-01 it's **contract v4** (the cart, still
-  on the v3 build, shows `RELAY VER?` until reflashed) and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-01 it's **contract v4** and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
