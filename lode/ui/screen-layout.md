@@ -33,14 +33,14 @@ row 27  ·· overscan margin ·········│···············
   then the [traffic list](traffic-list.md) (header, 15 rows, "more" row), a rule, theme + tag mode, and
   **`Data: adsb.fi`**, which is required and always visible. Each row has its own text palette.
 - **Detail pop-up:** window cols 0–27 over the scope while it's open ([detail-popup.md](detail-popup.md)).
-- **Flyover banner:** window rows 0–5 over the scope's top for 15 s when a notice arrives ([notices.md](notices.md)).
+- **Flyover notice box:** plane A, rows 11–17 × cols 1–26 over the scope's centre, grows open for 15 s when a notice arrives; tags move around it ([notices.md](notices.md)).
 
 ## Layers
 | Layer | Contents | Notes |
 |---|---|---|
 | Plane B | scope disc: rings/ticks + **thin-line sweep** with afterglow | 568 unique tiles, RAM copy, see [sweep.md](sweep.md) |
-| Plane A | data tags (tile-aligned text) + **trail dots** in a pool of dynamic tiles | one tile per cell: a tag hides trail dots under it |
-| Window | side panel; the detail pop-up over cols 0–27, or the flyover banner over rows 0–5 | fixed: the scope never scrolls |
+| Plane A | data tags (tile-aligned text), ring labels, compass; the flyover notice box | trail dots are on plane B |
+| Window | side panel; the detail pop-up over cols 0–27 while open | fixed: the scope never scrolls |
 | Sprites | one 8×8 blip per aircraft (4 brightness tiles), selection box, emergency marker | ≤ 80 total, ≤ 20 per line |
 
 ## Scaling
@@ -58,10 +58,10 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
 
   | Button | Action |
   |---|---|
-  | A / B | zoom in / out (off while the pop-up is open; B closes it, or the flyover banner) |
+  | A / B | zoom in / out (off while the pop-up is open; B closes it, or a flyover notice) |
   | ▲ / ▼ | previous / next aircraft in the traffic list (auto-repeat: 16 frames, then every 5) |
   | ◀ / ▶ | tags: all / selected / off |
-  | C tap | detail pop-up open / close (acts on release); with the flyover banner up, for its aircraft |
+  | C tap | detail pop-up open / close (acts on release); with a flyover notice up, for its aircraft |
   | A (pop-up open) | cockpit mode for that aircraft ([cockpit.md](cockpit.md)); B there goes back |
   | C hold (40 frames) | next sort order: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT |
   | X (6-button) | next theme; a shortcut only |

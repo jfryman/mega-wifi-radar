@@ -103,8 +103,8 @@
  * Ids wrap: newer means (s16)(id - seen) > 0. */
 #define AR_NOTICE_PATH   "/v1/notice"
 #define AR_NOTICE_QUERY  "?after=%u&v=%u"
-#define AR_NOTICE_SIZE   88
-#define AR_NOTICE_COLS   26     /* characters per line; text holds 3 lines */
+#define AR_NOTICE_SIZE   82
+#define AR_NOTICE_COLS   24     /* characters per line; text holds 3 lines */
 
 /* struct ar_notice.nflags */
 #define AR_N_ICAO        0x01   /* icao is the aircraft in the feed */
@@ -206,7 +206,7 @@ struct ar_notice {
     u16 id;             /* 0: no notice */
     u8 icao[3];         /* with AR_N_ICAO */
     u8 secs;            /* how long to show it */
-    char text[78];      /* 3 lines of AR_NOTICE_COLS, space padded, upper-case ASCII */
+    char text[72];      /* 3 lines of AR_NOTICE_COLS, space padded, upper-case ASCII */
 };
 
 /* Layout is the wire format: any padding or reordering is a protocol break. */
@@ -216,7 +216,7 @@ _Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE_V1, "ar_rec must be 24 bytes
 _Static_assert(sizeof(struct ar_detail) == AR_DETAIL_SIZE, "ar_detail must be 96 bytes");
 _Static_assert(sizeof(struct ar_terrain) == AR_TERRAIN_HDR, "ar_terrain must be 104 bytes");
 _Static_assert(sizeof(struct ar_track) == AR_TRACK_SIZE, "ar_track must be 40 bytes");
-_Static_assert(sizeof(struct ar_notice) == AR_NOTICE_SIZE, "ar_notice must be 88 bytes");
+_Static_assert(sizeof(struct ar_notice) == AR_NOTICE_SIZE, "ar_notice must be 82 bytes");
 _Static_assert(sizeof(((struct ar_notice *)0)->text) == 3 * AR_NOTICE_COLS, "ar_notice.text is 3 lines");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);

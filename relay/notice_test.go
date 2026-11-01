@@ -19,10 +19,10 @@ func TestComposeNotice(t *testing.T) {
 	}{
 		{atcFlight{UUID: "a", Number: "SWA1234", Airline: "Southwest Airlines", Type: "B738", Origin: "BNA",
 			Destination: "MDW", AltFt: 1800, GsKt: 160},
-			[3]string{"* SWA1234", "SOUTHWEST   B738", "BNA > MDW  1,800FT 160KT"}},
+			[3]string{"* SWA1234", "SOUTHWEST   B738", "BNA > MDW 1,800FT 160KT"}},
 		{atcFlight{UUID: "b", Number: "DAL88", Airline: "Delta Air Lines", Type: "Boeing 737-900ER",
 			Origin: "Unknown", Destination: "ATL", AltFt: 35000, GsKt: 480},
-			[3]string{"* DAL88", "DELTA       B737-900ER", "TO ATL     35,000FT 480KT"}},
+			[3]string{"* DAL88", "DELTA       B737-900ER", "TO ATL    35,000FT 480KT"}},
 		{atcFlight{UUID: "c", Number: "AAL9", Airline: "Unknown", Type: "Airbus A321neo", Origin: "Unknown",
 			Destination: "Unknown", AltFt: 2500},
 			[3]string{"* AAL9", "AMERICAN    A321NEO", "2,500FT"}},
@@ -152,7 +152,7 @@ func TestNoticeSample(t *testing.T) {
 	if err != nil || len(fs) != 1 {
 		t.Fatalf("%v %v", fs, err)
 	}
-	if l := lines(composeNotice(fs[0], nil)); l[1] != "SOUTHWEST   B738" || l[2] != "BNA > MDW  1,800FT 160KT" {
+	if l := lines(composeNotice(fs[0], nil)); l[1] != "SOUTHWEST   B738" || l[2] != "BNA > MDW 1,800FT 160KT" {
 		t.Fatalf("%q", l)
 	}
 }

@@ -10,9 +10,9 @@ BACKWARDS INCOMPATIBILITIES:
 FEATURES:
 
   * **notices:** flyover notices. With the relay connected to an MQTT flyover feed (such as the
-    `atc-mqtt` service's `atc/status`), a banner drops over the top of the scope for 15 seconds when a plane
-    passes over home: a headline and callsign, airline and type, route, altitude and speed. When the relay
-    finds the aircraft in its feed, it's selected and C opens its details; B dismisses the banner. In the
+    `atc-mqtt` service's `atc/status`), a box pops open over the middle of the scope for 15 seconds when a
+    plane passes over home, then shrinks shut: a headline and callsign, airline and type, route, altitude and speed. When the relay
+    finds the aircraft in its feed, it's selected and C opens its details; B dismisses it. In the
     cockpit view it scrolls along the bottom of the HUD instead, without covering the view.
   * **notices:** a chime on the Genesis's FM sound chip plays as a notice arrives; setup's new CHIME row turns
     it off. Some home airports have a tune of their own.

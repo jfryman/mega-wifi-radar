@@ -193,7 +193,7 @@ static void handle_input(void)
         pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also zoom out */
     }
     if (notice_banner_up() && (pressed & BUTTON_B)) {
-        notice_banner_close();              /* ... nor the flyover banner (lode/ui/notices.md) */
+        notice_banner_close(FALSE);         /* ... nor the flyover box (lode/ui/notices.md): it shrinks shut */
         pressed &= ~BUTTON_B;
     }
     if ((pressed & (BUTTON_A | BUTTON_B)) && !popup_is_open()) {
@@ -213,7 +213,8 @@ static void handle_input(void)
         if (c_held && c_held < HOLD_FRAMES) {
             if (popup_is_open()) popup_close();
             else {
-                notice_select();            /* the banner's aircraft, if it has one */
+                notice_select();            /* the notice box's aircraft, if it has one */
+                notice_banner_close(TRUE);  /* the pop-up covers it: gone, no animation */
                 popup_open();
             }
         }
@@ -333,7 +334,7 @@ int main(bool hard)
         notice_radar_tick();
         if (want_cockpit) {
             want_cockpit = FALSE;
-            notice_banner_close();
+            notice_banner_close(TRUE);
             popup_close();
             radar_stop();
             cockpit_run(cockpit_icao);
@@ -344,7 +345,7 @@ int main(bool hard)
         }
         if (want_setup) {
             want_setup = FALSE;
-            notice_banner_close();
+            notice_banner_close(TRUE);
             notice_drop();
             popup_close();
             radar_stop();

@@ -22,9 +22,9 @@ import (
 
 const (
 	noticePath    = "/v1/notice"
-	noticeSize    = 88               // AR_NOTICE_SIZE
+	noticeSize    = 82               // AR_NOTICE_SIZE
 	noticeKeep    = 4                // notices kept
-	noticeCols    = 26               // AR_NOTICE_COLS: characters per line (the cart's banner width)
+	noticeCols    = 24               // AR_NOTICE_COLS: characters per line (inside the cart's notice box)
 	noticeSecs    = 15               // how long the cart shows one
 	noticeMaxAge  = 90 * time.Second // flights reported longer ago than this are dropped (a backlog, a slow broker)
 	matchMaxAge   = 15 * time.Second // the adsb.fi snapshot must be this fresh to match against
@@ -344,10 +344,10 @@ func composeNotice(f atcFlight, ac *upstreamAC) notice {
 	if f.GsKt > 0 {
 		nums = append(nums, fmt.Sprintf("%dKT", int(math.Round(f.GsKt))))
 	}
-	line[2] = strings.TrimSpace(fmt.Sprintf("%-10s %s", route, strings.Join(nums, " ")))
+	line[2] = strings.TrimSpace(fmt.Sprintf("%-9s %s", route, strings.Join(nums, " ")))
 	for len(line[2]) > noticeCols && len(nums) > 0 { // drop the speed, then the altitude, to fit
 		nums = nums[:len(nums)-1]
-		line[2] = strings.TrimSpace(fmt.Sprintf("%-10s %s", route, strings.Join(nums, " ")))
+		line[2] = strings.TrimSpace(fmt.Sprintf("%-9s %s", route, strings.Join(nums, " ")))
 	}
 
 	for i := range line {
@@ -417,8 +417,8 @@ func shortType(s string) string {
 	default:
 		rest = s
 	}
-	if len(rest) > 14 {
-		rest = rest[:14]
+	if len(rest) > 12 { // after a 12-column airline: 24 in all
+		rest = rest[:12]
 	}
 	return rest
 }

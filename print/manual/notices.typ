@@ -2,10 +2,10 @@
 
 = Flyover Notices
 
-When a plane passes right over your home, the radar can tell you. This needs a relay connected to a
+When a plane passes right over your home, a box pops open in the middle of the radar. This needs a relay connected to a
 flyover feed, a service that announces planes overhead (see _The Relay_).
 
-#align(center, shot("notice", width: 75%, callouts: ((1, 176, 20), (2, 200, 28), (3, 150, 36), (4, 116, 44))))
+#align(center, shot("notice", width: 75%, callouts: ((1, 180, 97), (2, 204, 108), (3, 180, 120), (4, 112, 132))))
 #v(1mm)
 #key(1)[Headline][*OVERHEAD!*, *LOOK UP!*... and the callsign. *MAYDAY!*: an emergency.]
 #key(2)[Airline][and the aircraft type.]

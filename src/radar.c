@@ -60,13 +60,46 @@ static volatile u32 panel_dirty;
 
 /* Pop-up (lode/ui/detail-popup.md): the window plane over cols 0..27, drawn with an opaque copy of
  * the font so the scope doesn't show through. Rows are written while it's hidden; it appears once
- * they're all out, and closing is instant. popup_want / popup_on are how many rows from the top it
- * covers: PANEL_ROWS for the detail pop-up, NOTICE_ROWS for a flyover notice's banner, 0 for none.
- * Sprites under it are hidden (high priority, they'd draw over the window). */
+ * they're all out, and closing is instant. Sprites hide while it's up. */
 static char popup_text[PANEL_ROWS][POPUP_COLS];
 static u8 popup_pal[PANEL_ROWS];
 static volatile u32 popup_dirty;
 static volatile u8 popup_want, popup_on;
+
+/* Flyover notice box (lode/ui/notices.md): a bordered box on plane A over the scope's centre. It grows open
+ * from the centre over BOX_STEPS steps, shows the notice, and shrinks shut. While it's up, its cells count as
+ * occupied in the tag grid, so tags are placed around it; once shut, the labels and tags it covered come back.
+ * A step's rows go out over BOX_FRAMES frames (at most 4 rows a frame). */
+#define BOX_COLS    (AR_NOTICE_COLS + 2)    /* 26: cols 1..26 */
+#define BOX_ROWS    7                       /* rows 11..17: border, 3 lines, blank, hint, border */
+#define BOX_CX      14
+#define BOX_CY      14
+#define BOX_STEPS   4
+#define BOX_FRAMES  2
+static const u8 box_size[BOX_STEPS + 1][2] = { { 0, 0 }, { 4, 3 }, { 12, 5 }, { 20, 7 }, { BOX_COLS, BOX_ROWS } };
+static char box_text[4][AR_NOTICE_COLS];    /* the 3 lines, then the hint */
+static u8 box_pal[4];
+static volatile u8 box_target;              /* 0 shut .. BOX_STEPS open */
+static volatile u8 box_fast;                /* shut without waiting between steps (under the pop-up) */
+static volatile u8 box_text_dirty;          /* text rows to write once open */
+static volatile u8 box_cur;                 /* the step on screen */
+static u8 box_from, box_phase;              /* the step being drawn over, and its frame */
+static u16 t_frame;                         /* border tiles: TL T TR L fill R BL B BR */
+
+/* Border tiles: a 2-pixel line in colour 15 (the palette's text colour) on opaque black, rounded corners. */
+#define E 0xEEEEEEEEUL
+static const u32 frame_tiles[9][8] = {
+    { E, 0xEEEFFFFF, 0xEEFFFFFF, 0xEFFFEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE },  /* TL */
+    { E, 0xFFFFFFFF, 0xFFFFFFFF, E, E, E, E, E },                                             /* T */
+    { E, 0xFFFFFEEE, 0xFFFFFFEE, 0xEEEEFFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE },  /* TR */
+    { 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE },  /* L */
+    { E, E, E, E, E, E, E, E },                                                               /* fill */
+    { 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE },  /* R */
+    { 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFEEEEE, 0xEFFFEEEE, 0xEEFFFFFF, 0xEEEFFFFF, E },  /* BL */
+    { E, E, E, E, E, 0xFFFFFFFF, 0xFFFFFFFF, E },                                             /* B */
+    { 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEEFFE, 0xEEEEFFFE, 0xFFFFFFEE, 0xFFFFFEEE, E },  /* BR */
+};
+#undef E
 
 /* ------------------------------------------------------------ helpers */
 
@@ -91,6 +124,15 @@ static void row_clear(u16 plane_addr, u16 x, u16 y, u16 n)
 
     *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(plane_addr + ((((y) << 6) + (x)) << 1)));
     while (n--) *data = 0;
+}
+
+/* The notice box's cells at an animation step (0: none). */
+static void box_rect(u16 step, s16 *x, s16 *y, s16 *w, s16 *h)
+{
+    *w = box_size[step][0];
+    *h = box_size[step][1];
+    *x = BOX_CX - *w / 2;
+    *y = BOX_CY - *h / 2;
 }
 
 static inline bool to_block(s16 x, s16 y, s16 *bx, s16 *by)
@@ -251,6 +293,87 @@ static void draw_labels(void)
         for (u16 x = 0; x < GRID_W; x++) grid[y][x] += label_cells[y][x];
 }
 
+/* ------------------------------------------------------------ notice box */
+
+/* Rows [r0, r1) of the step box_from -> box_cur: the bigger rectangle's cells, the new one drawn, the rest
+ * (left behind when shrinking) cleared. */
+static void box_rows(u16 r0, u16 r1)
+{
+    vu16 *data = (vu16 *)VDP_DATA_PORT;
+    s16 x, y, w, h, ox, oy, ow, oh;
+    box_rect(box_cur, &x, &y, &w, &h);
+    box_rect(box_from, &ox, &oy, &ow, &oh);
+    s16 ux = w > ow ? x : ox, uy = h > oh ? y : oy, uw = w > ow ? w : ow, uh = h > oh ? h : oh;
+
+    for (u16 r = r0; r < r1 && r < uh; r++) {
+        s16 cy = uy + r;
+        *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + (((cy << 6) + ux) << 1)));
+        for (s16 cx = ux; cx < ux + uw; cx++) {
+            if (!w || cx < x || cx >= x + w || cy < y || cy >= y + h) { *data = 0; continue; }
+            u16 k = (cy == y ? 0 : cy == y + h - 1 ? 6 : 3) + (cx == x ? 0 : cx == x + w - 1 ? 2 : 1);
+            *data = TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, t_frame + k);
+        }
+    }
+}
+
+/* Occupy (dv 1) or free (-1) the open box's cells in the tag grid. Occupying moves tags inside it elsewhere. */
+static void box_occupy(s16 dv)
+{
+    s16 x, y, w, h;
+    box_rect(BOX_STEPS, &x, &y, &w, &h);
+    if (dv > 0)
+        for (u16 i = 0; i < TR_MAX; i++) {
+            struct track *t = &tracks[i];
+            if (t->tag_x >= 0 && t->tag_x + TAG_W > x && t->tag_x < x + w && t->tag_y + 2 > y && t->tag_y < y + h) {
+                erase_tag(t);
+                t->dirty = 1;
+            }
+        }
+    for (s16 r = 0; r < h; r++) grid_mark(x, y + r, w, dv);
+}
+
+/* Every frame: step the animation, or write the text once it's open. */
+static void box_tick(void)
+{
+    if (box_phase) {                                /* the second half of a step's rows */
+        box_rows(4, BOX_ROWS);
+        box_phase = 0;
+        if (!box_cur) {                             /* shut: give the cells back */
+            box_occupy(-1);
+            draw_labels();
+            req_retag = 1;
+        }
+        return;
+    }
+    if (box_cur != box_target) {
+        static u8 wait;
+        if (wait && !box_fast) { wait--; return; }
+        wait = BOX_FRAMES - 1;
+        if (!box_cur) box_occupy(1);
+        box_from = box_cur;
+        box_cur += box_target > box_cur ? 1 : -1;
+        if (box_cur == BOX_STEPS) box_text_dirty = 0x0F;
+        box_rows(0, 4);
+        box_phase = 1;
+        return;
+    }
+    if (box_cur == BOX_STEPS && box_text_dirty) {   /* one text row a frame, opaque font */
+        static const u8 row_of[4] = { 1, 2, 3, 5 };
+        s16 x, y, w, h;
+        u16 r = 0;
+        while (!(box_text_dirty & (1 << r))) r++;
+        box_text_dirty &= ~(1 << r);
+        box_rect(BOX_STEPS, &x, &y, &w, &h);
+        vu16 *data = (vu16 *)VDP_DATA_PORT;
+        u16 base = TILE_ATTR(box_pal[r], TRUE, FALSE, FALSE) + t_ofont - 32;
+        *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + ((((y + row_of[r]) << 6) + x + 1) << 1)));
+        for (u16 i = 0; i < AR_NOTICE_COLS; i++) {
+            u8 c = box_text[r][i];
+            *data = base + (c >= 32 && c < 32 + FONT_LENGTH ? c : ' ');
+        }
+    }
+}
+
 /* ------------------------------------------------------------ V-Int */
 
 /* Own sprite table (VDP format), DMA'd in one go at the start of V-Blank. */
@@ -276,13 +399,18 @@ static void sprites(void)
     bool fade = themes[settings.theme].blip_fade;
     u16 *e = spr[0];
 
-    u16 max = popup_on == PANEL_ROWS ? 0 : MAX_BLIPS;  /* hidden under the pop-up: emit nothing */
-    u16 top = 128 + popup_on * 8;           /* sprite y of the first scope row below a banner */
+    u16 max = popup_on ? 0 : MAX_BLIPS;     /* hidden under the pop-up: emit nothing */
+    /* the notice box: blips touching it are skipped (high priority, they'd draw over it). Sprite coordinates:
+     * a blip at spr covers spr .. spr + 7; the box covers 128 + its cells * 8 */
+    s16 bx, by, bw, bh;
+    box_rect(box_cur, &bx, &by, &bw, &bh);
+    u16 bx0 = 128 + bx * 8 - 8, bx1 = 128 + (bx + bw) * 8, by0 = 128 + by * 8 - 8, by1 = 128 + (by + bh) * 8;
 
     for (u16 i = 0; i < TR_MAX && n < max; i++) {
         if (!(tr_state[i] & TS_USED)) continue;
         struct track *t = &tracks[i];
-        if (!t->shown || !t->vis || t->spr_y < top) continue;
+        if (!t->shown || !t->vis) continue;
+        if (bw && t->spr_x > bx0 && t->spr_x < bx1 && t->spr_y > by0 && t->spr_y < by1) continue;
 
         u16 attr = t->spr_attr;
         if (fade && !(t->cur.flags & AR_F_STALE)) attr += lvl_tab[(u8)(step - t->hit_step) >> 5];
@@ -291,7 +419,7 @@ static void sprites(void)
         e[2] = attr;
         e[3] = t->spr_x;
         e += 4;
-        if ((s16)i == selected && n < MAX_BLIPS && t->spr_y - 4 >= top) {
+        if ((s16)i == selected && n < MAX_BLIPS) {
             e[0] = t->spr_y - 4;
             e[1] = (SPRITE_SIZE(2, 2) << 8) | ++n;
             e[2] = TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, t_box);
@@ -365,7 +493,7 @@ static void radar_vint(void)
     PROF(1);
     if (popup_want != popup_on && !(popup_want && popup_dirty)) {
         popup_on = popup_want;
-        VDP_setWindowVPos(FALSE, popup_on);     /* rows from the top: all of them covers the scope */
+        VDP_setWindowVPos(FALSE, popup_on ? PANEL_ROWS : 0);   /* all rows: the window covers the scope */
     }
 
     /* ---- CPU work for the next frame ---- */
@@ -400,6 +528,12 @@ static void radar_vint(void)
         clear_labels();
         memset(grid, 0, sizeof(grid));
         draw_labels();
+        if (box_cur) {                          /* the labels went over the notice box: draw it again */
+            box_occupy(1);
+            box_from = box_cur;
+            box_rows(0, BOX_ROWS);
+            if (box_cur == BOX_STEPS) box_text_dirty = 0x0F;
+        }
     }
     if (req_retag) {
         req_retag = 0;
@@ -464,6 +598,7 @@ static void radar_vint(void)
     PROF(6);
     panel();
     popup_rows();
+    box_tick();
     PROF(7);
 
     /* scanlines spent in this handler: V-Int fires at line 224; the V counter
@@ -514,6 +649,8 @@ void radar_init(void)
     VDP_loadTileData((const u32 *)box_tiles, t_box, 4, DMA);
     t_ofont = t_box + 4;
     opaque_font(t_ofont);
+    t_frame = t_ofont + FONT_LENGTH;
+    VDP_loadTileData((const u32 *)frame_tiles, t_frame, 9, DMA);
 
     memset(tracks, 0, TR_MAX * sizeof(struct track));
     memset((void *)tr_state, 0, sizeof(tr_state));
@@ -526,6 +663,7 @@ void radar_init(void)
     memset(popup_text, ' ', sizeof(popup_text));
     popup_dirty = 0;
     popup_want = popup_on = 0;
+    box_target = box_cur = box_from = box_phase = box_fast = box_text_dirty = 0;
     selected = -1;
     rotations = 0;
     redraw_cursor = 0;
@@ -579,15 +717,12 @@ void radar_popup_row(u16 row, const char *text, u16 pal)
     SYS_enableInts();
 }
 
-void radar_popup_rows(u16 rows)
+void radar_popup(bool on)
 {
-    /* growing: write every newly covered row, blank ones too, or the window shows through where it never was */
-    SYS_disableInts();
-    if (rows > popup_want) popup_dirty |= ((1UL << rows) - 1) & ~((1UL << popup_want) - 1);
-    popup_want = rows;
-    SYS_enableInts();
+    /* opening: write every row, blank ones too, or the window shows through where it never was */
+    if (on && !popup_want) popup_dirty = (1UL << PANEL_ROWS) - 1;
+    popup_want = on;
 }
-void radar_popup(bool on) { radar_popup_rows(on ? PANEL_ROWS : 0); }
 
 void radar_rescale(void) { req_rescale = 1; }
 void radar_retheme(void) { req_theme = 1; req_retag = 1; }
@@ -597,3 +732,33 @@ void radar_select(s16 track) { selected = track; }
 s16 radar_selected(void) { return selected; }
 u16 radar_rotations(void) { return rotations; }
 u16 radar_joy(void) { return joy; }
+
+void radar_box_open(const char *text, const u8 pal[4])
+{
+    SYS_disableInts();
+    memcpy(box_text, text, sizeof(box_text));
+    memcpy(box_pal, pal, sizeof(box_pal));
+    box_text_dirty = 0x0F;
+    box_fast = 0;
+    box_target = BOX_STEPS;
+    SYS_enableInts();
+}
+
+void radar_box_pal(u16 row, u16 pal)
+{
+    if (row >= 4 || box_pal[row] == pal) return;
+    SYS_disableInts();
+    box_pal[row] = pal;
+    box_text_dirty |= 1 << row;
+    SYS_enableInts();
+}
+
+void radar_box_close(bool now)
+{
+    SYS_disableInts();
+    box_target = 0;
+    box_fast = now;
+    SYS_enableInts();
+}
+
+bool radar_box_up(void) { return box_cur || box_target; }

@@ -2,7 +2,8 @@
 #define NOTICE_H
 
 /* Flyover notices (lode/ui/notices.md): a plane over the owner's house, from the relay's MQTT feed. The relay
- * composes three lines; the radar shows them in a banner over the top of the scope, cockpit mode on its HUD.
+ * composes three lines; the radar shows them in a box that grows open over the scope's centre, cockpit mode
+ * scrolls them along its HUD.
  * Main loop only. */
 #include <genesis.h>
 #include "arframe.h"
@@ -11,11 +12,12 @@
 void notice_check(void);
 
 /* ---- radar ---- */
-/* Every frame: show a pending notice in the banner (once the detail pop-up is closed), blink, time it out. */
+/* Every frame: show a pending notice in the box (once the detail pop-up is closed), blink, time it out. */
 void notice_radar_tick(void);
 bool notice_banner_up(void);
-void notice_banner_close(void);         /* B, or the radar is about to stop */
-/* C with the banner up: select its aircraft (if the relay matched one) so the detail pop-up opens on it. */
+/* B (it shrinks shut), or now: before the pop-up opens or the radar stops (no animation pauses). */
+void notice_banner_close(bool now);
+/* C with the box up: select its aircraft (if the relay matched one) so the detail pop-up opens on it. */
 void notice_select(void);
 
 /* ---- cockpit mode ---- */

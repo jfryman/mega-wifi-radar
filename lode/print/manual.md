@@ -22,7 +22,7 @@ flowchart LR
 | 11–12 | scope | `radar` shot + 7 keys (traffic list, theme/tags/data), tag colours table, stale/drop |
 | 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
 | 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
-| 15 | notices | `notice` shot (75%, callouts staggered into the banner's empty columns) + 4 keys, chime + cockpit line |
+| 15 | notices | `notice` shot (75%, the box open, callouts staggered into its empty space) + 4 keys, chime + cockpit line |
 | 16 | themes | Classic + STARS shots |
 | 17 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
 | 18 | credits | credits grid (incl. ELEVATION), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |

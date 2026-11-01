@@ -81,7 +81,7 @@ Setting it up against your own broker, the message format and troubleshooting: [
 With `MQTT_BROKER_HOST` set, the relay subscribes to `atc-mqtt`'s `atc/status` topic (QoS 1) and reads the
 flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. Each becomes
 a three-line notice, matched to the aircraft in the adsb.fi feed when a cart is polling and kept for `-notice-ttl`
-(30 s); carts pick it up through `/v1/notice` (below) and show it as a banner or on the cockpit HUD. For development, run a local broker:
+(30 s); carts pick it up through `/v1/notice` (below) and show it in a box on the radar or along the cockpit HUD. For development, run a local broker:
 
 ```sh
 make mqtt-start      # eclipse-mosquitto container mwradar-mqtt, localhost:1883, network "mwradar"
@@ -117,9 +117,9 @@ scripts/mqtt sub     # watch atc/#
   then `w·h` colours; at most 1,024 cells), which the cart streams in ahead of the aircraft.
 - **Flyover notices:** `n=` on `/v1/frame` and `/v1/track` is the id of the last notice the cart has seen (0 for
   none). If a newer one is waiting, the frame's header flags get `NOTICE` (`0x04`) and the track's flags
-  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=4` then returns an 88-byte notice: magic `"AN"`, version,
+  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=4` then returns an 82-byte notice: magic `"AN"`, version,
   flags (matched ICAO, emergency), a 16-bit id (ids wrap; 0 = none waiting any more), the ICAO address, the
-  seconds to show it, and three 26-character lines of text composed by the relay.
+  seconds to show it, and three 24-character lines of text composed by the relay.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
   (the cart shows `UPSTRM ERR`). If there's no previous frame, it returns `502`.
 - `GET /healthz` returns `ok`.

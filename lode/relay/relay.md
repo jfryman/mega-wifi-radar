@@ -48,7 +48,7 @@ flowchart LR
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
 - Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
   `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=4` → one
-  88 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
+  82 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
   The ring exists even without MQTT (then always empty); the frame cache holds no flag (set per request on a copy).
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
@@ -86,7 +86,7 @@ notices, logs them (`notice 23653 (icao ad4747): FLYBY!  AAL1103|AMERICAN  B738|
 flowchart LR
   B[(broker atc/status)] --> M[mqtt.go runMQTT] --> P[parseATC: entering only] --> A{notices.add}
   A -- uuid seen / > 90 s old --> X[drop]
-  A --> MA[source.match vs adsb.fi snapshot < 15 s] --> C[composeNotice: 3 x 26 chars] --> R[(ring of 4, TTL 30 s)]
+  A --> MA[source.match vs adsb.fi snapshot < 15 s] --> C[composeNotice: 3 x 24 chars] --> R[(ring of 4, TTL 30 s)]
   R --> AF[after id: oldest live newer than id] --> H[/v1/notice + the n= flags]
 ```
 - `mqtt.go`: minimal MQTT 3.1.1 client, stdlib. CONNECT (clean session, keep-alive 60 s, user/pass), SUBSCRIBE

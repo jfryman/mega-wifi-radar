@@ -6,7 +6,7 @@ broker) remain.** How it works now: [../ui/notices.md](../ui/notices.md) (cart, 
 
 ## Goal
 When a plane passes within ~500 m of the owner's house, the cart shows a short, playful notice and plays a chime:
-a banner over the top of the scope in radar mode, a non-blocking HUD line in cockpit mode. The trigger is the
+a box that grows open over the scope's centre in radar mode, a ticker along the HUD in cockpit mode. The trigger is the
 owner's `atc-mqtt` service; the relay subscribes to its MQTT topic. Off unless the relay is given a broker.
 
 ```mermaid
@@ -18,7 +18,7 @@ flowchart LR
 ## Done when
 | # | Criterion | State |
 |---|---|---|
-| 1 | Radar banner within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | ✓ cart |
+| 1 | Radar notice within ~5 s, relay text, closes after `secs`, B early, C → that aircraft's details | ✓ cart |
 | 2 | Cockpit: `OVERHEAD!` + a ticker along the bottom, the view never stops | ✓ cart (ticker at 7 frames/char) |
 | 3 | Generic chime; KBNA plays the Nashville lick; `CHIME OFF` silences it | ✓ cart, owner approved |
 | 4 | A relay without a broker behaves as 0.3.x (apart from v4); idle polling adds no requests | ✓ (the flag rides on existing polls) |
@@ -32,7 +32,8 @@ flowchart LR
    when it moves into the cluster. No code change.
 
 ## Decisions (2026-11-01)
-Banner at the top of the scope; the relay composes the text; one generic chime for every airport plus a KBNA
+A box over the scope's centre on plane A that grows open and shrinks shut (ToeJam & Earl style; first a top
+banner on the window plane, which can't be centred); 24-character lines; the relay composes the text; one generic chime for every airport plus a KBNA
 easter egg (no public list of airport chimes exists); FM (YM2612) voice; minimal stdlib MQTT client; env config
 with atc-mqtt's variable names; contract v4 with `n=` + a notice flag (no extra request when idle); cockpit scrolls
 the notice as a ticker along the bottom row (the owner's choice after seeing pages on the cart).

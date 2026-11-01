@@ -1,6 +1,6 @@
 # Flyover notices: connecting a feed
 
-When a plane passes over your home, the radar can show a banner (and play a chime) with its callsign,
+When a plane passes over your home, a box pops open on the radar (and a chime plays) with its callsign,
 airline, type, route, altitude and speed. The cartridge doesn't detect this itself: something on your
 network decides that a plane is overhead and publishes a message to an **MQTT broker**. The relay
 subscribes to that topic and passes notices on to the cartridge. Without a broker configured, nothing
@@ -10,7 +10,7 @@ changes.
 flowchart LR
   D[your flyover detector<br/>e.g. a geofence over home] -- JSON on a topic --> B[(MQTT broker)]
   B -- subscribe --> R[relay]
-  R -- notice --> C[cartridge: banner + chime]
+  R -- notice --> C[cartridge: notice box + chime]
 ```
 
 What you need:
@@ -126,7 +126,7 @@ Otherwise every field is optional, but the more you send, the better the notice:
 
 | Field | Used for |
 |---|---|
-| `flight_number` | The callsign on the banner. Use the **ADS-B callsign** (`SWA1234`, not `WN1234`): it's also how the relay finds the plane on the radar, so C opens its details. Missing: `MYSTERY PLANE` |
+| `flight_number` | The callsign on the notice. Use the **ADS-B callsign** (`SWA1234`, not `WN1234`): it's also how the relay finds the plane on the radar, so C opens its details. Missing: `MYSTERY PLANE` |
 | `airline` | Second line, shortened (`Delta Air Lines` → `DELTA`). Missing: guessed from the callsign's airline prefix for common carriers |
 | `aircraft_type` | Second line. An ICAO type code (`B738`) is shown as is; a name is shortened (`Boeing 737-800` → `B737-800`). Missing: the type from the radar's data, if the plane is found there |
 | `origin`, `destination` | Third line: `BNA > MDW`, `FROM BNA` or `TO MDW`. Codes (3-4 letters) look best; a name shows its first word |
@@ -144,7 +144,7 @@ any `tracked_flights` are ignored: only planes entering make notices.
 A notice waits on the relay for `RELAY_NOTICE_TTL` (30 s). A cartridge on the radar picks it up at its next
 poll (within one sweep, about 4 s) and shows it for 15 s; in the cockpit view, within 2 s. If no cartridge
 is on in that time, the notice is gone: nothing piles up. The relay keeps the newest 4. Several planes at
-once come through one per poll, each replacing the banner before it.
+once come through one per poll, each replacing the one before it.
 
 ### Retained messages
 
@@ -172,7 +172,7 @@ notice 23654 (no match): LOOK UP!   SWA1234        |SOUTHWEST   B738          |B
 ```
 
 `(icao a1b2c3)` instead of `(no match)` means the plane was found on the radar. With a cartridge on,
-the banner appears within a sweep. You can also ask the relay directly, as the cartridge does:
+the notice appears within a sweep. You can also ask the relay directly, as the cartridge does:
 
 ```sh
 curl -s 'http://localhost:8080/v1/notice?after=0&v=4' | xxd

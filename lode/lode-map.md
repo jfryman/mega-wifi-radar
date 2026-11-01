@@ -27,7 +27,7 @@
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
   - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, Voxel Space into VRAM, overlay RAM, camera, HUD
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR2 + migration), airports
-  - [notices.md](ui/notices.md) - flyover notices: n= flag + /v1/notice, radar banner, cockpit HUD, FM chime (KBNA egg), Z80-bus lesson
+  - [notices.md](ui/notices.md) - flyover notices: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section

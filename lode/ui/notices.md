@@ -11,29 +11,29 @@ sequenceDiagram
   participant R as relay
   participant C as cart
   B->>R: entering_flights[]
-  R->>R: match ICAO, compose 3 x 26 chars, ring (TTL 30 s)
+  R->>R: match ICAO, compose 3 x 24 chars, ring (TTL 30 s)
   C->>R: /v1/frame?...&n=<last seen> (or /v1/track in cockpit mode)
   R-->>C: hflags AR_H_NOTICE (kflags AR_K_NOTICE)
   C->>R: /v1/notice?after=<last seen>
-  R-->>C: struct ar_notice (88 B), id becomes "last seen"
-  C->>C: chime_play; banner (radar) or HUD (cockpit)
+  R-->>C: struct ar_notice (82 B), id becomes "last seen"
+  C->>C: chime_play; notice box (radar) or ticker (cockpit)
 ```
 
 ## Contract (v4, [../architecture/contract.md](../architecture/contract.md))
 - `n=` on `/v1/frame` and `/v1/track` = the last notice id seen (0 = none yet). The relay sets the flag when a
   live notice is newer (ids are u16 from a random start, wrap, never 0: newer means `(s16)(id - seen) > 0`).
 - `/v1/notice?after=` → `struct ar_notice`: `"AN"`, ver, `nflags` (`AR_N_ICAO`, `AR_N_EMERG`), `id`, `icao[3]`,
-  `secs` (15), `text[78]` = 3 lines of `AR_NOTICE_COLS` (26), upper-case ASCII. Id 0 = gone meanwhile.
+  `secs` (15), `text[72]` = 3 lines of `AR_NOTICE_COLS` (24), upper-case ASCII. Id 0 = gone meanwhile.
 - Stateless relay: what a cart has seen lives only in the cart (`feed_relay.c` `notice_seen`).
 
 ## Cart flow (`notice.c`, one notice at a time)
 - `feed_fetch` / `feed_track` record the flag; `notice_check()` (after a radar poll; in cockpit mode in a strip's
   slot instead of a strip) fetches it, stores a copy, `chime_play()`. A newer notice replaces the current one.
 - **Radar** (`notice_radar_tick`, every frame): pending + detail pop-up closed → `show()`: select the aircraft if
-  matched (`select_it`), write window rows 0-5, `radar_popup_rows(NOTICE_ROWS)`. Closes after `secs`; B closes it
-  (`main.c` takes B before zoom); C selects the banner's aircraft and opens the detail pop-up, which takes the
-  window over and ends the banner. Pending notices wait while the pop-up is open, up to `WAIT_SECS` (30).
-  Cockpit entry closes the banner; setup drops any notice.
+  matched (`select_it`), `radar_box_open(3 lines + hint, palettes)`. After `secs` it shrinks shut
+  (`radar_box_close(FALSE)`); B does the same (`main.c` takes B before zoom); C selects the box's aircraft, removes
+  the box at once (`close(TRUE)`: it'd be left on plane A under the pop-up) and opens the detail pop-up. Pending
+  notices wait while the pop-up is open, up to `WAIT_SECS` (30). Cockpit entry and setup remove it at once.
 - **Cockpit** (`hud_notice` in `cockpit.c`): status slot `OVERHEAD!` (amber), and a **ticker** on row 26 (the credit
   row, amber): the three lines joined (space runs squeezed, three spaces between lines) scroll in from the right and
   across once, then the credit comes back (`secs` doesn't apply: a pass takes (len + 38) × 7 / 60 s, ~10 s). The window
@@ -42,20 +42,30 @@ sequenceDiagram
   as the first line. (Owner's call, 2026-11-01: a scrolling ticker, not pages.)
 
 ```
-row 0  (blank: overscan)
-row 1   --------------------------          PAL1
-row 2   LOOK UP!   SWA2011                  PAL2 (red if AR_N_EMERG), blinks PAL0 for 2 s
-row 3   SOUTHWEST   B737                    PAL0
-row 4   1,250FT 160KT                       PAL0
-row 5   C DETAILS         B DISMISS         PAL1 ("C DETAILS" only with AR_N_ICAO)
+rows 11-17, cols 1-26 (centre 14, 14), on plane A; the side panel (window) stays clear of it
+ .------------------------.    rounded 2-px border, PAL1 colour 15 on opaque black (9 tiles: corners, edges, fill)
+ | LOOK UP!   SWA2011     |    PAL2 (red if AR_N_EMERG), blinks PAL0 for 2 s
+ | SOUTHWEST   B737       |    PAL0
+ | 1,250FT 160KT          |    PAL0
+ |                        |
+ | C DETAILS     B DISMISS|    PAL1 ("C DETAILS" only with AR_N_ICAO)
+ '------------------------'
 ```
 
-## Renderer: a window of N rows (`radar.c`)
-`popup_want` / `popup_on` are row counts: `PANEL_ROWS` (28, detail pop-up), `NOTICE_ROWS` (6, banner), 0.
-`radar_popup_rows(n)` marks the rows it newly covers dirty (blank ones too, or stale window cells show) and the
-V-Int sets `VDP_setWindowVPos(FALSE, popup_on)` once they're written. The side panel (window via HPos) is
-unaffected: the VDP shows the window where either split applies. Sprites: none under the full pop-up; under the
-banner, blips (and the selection box) with `spr_y < 128 + rows * 8` are skipped (high priority: they'd draw over it).
+## Renderer: the notice box (`radar.c`, owner's choice 2026-11-01: centred, ToeJam & Earl style)
+The window plane can only cover screen edges, so the box is drawn on **plane A** (which holds only text: tags, ring
+labels, compass; trail dots are on plane B). The V-Int's `box_tick()`:
+- **Animation:** `box_target` (0 shut, 4 open) vs `box_cur`; one step per `BOX_FRAMES` (2): rectangles 4×3, 12×5,
+  20×7, 26×7 around the centre, shut in reverse. A step writes the union of the old and new rectangles (`box_rows`:
+  new cells get frame tiles, cells left behind get 0), rows 0-3 one frame and 4-6 the next (V-Int budget).
+  Emulator snapshots can land between the two halves; at 60 fps it reads as growing (~⅛ s each way).
+- **Text** once open: one row a frame with the opaque font (`box_text_dirty` bits); `radar_box_pal` re-colours a row.
+- **Tags:** opening marks the open rectangle in `grid` (`box_occupy(1)`) and erases tags inside it (dirty → re-placed
+  outside, since `grid_free` sees the cells taken). Fully shut: `box_occupy(-1)`, `draw_labels()` (the compass W/E and
+  a ring label sit inside it), `req_retag`. A zoom wipes `grid` and redraws labels: the rescale path then re-occupies
+  and redraws the box.
+- **Sprites:** blips touching the current rectangle are skipped (high priority: they'd draw over plane A).
+- The detail pop-up's window is plain on/off again (`radar_popup`); nothing else shares it.
 
 ## Chime (`chime.c`)
 - `chime_play()` (main loop) picks the tune: home airport **KBNA → "Music City"** (steel-guitar patch, an original
@@ -78,7 +88,7 @@ static const struct tune generic = { &bell, 4, { { 0, 45, 12 }, { 9, 45, 16 }, {
 
 ## Verifying
 - `make sim`: the fake feed raises a notice about the nearest airborne aircraft 20 s after the first frame, then
-  every 90 s (`feed_fake.c`). `print/shots.txt` `notice | 34` is the manual's shot.
+  every 90 s (`feed_fake.c`). `print/shots.txt` `notice | 34` is the manual's shot (the box open).
 - Sound: `SIM_WAV=out/x.wav scripts/sim out/sim.bin 36` records MAME's mix. The pitch check (2026-11-01) took, at
   each scheduled onset, the spectrum after minus before and scored semitone candidates by their first 4
   harmonics, rejecting candidates with no energy at the fundamental (the bell's ×2 partial, the guitar's strong

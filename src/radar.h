@@ -11,7 +11,6 @@
 #define PANEL_W     11
 #define PANEL_ROWS  28
 #define POPUP_COLS  28      /* pop-up: window cols 0..27 (text in 1..26 stays inside the TV's crop) */
-#define NOTICE_ROWS 6       /* a flyover notice's banner: window rows 0..5 over the scope's top */
 
 /* Main loop, before radar_start(): VDP setup, tiles, scope, static text. */
 void radar_init(void);
@@ -25,7 +24,13 @@ void radar_panel(u16 row, const char *text);    /* set a side-panel row (PAL0) *
 void radar_panel_pal(u16 row, const char *text, u16 pal);   /* ... in a text palette; no-op if unchanged */
 void radar_popup_row(u16 row, const char *text, u16 pal);  /* pop-up row, padded to POPUP_COLS */
 void radar_popup(bool on);      /* show / hide the pop-up (shows once its rows are written) */
-void radar_popup_rows(u16 rows);    /* the window over the top rows of the scope: NOTICE_ROWS, PANEL_ROWS, 0 */
+/* The flyover notice box (lode/ui/notices.md): grows open over the scope's centre and shows text (3 lines of
+ * AR_NOTICE_COLS, then a hint line, with a palette each); called again while open, it just rewrites the text.
+ * close() shrinks it shut (now: without the animation's pauses, e.g. under the pop-up). */
+void radar_box_open(const char *text, const u8 pal[4]);
+void radar_box_pal(u16 row, u16 pal);   /* recolour one text row (the headline's blink) */
+void radar_box_close(bool now);
+bool radar_box_up(void);                /* drawn at all (opening, open or closing) */
 void radar_rescale(void);       /* range changed: rescale trails, tags, labels */
 void radar_retheme(void);       /* settings.theme changed */
 void radar_retag(void);         /* tag mode or selection changed */
