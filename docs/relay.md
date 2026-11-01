@@ -76,6 +76,8 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 
 ### Flyover notices (MQTT)
 
+Setting it up against your own broker, the message format and troubleshooting: [flyover.md](flyover.md).
+
 With `MQTT_BROKER_HOST` set, the relay subscribes to `atc-mqtt`'s `atc/status` topic (QoS 1) and reads the
 flights entering its geofence, reconnecting with back-off (5, 10, 30, 60 s) if the broker goes away. Each becomes
 a three-line notice, matched to the aircraft in the adsb.fi feed when a cart is polling and kept for `-notice-ttl`

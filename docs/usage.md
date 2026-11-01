@@ -91,7 +91,7 @@ ft/min, heading, bank) and the aircraft's bearing and distance from your home ai
 selected. Colours come from the terrain's height (water, low ground, forest, high ground, snow), not imagery.
 
 **Flyover notices:** if the relay is connected to a flyover feed (an MQTT topic announcing planes over your home;
-see [relay.md](relay.md#flyover-notices-mqtt)), a banner drops over the top of the scope for 15 seconds when one
+see [flyover.md](flyover.md)), a banner drops over the top of the scope for 15 seconds when one
 passes: a headline and the callsign, the airline and aircraft type, then the route, altitude and speed where
 they're known. When the relay finds the aircraft in its feed, it's selected on the radar and C opens its details.
 B dismisses the banner. If the detail pop-up is open, the banner waits until it closes. A chime plays as it

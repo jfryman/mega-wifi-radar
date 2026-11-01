@@ -17,7 +17,7 @@ flowchart LR
 | 3 | contents | `outline(depth: 1)`, thank-you line |
 | 4–5 | starting-up | Model 1 top + front with callouts, 3 steps, first time, if nothing appears, what you need |
 | 6–7 | controls | pad drawing + 5 keys (A: cockpit from the details), six-button note (X theme, Y cockpit); range steps + `zoom` shot (page 7) |
-| 8 | relay | what the relay is, docker command, same-release rule, URL rules, adsb.fi fair use |
+| 8 | relay | what the relay is, docker command, same-release rule, URL rules, optional flyover feed (→ docs/flyover.md), adsb.fi fair use |
 | 9–10 | setup | `setup` shot + 7 keys (THEME/RANGE/TAGS/CHIME, CONTROLS, RESET), `keyboard` shot, persistence, airport count |
 | 11–12 | scope | `radar` shot + 7 keys (traffic list, theme/tags/data), tag colours table, stale/drop |
 | 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |

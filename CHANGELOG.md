@@ -28,6 +28,9 @@ IMPROVEMENTS:
     (altitude, ground speed, vertical speed, heading, bank) in fixed columns so the numbers don't jump around, and
     its bearing and distance from your home airport.
   * **print:** the manual has a *Flyover Notices* page, the setup page covers CHIME, and the cockpit page shows the new HUD.
+  * **docs:** `docs/flyover.md` explains connecting a flyover feed: relay settings for Docker and Kubernetes,
+    the message format the relay accepts, a test command and a troubleshooting table. The manual's relay page
+    points to it.
   * **dev:** `make mqtt-start` runs a local MQTT broker the dev relay uses by itself; `make mqtt-pub`
     publishes a sample flyover. `scripts/sim` can record the sound (`SIM_WAV`).
 

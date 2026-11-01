@@ -3,7 +3,7 @@
 = Flyover Notices
 
 When a plane passes right over your home, the radar can tell you. This needs a relay connected to a
-flyover feed, a service that announces planes overhead (see the relay's documentation).
+flyover feed, a service that announces planes overhead (see _The Relay_).
 
 #align(center, shot("notice", width: 75%, callouts: ((1, 176, 20), (2, 200, 28), (3, 150, 36), (4, 116, 44))))
 #v(1mm)

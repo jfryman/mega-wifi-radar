@@ -79,7 +79,8 @@ empty variables count as unset. For containers and the planned cluster deploymen
   `-mdns=false`; the script's `RELAY_MDNS=0` skips the *host* advertisement).
 
 ## MQTT: flyover notices (`mqtt.go`, `notice.go`)
-Cart side and contract: [../ui/notices.md](../ui/notices.md). The relay subscribes, turns entering flights into
+Cart side and contract: [../ui/notices.md](../ui/notices.md). User-facing setup, the accepted message format and a
+troubleshooting table by log line: `docs/flyover.md` (keep it in step with `parseATC` / `composeNotice`). The relay subscribes, turns entering flights into
 notices, logs them (`notice 23653 (icao ad4747): FLYBY!  AAL1103|AMERICAN  B738|12,275FT 363KT`) and serves them.
 ```mermaid
 flowchart LR

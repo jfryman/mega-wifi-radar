@@ -30,6 +30,10 @@ If your network blocks these announcements, type the relay's address under *RELA
 *#"http://"* plus the computer's name or IP address plus *:8080*, for example
 *#"http://radar-pi.home.lan:8080"*.
 
+*Flyover notices* (optional): with an MQTT broker that announces planes passing over your home, add
+*-e MQTT_BROKER_HOST=* and its address to the command above. The project's *docs/flyover.md* explains
+the setup and the message format.
+
 #note[Fair use][Traffic comes from the adsb.fi open data feed, which is free for personal,
 non-commercial use. The panel always credits it. Please keep it that way. The cockpit view's ground
 comes from free public elevation data (AWS Terrain Tiles), which the relay fetches too.]

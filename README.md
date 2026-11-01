@@ -58,6 +58,7 @@ See [docs/usage.md](docs/usage.md) for controls and settings.
 | [docs/hardware.md](docs/hardware.md) | The Rev.C board, firmware, flashing both chips |
 | [docs/usage.md](docs/usage.md) | Boot, setup screen, controls, themes, what's on screen |
 | [docs/relay.md](docs/relay.md) | Running and configuring the relay; its HTTP API |
+| [docs/flyover.md](docs/flyover.md) | Flyover notices: connecting an MQTT feed of planes over your home, and its message format |
 | [docs/print.md](docs/print.md) | Cartridge label, box cover and manual: building and printing them |
 | [docs/building.md](docs/building.md) | Building the ROM and relay from source, emulator builds, CI |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
