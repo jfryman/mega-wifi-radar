@@ -20,7 +20,7 @@ flowchart TD
   CONTROLS, contract v2 with version lock-step, start-up RAM check), v0.2.1 (full clamshell wrap: back, spine, front, plus an A4 sheet),
   **v0.3.0** (2026-10-31: cockpit mode with streamed terrain, contract v3, `/v1/terrain` + `/v1/track` + `/v1/strip`;
   reconnect after a lost relay host; manual Cockpit View page). 0.3.1 is open in `CHANGELOG.md` (empty).
-- **The cart** runs the flyover notices build with the cockpit ticker and instrument-strip HUD (`4598aef`, CRC32 `55845B99`, contract v4, flashed 2026-11-01) with the
+- **The cart** runs the flyover notices build with the notice box, cockpit ticker and instrument-strip HUD (`e7905b3`, CRC32 `CC1276A5`, contract v4, flashed 2026-11-01) with the
   dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's

@@ -27,7 +27,7 @@ flowchart LR
 
 ## Left to do
 1. Tag 0.4.0 (relay and cart from the same tag; set the CHANGELOG date). Built on the cart:
-   `4598aef`, CRC32 `55845B99` (notices, ticker, instrument-strip HUD).
+   `e7905b3`, CRC32 `CC1276A5` (notice box, ticker, instrument-strip HUD).
 2. Production: point the relay at the cluster broker (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`, atc-mqtt's names)
    when it moves into the cluster. No code change.
 
