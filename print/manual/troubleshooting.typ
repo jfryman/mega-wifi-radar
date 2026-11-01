@@ -16,6 +16,7 @@
   ([ERR FRAME / ERR SIZE], [Something other than the relay answered at that address.]),
   ([UPSTRM ERR], [The traffic feed isn't answering the relay. The last good picture stays up.]),
   ([No aircraft], [Quiet skies, or a small airport. Try a busier airport or zoom out with *B*.]),
+  ([NO TERRAIN / LOST THE AIRCRAFT], [Cockpit view: it left the feed (out of range, or landed).]),
 )
 
 #note[The Wi-Fi light goes out][If the console never talks to the cartridge, its Wi-Fi chip goes to

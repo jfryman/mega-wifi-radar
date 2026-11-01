@@ -88,8 +88,8 @@ static void hud(u16 part)
         hud_text(21, s);
         break;
     default:
-        sprintf(s, "TERRAIN %u M CELLS   %u.%u FPS", hdr.cell_m, fps10 / 10, fps10 % 10);
-        hud_text(23, s);
+        sprintf(s, "%2u.%u FPS", fps10 / 10, fps10 % 10);
+        VDP_drawText(s, 30, 23);            /* right of "B  BACK TO RADAR" */
         break;
     }
 }
@@ -238,7 +238,8 @@ void cockpit_run(const u8 icao_in[3])
     PAL_setColor(PAL1 * 16 + 15, 0xEEE);    /* HUD white, callsign cyan, warnings amber */
     PAL_setColor(PAL2 * 16 + 15, 0xEE0);
     PAL_setColor(PAL3 * 16 + 15, 0x0AE);
-    hud_text(26, "B  BACK TO RADAR");
+    hud_text(23, "B  BACK TO RADAR");
+    hud_text(25, "ELEVATION DATA: AWS TERRAIN TILES");   /* attribution, as the radar credits adsb.fi */
     wait_release();
 
     if (!load_terrain()) {

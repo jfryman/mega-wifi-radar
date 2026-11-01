@@ -16,6 +16,11 @@ FEATURES:
     built from public elevation tiles (AWS Terrain Tiles), and the aircraft's position in it. The relay
     needs HTTPS access to `s3.amazonaws.com` for terrain; without it the view shows flat ground.
 
+IMPROVEMENTS:
+
+  * **print:** the manual has a *Cockpit View* page, the controls and troubleshooting pages cover
+    it, and the credits carry the elevation data's attribution (also on the cockpit screen).
+
 BUG FIXES:
 
   * **radar:** the cartridge now recovers when the relay's computer goes away mid-session (lid closed,

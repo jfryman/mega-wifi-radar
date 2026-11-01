@@ -31,4 +31,5 @@ If your network blocks these announcements, type the relay's address under *RELA
 *#"http://radar-pi.home.lan:8080"*.
 
 #note[Fair use][Traffic comes from the adsb.fi open data feed, which is free for personal,
-non-commercial use. The panel always credits it. Please keep it that way.]
+non-commercial use. The panel always credits it. Please keep it that way. The cockpit view's ground
+comes from free public elevation data (AWS Terrain Tiles), which the relay fetches too.]

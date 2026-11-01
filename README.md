@@ -86,6 +86,10 @@ release; `:0.2.0` pins one). A mismatched pair says so on screen instead of work
   The ROM credits the source on screen. The recorded snapshots in `relay/testdata/` and
   `res/fake/` are adsb.fi data; see [relay/testdata/NOTICE.md](relay/testdata/NOTICE.md).
 - Airport table: [OurAirports](https://ourairports.com/data/) (public domain).
+- Cockpit view terrain: elevation from [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/)
+  (Mapzen / Tilezen), resampled and coloured by the relay. The cockpit view credits it on screen; the
+  manual's credits and [docs/relay.md](docs/relay.md#data-terms) carry the
+  [required attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) for each source.
 
 Not for navigation or any operational use.
 

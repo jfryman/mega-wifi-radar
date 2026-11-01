@@ -2,8 +2,8 @@
 
 = Aircraft Details
 
-Select an aircraft with *up* and *down*, then press *C*. The radar keeps running underneath;
-*up* and *down* step through the list, and *C* or *B* closes the details.
+Select an aircraft with *up* and *down*, then press *C*; *up* and *down* step through the list,
+*C* or *B* closes it, and *A* rides along (_Cockpit View_).
 
 #align(center, shot("popup", width: 86%, callouts: ((1, 215, 12), (2, 215, 36), (3, 215, 84), (4, 215, 136), (5, 215, 176))))
 #v(1mm)

@@ -103,7 +103,8 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 
 ## HUD (window rows 16-27)
 Row 17 callsign (PAL2 cyan) + status (`LIVE`, amber `NO SIGNAL` / `TERRAIN...` / `SIGNAL LOST`); 19 altitude, ground
-speed; 21 vertical speed, heading, bank; 23 cell size, fps; 26 `B  BACK TO RADAR`. One line per frame. On return,
+speed; 21 vertical speed, heading, bank; 23 `B  BACK TO RADAR` + fps (col 30); 25 the elevation credit
+(`ELEVATION DATA: AWS TERRAIN TILES`, required attribution; exit messages overwrite it). One line per frame. On return,
 the radar selects the same aircraft once the first poll has it.
 
 ## Emulator

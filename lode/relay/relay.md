@@ -122,7 +122,10 @@ cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ## Terms of use
 adsb.fi open data: personal non-commercial use, at most 1 req/s, attribution required. The relay sends
 `User-Agent: mega_wifi_radar-relay`, and `source = 1` makes the console show "Data: adsb.fi".
-AWS Terrain Tiles (Mapzen Terrarium, AWS Open Data): free, no key; attribution to its sources (SRTM, 3DEP,
-GMTED2010, ETOPO1 and others) is required where the data is shown. Not yet credited on screen or in the manual.
+AWS Terrain Tiles (Mapzen Terrarium, AWS Open Data): free, no key. Its attribution doc
+(tilezen/joerd `docs/attribution.md`) has no short form: one credit line per source (ArcticDEM, Australia,
+Austria, Canada, EU-DEM, ETOPO1, Mexico INEGI, LINZ, Kartverket, UK EA, USGS 3DEP/GMTED2010/SRTM), "in a place
+reasonable to the medium". Credited: the cockpit HUD (`ELEVATION DATA: AWS TERRAIN TILES`), the full list in the
+manual's credits (small print), `docs/relay.md` "Data terms", and the README.
 
 Related: [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).

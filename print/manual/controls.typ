@@ -10,14 +10,16 @@
   *Left* and *right* change which data tags are shown: all, selected only, or none. In menus, move
   between rows and change values.]
 #key(2)[Start][Open the Setup screen. In Setup, save your settings and go back to the radar.]
-#key(3)[Button A][Zoom in. In Setup, edit the selected row (type an airport code, pick a network,
-  change the relay).]
-#key(4)[Button B][Zoom out. Closes the aircraft details. On the keyboard, delete the last letter.]
+#key(3)[Button A][Zoom in. In _Aircraft Details_, ride along in the _Cockpit View_. In Setup, edit the
+  selected row (type an airport code, pick a network, change the relay).]
+#key(4)[Button B][Zoom out. Closes the aircraft details and the cockpit view. On the keyboard, delete
+  the last letter.]
 #key(5)[Button C][Show everything about the selected aircraft (_Aircraft Details_). Press *C* or
   *B* to close it. *Hold C* to sort the list: nearest, A–Z, Z–A, lowest or highest altitude.]
 
-#note[Six-button controller][*X* switches to the next theme. *Y* and *Z* aren't used yet. Everything
-works on the three-button controller; the Setup screen's *CONTROLS* page lists these buttons too.]
+#note[Six-button controller][*X* switches to the next theme, and *Y* opens the cockpit view for the
+selected aircraft. *Z* isn't used yet. Everything works on the three-button controller; the Setup
+screen's *CONTROLS* page lists these buttons too.]
 
 == Range steps
 

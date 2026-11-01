@@ -8,9 +8,8 @@ release. The design, as built, is in [../ui/cockpit.md](../ui/cockpit.md); this 
 the speed spike's measurements.
 
 ## Left before 0.3.0
-1. **Manual + docs:** a cockpit page in `print/manual/`, `docs/` done; credit the elevation sources (AWS Terrain
-   Tiles: SRTM, 3DEP, GMTED2010, ETOPO1...) in the manual and docs as their terms ask.
-2. **Release 0.3.0** (contract v3: relay and cart together).
+1. **Release 0.3.0** (contract v3: relay and cart together). The manual (page 14, *Cockpit View*), docs and the
+   elevation credits (HUD, manual, docs, README) are in place.
 
 ## Done on the cart
 Byte writes to the VDP duplicate the byte (solid colours). 16-22 fps. A whole patch takes ~2.5 s (~13 KB/s); strips
