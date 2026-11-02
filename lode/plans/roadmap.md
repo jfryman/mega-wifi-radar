@@ -35,7 +35,7 @@ flowchart TD
   ~2.7 KB of RAM freed, contract v8; seen on the cart). **0.6.1** is open in `CHANGELOG.md` (contract unchanged, v8):
   cockpit mode near the ground, runways, the renderer's column-step fix, relay recordings
   ([cockpit-low-altitude.md](cockpit-low-altitude.md)); built and MAME-checked, not yet on the cart.
-- **The cart** runs 0.6.1 work in progress (contract v8, built at `66ffbbc` (banked sky, rollout brake), CRC32 `DD602D1A`, flashed 2026-11-02; the cockpit
+- **The cart** runs 0.6.1 work in progress (contract v8, built at `1132e95` (banked sky, rollout brake, steady bank), CRC32 `2C63A1D7`, flashed 2026-11-02; the cockpit
   smoothing and runway lights), tested against `scripts/relay replay` of `kbna-20r-scx3003-b738.jsonl.gz`
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
