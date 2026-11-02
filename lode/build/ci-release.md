@@ -53,7 +53,7 @@ Lode-only and CI-internal changes don't get entries. The release job **fails** i
 ## Cutting a release
 1. Rename `## X.Y.Z (Unreleased)` to `## X.Y.Z (Month D, YYYY)` and add a fresh `## X.Y.(Z+1) (Unreleased)` above it.
 2. Commit, then `git tag -a vX.Y.Z -m vX.Y.Z && git push origin main vX.Y.Z`.
-Released: **v0.1.0–v0.1.2** (2026-10-28), **v0.1.3**, **v0.2.0**, **v0.2.1** (2026-10-29), **v0.3.0** (2026-10-31), **v0.4.0**, **v0.4.1**, **v0.4.2**, **v0.4.3** (2026-11-01), **v0.4.4** (2026-11-02).
+Released: **v0.1.0–v0.1.2** (2026-10-28), **v0.1.3**, **v0.2.0**, **v0.2.1** (2026-10-29), **v0.3.0** (2026-10-31), **v0.4.0**, **v0.4.1**, **v0.4.2**, **v0.4.3** (2026-11-01), **v0.4.4**, **v0.4.5** (2026-11-02).
 
 ```sh
 # cut a release (after dating the CHANGELOG section)

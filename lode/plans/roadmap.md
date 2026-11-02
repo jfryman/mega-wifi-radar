@@ -27,9 +27,10 @@ flowchart TD
   emergency alert, settings record MWR3 with radar changes remembered, real sky in cockpit mode, the scope-scroll fix after
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
-  weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`: video maps, **contract v6**
-  (MAME-tested and measured; flashed with the matching dev relay 2026-11-02, cart checks below).
-- **The cart** runs 0.4.5 in progress (video maps, contract v6, built at `7d1fc2a`, CRC32 `A3365486`, flashed 2026-11-02; solid runways, dashed centrelines, lines across rings, setup GUIDE)
+  weather seen on the cart). **v0.4.5** (2026-11-02: video maps
+  (solid runways, dashed centrelines), setup MAP + GUIDE, a Video Map manual section (24 pages), contract v6; seen on
+  the cart). 0.4.6 is open in `CHANGELOG.md`.
+- **The cart** runs the 0.4.5 code (contract v6, built at `7d1fc2a`, CRC32 `A3365486`, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
