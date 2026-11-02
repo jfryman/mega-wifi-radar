@@ -36,6 +36,7 @@ struct track {
     u16 spr_attr;               /* [vint] blip attr with brightness level 0 */
     u8 vis;                     /* [vint] cur is inside the disc at this range */
     s8 tag_x, tag_y;            /* [vint] tag cell on plane A, -1 = none */
+    u8 lead;                    /* [vint] leader line: 0x80 drawn | length << 3 | direction (radar.c); kept as a preference */
     s16 dot_x[TRAIL_N], dot_y[TRAIL_N];  /* [vint] block px of trail[n]'s dot, NO_DOT if none */
 };
 

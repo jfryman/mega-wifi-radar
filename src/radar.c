@@ -32,7 +32,28 @@ static const u32 box_tiles[4][8] = {
     { 0, 0, 0, 0, 0x00000005, 0x00000005, 0x00000005, 0x00005555 },
 };
 
-static u16 t_blip, t_box, t_ofont;
+/* STARS data blocks (themes with `leader`): a 1-px leader line in the tag's colour (15), transparent elsewhere.
+ * Diagonals run corner to corner, so cells in a row make one line. */
+static const u32 lead_tiles[4][8] = {
+    { 0x0000000F, 0x000000F0, 0x00000F00, 0x0000F000, 0x000F0000, 0x00F00000, 0x0F000000, 0xF0000000 },  /* rising: SW to NE */
+    { 0xF0000000, 0x0F000000, 0x00F00000, 0x000F0000, 0x0000F000, 0x00000F00, 0x000000F0, 0x0000000F },  /* falling: NW to SE */
+    { 0, 0, 0, 0xFFFFFFFF, 0, 0, 0, 0 },  /* horizontal */
+    { 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000 },  /* vertical */
+};
+enum { LT_SLASH, LT_BACK, LT_DASH, LT_BAR };
+/* Directions, in the order they're tried: NE SE NW SW E W N S. The tag sits at (ltag) from the leader's last
+ * cell, so the line meets its corner (diagonals) or its callsign row / first column. */
+#define L_DIRS  8
+static const s8 ldir[L_DIRS][2] = { { 1, -1 }, { 1, 1 }, { -1, -1 }, { -1, 1 }, { 1, 0 }, { -1, 0 }, { 0, -1 }, { 0, 1 } };
+static const u8 ltile[L_DIRS] = { LT_SLASH, LT_BACK, LT_BACK, LT_SLASH, LT_DASH, LT_DASH, LT_BAR, LT_BAR };
+static const s8 ltag[L_DIRS][2] = {
+    { 1, -2 }, { 1, 1 }, { -TAG_W, -2 }, { -TAG_W, 1 }, { 1, 0 }, { -TAG_W, 0 }, { 0, -2 }, { 0, 1 },
+};
+#define LEAD_ON     0x80
+#define LEAD_DIR(l) ((l) & 7)
+#define LEAD_LEN(l) (((l) >> 3) & 3)
+
+static u16 t_blip, t_box, t_ofont, t_lead;
 static u16 k_scale;
 static u8 grid[GRID_H][GRID_W];         /* tag/label occupancy per plane-A cell */
 static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
@@ -166,16 +187,35 @@ static bool grid_free(s16 x, s16 y)
 
 /* ------------------------------------------------------------ tags + trails */
 
-static void erase_tag(struct track *t)
+/* Cell k (0 = next to the tag) of a drawn leader line: back along its direction from the tag. */
+static void lead_cell(const struct track *t, u16 k, s16 *x, s16 *y)
 {
-    if (t->tag_x >= 0) {
-        for (s16 r = 0; r < 2; r++) {
-            row_clear(VDP_BG_A, t->tag_x, t->tag_y + r, TAG_W);
-            grid_mark(t->tag_x, t->tag_y + r, TAG_SPAN, -1);
-        }
-        t->tag_x = t->tag_y = -1;
-    }
+    u8 d = LEAD_DIR(t->lead);
+    *x = t->tag_x - ltag[d][0] - ldir[d][0] * k;
+    *y = t->tag_y - ltag[d][1] - ldir[d][1] * k;
 }
+
+/* Clear a tag's cells (and its leader's) from plane A; ungrid: release them in the grid too. */
+static void clear_tag(struct track *t, bool ungrid)
+{
+    if (t->tag_x < 0) return;
+    for (s16 r = 0; r < 2; r++) {
+        row_clear(VDP_BG_A, t->tag_x, t->tag_y + r, TAG_W);
+        if (ungrid) grid_mark(t->tag_x, t->tag_y + r, TAG_SPAN, -1);
+    }
+    if (t->lead & LEAD_ON) {
+        for (u16 k = 0; k < LEAD_LEN(t->lead); k++) {
+            s16 x, y;
+            lead_cell(t, k, &x, &y);
+            row_clear(VDP_BG_A, x, y, 1);
+            if (ungrid) grid_mark(x, y, 1, -1);
+        }
+        t->lead &= ~LEAD_ON;                /* direction and length stay: tried first next time */
+    }
+    t->tag_x = t->tag_y = -1;
+}
+
+static void erase_tag(struct track *t) { clear_tag(t, TRUE); }
 
 #define NO_DOT  (-32768)
 
@@ -214,6 +254,61 @@ static bool want_tag(u16 i)
     }
 }
 
+/* right: the text moves right over the trailing spaces both lines share, so a tag west of its leader meets
+ * the line (the cells, and the grid footprint, stay x .. x + TAG_W - 1). */
+static void put_tag(struct track *t, s16 x, s16 y, bool right)
+{
+    u16 attr = TILE_ATTR(t->tag_pal, TRUE, FALSE, FALSE), pad = 0;
+    if (right)
+        while (pad < TAG_W - 1 && t->tag[0][TAG_W - 1 - pad] == ' ' && t->tag[1][TAG_W - 1 - pad] == ' ') pad++;
+    row_write(VDP_BG_A, x + pad, y, t->tag[0], TAG_W - pad, attr);
+    row_write(VDP_BG_A, x + pad, y + 1, t->tag[1], TAG_W - pad, attr);
+    grid_mark(x, y, TAG_SPAN, 1);
+    grid_mark(x, y + 1, TAG_SPAN, 1);
+    t->tag_x = x;
+    t->tag_y = y;
+}
+
+/* A leader of len cells from the blip's cell in direction d, and the tag at its end: TRUE if it all fits. */
+static bool lead_fits(s16 cx, s16 cy, u16 d, u16 len)
+{
+    for (u16 k = 1; k <= len; k++) {
+        s16 x = cx + ldir[d][0] * k, y = cy + ldir[d][1] * k;
+        if (x < 1 || y < 1 || x > 26 || y > 26 || grid[y][x]) return FALSE;
+    }
+    return grid_free(cx + ldir[d][0] * len + ltag[d][0], cy + ldir[d][1] * len + ltag[d][1]);
+}
+
+/* STARS data block: the last direction and length if they still fit, else the first that does, nearest first. */
+static bool draw_lead(struct track *t, s16 cx, s16 cy)
+{
+    u16 d = L_DIRS, len = 0;
+
+    if (LEAD_LEN(t->lead) && lead_fits(cx, cy, LEAD_DIR(t->lead), LEAD_LEN(t->lead))) {
+        d = LEAD_DIR(t->lead);
+        len = LEAD_LEN(t->lead);
+    } else {
+        for (u16 l = 1; l <= 2 && d == L_DIRS; l++)
+            for (u16 c = 0; c < L_DIRS; c++)
+                if (lead_fits(cx, cy, c, l)) {
+                    d = c;
+                    len = l;
+                    break;
+                }
+    }
+    if (d == L_DIRS) return FALSE;
+    u16 attr = TILE_ATTR_FULL(t->tag_pal, TRUE, FALSE, FALSE, t_lead + ltile[d]);
+    for (u16 k = 1; k <= len; k++) {
+        s16 x = cx + ldir[d][0] * k, y = cy + ldir[d][1] * k;
+        *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + (((y << 6) + x) << 1)));
+        *(vu16 *)VDP_DATA_PORT = attr;
+        grid_mark(x, y, 1, 1);
+    }
+    put_tag(t, cx + ldir[d][0] * len + ltag[d][0], cy + ldir[d][1] * len + ltag[d][1], ldir[d][0] < 0);
+    t->lead = LEAD_ON | len << 3 | d;
+    return TRUE;
+}
+
 static void draw(struct track *t, u16 i)
 {
     s16 bx, by;
@@ -223,18 +318,12 @@ static void draw(struct track *t, u16 i)
     by = t->by;
 
     s16 cx = (SCOPE_X + bx) >> 3, cy = (SCOPE_Y + by) >> 3;
+    if (themes[settings.theme].leader && draw_lead(t, cx, cy)) return;
     static const s8 cand[4][2] = { { 1, -2 }, { 1, 1 }, { -TAG_W, -2 }, { -TAG_W, 1 } };
-    for (u16 c = 0; c < 4; c++) {
+    for (u16 c = 0; c < 4; c++) {       /* beside the blip, no line (and the fallback for a crowded STARS scope) */
         s16 x = cx + cand[c][0], y = cy + cand[c][1];
         if (!grid_free(x, y)) continue;
-
-        u16 attr = TILE_ATTR(t->tag_pal, TRUE, FALSE, FALSE);
-        row_write(VDP_BG_A, x, y, t->tag[0], TAG_W, attr);
-        row_write(VDP_BG_A, x, y + 1, t->tag[1], TAG_W, attr);
-        grid_mark(x, y, TAG_SPAN, 1);
-        grid_mark(x, y + 1, TAG_SPAN, 1);
-        t->tag_x = x;
-        t->tag_y = y;
+        put_tag(t, x, y, FALSE);
         return;
     }
 }
@@ -316,6 +405,22 @@ static void box_rows(u16 r0, u16 r1)
     }
 }
 
+static bool in_rect(s16 ax, s16 ay, s16 aw, s16 ah, s16 x, s16 y, s16 w, s16 h)
+{
+    return ax + aw > x && ax < x + w && ay + ah > y && ay < y + h;
+}
+
+static bool lead_in(const struct track *t, s16 x, s16 y, s16 w, s16 h)
+{
+    if (!(t->lead & LEAD_ON)) return FALSE;
+    for (u16 k = 0; k < LEAD_LEN(t->lead); k++) {
+        s16 lx, ly;
+        lead_cell(t, k, &lx, &ly);
+        if (in_rect(lx, ly, 1, 1, x, y, w, h)) return TRUE;
+    }
+    return FALSE;
+}
+
 /* Occupy (dv 1) or free (-1) the open box's cells in the tag grid. Occupying moves tags inside it elsewhere. */
 static void box_occupy(s16 dv)
 {
@@ -324,7 +429,7 @@ static void box_occupy(s16 dv)
     if (dv > 0)
         for (u16 i = 0; i < TR_MAX; i++) {
             struct track *t = &tracks[i];
-            if (t->tag_x >= 0 && t->tag_x + TAG_W > x && t->tag_x < x + w && t->tag_y + 2 > y && t->tag_y < y + h) {
+            if (t->tag_x >= 0 && (in_rect(t->tag_x, t->tag_y, TAG_W, 2, x, y, w, h) || lead_in(t, x, y, w, h))) {
                 erase_tag(t);
                 t->dirty = 1;
             }
@@ -517,10 +622,7 @@ static void radar_vint(void)
         for (u16 i = 0; i < TR_MAX; i++) {
             /* forget drawn dots (cleared in bulk below) and tags */
             for (u16 k = 0; k < TRAIL_N; k++) tracks[i].dot_x[k] = NO_DOT;
-            if (tracks[i].tag_x >= 0) {
-                for (s16 r = 0; r < 2; r++) row_clear(VDP_BG_A, tracks[i].tag_x, tracks[i].tag_y + r, TAG_W);
-                tracks[i].tag_x = tracks[i].tag_y = -1;
-            }
+            clear_tag(&tracks[i], FALSE);       /* the grid is zeroed below */
             tracks[i].dirty = 2;
             place(&tracks[i]);
         }
@@ -655,6 +757,8 @@ void radar_init(void)
     opaque_font(t_ofont);
     t_frame = t_ofont + FONT_LENGTH;
     VDP_loadTileData((const u32 *)frame_tiles, t_frame, 9, DMA);
+    t_lead = t_frame + 9;
+    VDP_loadTileData((const u32 *)lead_tiles, t_lead, 4, DMA);
 
     memset(tracks, 0, TR_MAX * sizeof(struct track));
     memset((void *)tr_state, 0, sizeof(tr_state));

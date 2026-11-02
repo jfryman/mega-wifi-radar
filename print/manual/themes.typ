@@ -13,8 +13,8 @@ passes and fade until the next pass, like the big round scopes in a 1980s tower.
 == STARS
 
 #align(center, shot("stars", width: 58%))
-In the style of modern terminal radar displays: no sweep, blue rings, white and cyan tags, and
-targets at constant brightness that simply move on each update.
+In the style of modern terminal radar displays: no sweep, blue rings, and targets at constant
+brightness that simply move on each update. Each tag is a data block set off on a short leader line.
 
 #pagebreak()
 
@@ -35,7 +35,7 @@ targets at constant brightness that simply move on each update.
   tile("ice", [ICE], [Blue-white phosphor.]),
   tile("pocket", [POCKET], [A handheld's green LCD. No sweep.]),
   tile("sunset", [SUNSET], [Cyan sweep over a purple dusk.]),
-  tile("eram", [ERAM], [An en-route centre display. No sweep.]),
+  tile("eram", [ERAM], [An en-route centre display, with leader lines.]),
 )
 
 Every theme keeps the same tag colours by meaning: one colour each for low, middle and high

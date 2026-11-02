@@ -68,3 +68,4 @@
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).
 - Ambient mode - the radar touring flights by itself after setup's AMBIENT idle minutes: details, a 75 s cockpit ride, a minute on the radar (`ambient.c`); `NET OK AUTO` on the panel.
+- Data block / leader line - STARS/ERAM tag style: the 2-line tag set off its blip on a short 1-px line in one of 8 directions (`draw_lead`, theme flag `leader`).

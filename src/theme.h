@@ -32,6 +32,7 @@ struct theme {
     u16 glow[GLOW_SLOTS];   /* afterglow ramp, newest first */
     bool sweep;             /* draw the thin-line sweep */
     bool blip_fade;         /* blips fade after the sweep passes */
+    bool leader;            /* STARS data blocks: tags off the blip on a leader line (radar.c) */
 };
 
 extern const struct theme themes[THEME_COUNT];

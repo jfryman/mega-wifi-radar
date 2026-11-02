@@ -47,6 +47,5 @@
     - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; night lights
     - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
     - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
-    - [stars-data-blocks.md](plans/ideas/stars-data-blocks.md) - leader lines, 8-direction tags in STARS/ERAM
     - [spotters-logbook.md](plans/ideas/spotters-logbook.md) - daily stats + rare types, relay persistence, /v1/log
 - tmp/ - git-ignored scratch

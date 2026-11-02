@@ -52,7 +52,8 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
 - **Updates follow the sweep:** a new frame's position for an aircraft is applied when the sweep crosses
   its bearing, and its blip brightness tracks time since that crossing. **One poll per rotation**, fired as the
   sweep passes north. This hides network latency.
-- **Tags:** 2 lines (`SWA271` / `016 174`: alt in hundreds of ft, gs kt), coloured by altitude band.
+- **Tags:** 2 lines (`SWA271` / `016 174`: alt in hundreds of ft, gs kt), coloured by altitude band. Themes with
+  `leader` (STARS, ERAM) draw them as data blocks on a leader line ([radar-renderer.md](radar-renderer.md#stars-data-blocks)).
   Placed in the first free spot of 4 candidates around the blip. ◀/▶ cycle *all / selected / off*.
 - **Controls:**
 
@@ -89,17 +90,17 @@ Nine themes, cycled in setup's THEME row or by X; `settings.theme` is their inde
 | Theme | Look | Sweep + blip fade |
 |---|---|---|
 | **Classic** (default) | green phosphor on black | yes |
-| **STARS** | black, white/cyan tags, blue rings | no: targets just update each scan |
+| **STARS** | black, white/cyan data blocks on leader lines, blue rings | no: targets just update each scan |
 | AMBER | amber phosphor, orange sweep, red emergencies | yes |
 | NIGHT | dim reds; tags red → orange with altitude, emergencies pale pink | yes |
 | MARINE | yellow-orange on navy (`0x200`), steel-blue rings | yes |
 | ICE | blue-white phosphor | yes |
 | POCKET | dark olive on pea green (`0x0A8`), brown emergencies | no |
 | SUNSET | cyan sweep over purple (`0x402`), magenta rings, pink trails | yes |
-| ERAM | grey-green maps, green targets, pale data blocks | no |
+| ERAM | grey-green maps, green targets, pale data blocks on leader lines | no |
 
 ```c
-struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS]; bool sweep; bool blip_fade; };
+struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS]; bool sweep; bool blip_fade; bool leader; };
 ```
 
 Palette contract (`theme.h`), the same for every theme:

@@ -33,6 +33,7 @@ const struct theme themes[THEME_COUNT] = {
         .glow = { 0 },
         .sweep = FALSE,
         .blip_fade = FALSE,
+        .leader = TRUE,
     },
     [THEME_AMBER] = {
         .name = "AMBER",
@@ -124,5 +125,6 @@ const struct theme themes[THEME_COUNT] = {
         .glow = { 0 },
         .sweep = FALSE,
         .blip_fade = FALSE,
+        .leader = TRUE,
     },
 };

@@ -7,6 +7,9 @@ IMPROVEMENTS:
     details, rides along in the cockpit view for 75 seconds, and comes back; a minute later, another. The panel
     says `NET OK AUTO`. Any button takes over again, and that press does nothing else.
   * **setup:** the AMBIENT row; CONTROLS, RESET, SAVE & EXIT and EXIT now sit together at the bottom.
+  * **radar:** the STARS and ERAM themes draw tags as data blocks: set off from the target on a short leader line,
+    in whichever of eight directions has room, and staying on the same side from sweep to sweep. Classic and the
+    other themes keep tags beside the target.
 
 ## 0.4.2 (November 1, 2026)
 

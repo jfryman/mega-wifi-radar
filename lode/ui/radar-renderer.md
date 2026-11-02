@@ -41,6 +41,29 @@ flowchart LR
   Never assume the previous screen left them at 0: cockpit mode's `voxel_flip` leaves plane A's vertical scroll at
   128 about half the time, and the scope's text then sits 16 rows down, wrapped (N below the centre, S above it).
 
+## STARS data blocks
+Themes with `leader` (STARS, ERAM) set each tag off its blip on a 1-px leader line; Classic and the others keep tags
+beside the blip (pixel-identical to before: checked against `print/shots/radar.png`).
+```
+      GJ54505          NE / SE / NW / SW: diagonal tiles corner to corner; the tag meets the line's end corner
+      246 418          E / W: a dash on the callsign row; N / S: a bar, tag above / below starting at its column
+             \         lengths 1-2 cells; tried NE SE NW SW E W N S at 1, then at 2; then the 4 old spots, no line
+              ◆
+```
+- **Tiles:** 4 (`/` `\` `-` `|`, colour 15 on transparent) after the border tiles (`t_lead = t_frame + 9`), drawn in
+  the tag's palette, so the line has the tag's altitude colour.
+- **State:** `track.lead` = `0x80` drawn | length << 3 | direction. Erasing keeps direction + length, and the next
+  draw tries them first (`draw_lead`): a block doesn't hop from side to side each sweep while its spot stays free.
+- **Cells:** leader cells are marked in `grid` like tag cells, and `clear_tag` (erase, rescale with `ungrid` off)
+  rebuilds them from the tag's cell, direction and length. The notice box evicts a tag if its leader crosses the box
+  (`lead_in`).
+- **West side** (dx < 0): the text shifts right over the trailing spaces both lines share (`put_tag(..., right)`),
+  so it meets the line; the footprint stays the tag's 8 cells.
+- **Crowding:** a leader can end beside another aircraft's block in a dense spot (tags may sit over other blips,
+  as before), which reads as the wrong owner at a glance. Accepted: rare outside the centre at 25 nm and wider.
+- **Cost** (MAME, `RADAR_DEBUG`, STARS 25 nm, KBNA ~29 aircraft): tag stage 43 → 44 lines avg, total 105 → 107,
+  no late frames.
+
 ## Measured cost (MAME, KBNA ~30 aircraft; avg scanlines of 262 per frame)
 | stage | lines | how it got there |
 |---|---|---|

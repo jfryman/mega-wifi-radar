@@ -55,7 +55,8 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 
 ## Open decisions / ideas
 - [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
-- [ ] Feature goals backlog (night lights, weather, video maps, STARS data blocks, logbook): [ideas/summary.md](ideas/summary.md).
+- [ ] Feature goals backlog (night lights, weather, video maps, STARS type line, logbook): [ideas/summary.md](ideas/summary.md).
+- [ ] STARS data blocks (0.4.3, MAME-verified only): look at them on the TV at 10 and 25 nm.
 - [ ] Ambient mode (0.4.3, MAME-verified only): check on the cart: a tour after AFTER 1 MIN, a ride's 75 s, any button ending it.
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).

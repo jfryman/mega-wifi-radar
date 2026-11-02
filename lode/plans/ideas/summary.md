@@ -10,7 +10,7 @@ then move it to `plans/` as the active plan and update it to the current state a
 | *night lights* (below) | cockpit: urban cells lit warm yellow at night | relay | none | M | a land-cover / night-lights source |
 | [weather-overlay.md](weather-overlay.md) | NEXRAD precipitation as STARS-style stippled cells | both | v5+ `/v1/wx` | L | — |
 | [video-maps.md](video-maps.md) | runways + extended centrelines (+ rivers, airspace) | both | v5+ `/v1/map` | L | sweep slow-path measurement |
-| [stars-data-blocks.md](stars-data-blocks.md) | leader lines + 8-direction tags in STARS/ERAM | cart | none (phase 2: type in record) | M | — |
+| *STARS type line* (below) | data blocks alternate line 2 with the aircraft type | both | v5: type in `ar_rec` (24 → 28) | M | v5 release |
 | [spotters-logbook.md](spotters-logbook.md) | "today at KBNA" stats, rare types, rare-type notices | both | v5+ `/v1/log` | L | relay persistence |
 | [../watch-arrivals.md](../watch-arrivals.md) | ARRIVALS list order, cockpit through touchdown, relay on the Pi | both | v5 flag bit | M-L | cockpit low-altitude fixes |
 
@@ -32,10 +32,17 @@ urban cells, coloured dark grey by day and warm yellow at night, so Nashville gl
 Relay-only (cells' colour codes and the palette), no contract change. Done when: a source is chosen and cached,
 `code()` marks urban cells, night shows them lit in a `-sky night` emulator preview and on the cart.
 
+## STARS type line (phase 2 of the data blocks)
+STARS and ERAM draw tags as data blocks on leader lines ([../../ui/radar-renderer.md](../../ui/radar-renderer.md)). Real
+STARS time-shares line 2: altitude + speed, then the type (B38M), every ~2 s. The record has no type (only the
+96-byte `ar_detail` does), so it means growing `ar_rec` to 28 bytes (`char type[4]`): ~1.2 KB more RAM (tracks ×2
+records + `frame_buf`), and a contract bump, so it belongs in the v5 release. The cart then swaps `tag[1]` on a
+timer for tags in leader themes (≤ 2 redraws a frame already bound it). Open: STARS's own format (speed in tens of
+knots, 2 digits) or today's `016 174`.
+
 ## Suggested order
 1. **Night lights**, if the real sky makes you want more; relay only.
-2. **STARS data blocks** (phase 1, cart only).
-3. **One contract release (v5)** bundling what needs the relay: pick from weather, maps, logbook, arrivals.
+2. **One contract release (v5)** bundling what needs the relay: pick from weather, maps, logbook, arrivals, the STARS type line.
    Bundle them so the cart and relay bump `AR_VER` once ([../../architecture/contract.md](../../architecture/contract.md)).
 
 ## Shared constraints (from the lode)
