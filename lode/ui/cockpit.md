@@ -76,7 +76,9 @@ sequenceDiagram
 Relay side ([../relay/relay.md](../relay/relay.md)): elevation from AWS Terrain Tiles (Terrarium PNG, no key,
 decoded with `image/png`, 48 tiles kept), zoom picked so a pixel ≤ a cell, bilinear samples at cell centres. Sea is
 elevation < -5 m (bathymetry); colours are height bands of the patch's own relief, shaded from the north-west.
-Bank: reported `roll`, else from `track_rate`, else from the relay's previous sighting (`turns`), clamped ±45°.
+Bank: reported `roll`, else from `track_rate`, else from the track's change over ≥ 4 s of sightings (`turns`: up to 8
+per aircraft, ≥ 0.5 s apart, so repeated stale fixes don't count), clamped ±45°. Over one 2 s step adsb.fi's ~1 s
+position-time jitter read SCX3003's steady ~3°/s turn as 8-45° (`TestRecordedTurnBank`).
 Track lookups use the cached snapshot if < 1.5 s old, else `/api/v2/hex/<hex>` (rate-limited 1/s).
 
 ## RAM: the mode overlay ([../build/ram-budget.md](../build/ram-budget.md))
@@ -146,6 +148,7 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 - **Ground:** every frame `z16` ≥ the level of the cell under the camera + `eye_lv` (a third of a cell: 20 m at
   approach scale; set per patch). Below that the nearest cell fills the screen's bottom in one colour; inside the
   ground, all of it. The flare and the rollout ride that high.
+- Bank moves 1° every 4 ticks (`BANK_TICKS`, 15°/s; airliners roll at 3-7°/s), so a noisy fix can't flick the horizon.
 - Heading eases 1/8 per frame toward the fix's heading, which advances at the rate seen between fixes. Bank and
   horizon step 1 per frame toward their targets.
 - **Streaming** (`stream()`): the buffer holds grid cells `[wx, wx+128) × [wy, wy+128)`. At most once a second,

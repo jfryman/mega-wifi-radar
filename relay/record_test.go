@@ -129,3 +129,48 @@ func TestArrivalRecordings(t *testing.T) {
 		}
 	}
 }
+
+// SCX3003's turn onto final (no roll or track rate in the data: bank from the track's change), polled as the cart
+// does, a fix every 2 s: a steady ~3 deg/s turn reads 15-30 degrees of bank, not the 8-45 of one-step estimates.
+func TestRecordedTurnBank(t *testing.T) {
+	ctx := context.Background()
+	ups, _, err := readUpstreams([]string{"testdata/arrivals/kbna-20r-scx3003-b738.jsonl.gz"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := buildPatch(ctx, flatDEM(183), 36.1245, -86.6782, 600, 0).g
+	tr := newTurns()
+	t0, max, n := ups[0].Now, 0, 0
+	// the cart asks every ~2 s and gets the newest snapshot; adsb.fi often answers the same data twice, a second
+	// apart (seen_pos unchanged), so which one a fix comes from shifts its position time by a second
+	for k := 0; k < 20; k++ {
+		at := t0 + 100000 + float64(k)*2100
+		i := 0
+		for i+1 < len(ups) && ups[i+1].Now <= at {
+			i++
+		}
+		for j := range ups[i].AC {
+			a := &ups[i].AC[j]
+			if a.Hex != "aac5ec" {
+				continue
+			}
+			at := time.UnixMilli(int64(ups[i].Now))
+			if a.SeenPos != nil {
+				at = at.Add(-time.Duration(*a.SeenPos * float64(time.Second)))
+			}
+			b := int(buildTrack(ctx, a, g, flatDEM(183), tr, a.Hex, at).bank)
+			if b < 0 {
+				b = -b
+			}
+			if b > max {
+				max = b
+			}
+			if b >= 10 {
+				n++
+			}
+		}
+	}
+	if max > 30 || n < 3 {
+		t.Errorf("turn onto final: max bank %d deg, %d fixes at 10+ (want a steady ~20, at most 30)", max, n)
+	}
+}

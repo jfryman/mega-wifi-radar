@@ -25,6 +25,8 @@
                                              * the camera decelerates, 1/3 s for each further s, 8 more at most */
 #define TAXI_MS         8                   /* on the ground the camera eases down to this speed between fixes */
 #define BRAKE_BACK_M    150                 /* on the ground a fix behind the camera brakes it, unless this far */
+#define BANK_TICKS      4                   /* bank moves a degree every 4 ticks: 15 deg/s (airliners roll at 3-7;
+                                             * at a degree a tick, one noisy fix flicked the horizon 30 degrees) */
 #define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
@@ -431,8 +433,12 @@ static void advance(u16 frames)
         }
         hd_target += hd_rate;
         cam.heading += (s16)(hd_target - cam.heading) / 8;
-        if (cam.bank < trk.bank) cam.bank++;
-        else if (cam.bank > trk.bank) cam.bank--;
+        static u8 bank_tick;
+        if (++bank_tick >= BANK_TICKS) {
+            bank_tick = 0;
+            if (cam.bank < trk.bank) cam.bank++;
+            else if (cam.bank > trk.bank) cam.bank--;
+        }
         if (cam.horizon < horizon_target) cam.horizon++;
         else if (cam.horizon > horizon_target) cam.horizon--;
     }

@@ -19,6 +19,8 @@ IMPROVEMENTS:
   * **cockpit:** the sky banks and pitches with the ground (it stayed level while the terrain tilted), and its
     three blues blend into each other.
   * **cockpit:** after touchdown the view never rolls backwards: when the aircraft's position lags, it brakes.
+  * **cockpit:** steadier turns: the relay measures how fast an aircraft is turning over several seconds (a
+    steady 20-degree bank read anywhere from 8 to 45), and the view rolls at most 15 degrees a second.
   * **cockpit:** sharper in the distance (every column of the view is sampled all the way out), height bands blend
     into each other, and at night runways are dark between rows of edge lights, with approach lights in front.
 

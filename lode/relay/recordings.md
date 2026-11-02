@@ -50,6 +50,9 @@ Recorded 2026-11-02, everything within 12 nm. `TestArrivalRecordings` flies both
   ground clamp holds the camera above the terrain until the next fix snaps it on.
 - **Geoid:** on the ground at BNA (599 ft) `alt_geom` reads ~500 ft: the ellipsoid height. +98 ft (EGM96) = field.
 - Low fixes are quantised (25 ft) and noisy: SWA3092 reports 425 ft geometric over a 20L that is higher.
+- adsb.fi often answers the same aircraft data twice, a second apart (`seen_pos` unchanged): whichever answer a fix
+  comes from shifts its position time by a second. Anything derived from successive fixes (turn rate) needs a
+  baseline of several seconds; a test polling like the cart (every ~2.1 s, newest snapshot) catches it.
 - `nav_qnh` is sent by airliners on approach (1020.8 hPa that day): baro + 30 ft/hPa lands within ~70 ft of GPS.
 
 ## Emulator preview of an arrival

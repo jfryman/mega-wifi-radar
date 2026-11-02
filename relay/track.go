@@ -61,11 +61,12 @@ func (t *trackRec) encode() []byte {
 	return b
 }
 
-// turns remembers each aircraft's last track, to estimate bank when upstream reports neither roll nor
-// track rate.
+// turns remembers each aircraft's recent tracks, to estimate bank when upstream reports neither roll nor track
+// rate. The rate is measured over at least turnBaseline: adsb.fi's position times jitter by ~1 s, so over one
+// 2 s step a steady 3 deg/s turn read anywhere from 0 to 6 deg/s (bank 8-45 deg in SCX3003's recorded turn).
 type turns struct {
 	mu   sync.Mutex
-	last map[string]turnObs
+	last map[string][]turnObs // oldest first, at least turnMinStep apart
 }
 
 type turnObs struct {
@@ -73,27 +74,45 @@ type turnObs struct {
 	at    time.Time
 }
 
-func newTurns() *turns { return &turns{last: map[string]turnObs{}} }
+const (
+	turnBaseline = 4 * time.Second
+	turnMinStep  = 500 * time.Millisecond // a repeated (stale) fix isn't a new observation
+	turnKeep     = 8
+)
 
-// rate is the turn rate in degrees per second since the last observation of hex (0 if none usable).
+func newTurns() *turns { return &turns{last: map[string][]turnObs{}} }
+
+// rate is the turn rate in degrees per second, from the newest observation at least turnBaseline before this
+// one (0 if none in the last 30 s).
 func (t *turns) rate(hex string, track float64, at time.Time) float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	prev, ok := t.last[hex]
-	t.last[hex] = turnObs{track, at}
+	obs := t.last[hex]
+	if n := len(obs); n == 0 || at.Sub(obs[n-1].at) >= turnMinStep {
+		obs = append(obs, turnObs{track, at})
+		if len(obs) > turnKeep {
+			obs = obs[len(obs)-turnKeep:]
+		}
+		t.last[hex] = obs
+	}
 	if len(t.last) > 512 {
 		for k, v := range t.last {
-			if at.Sub(v.at) > time.Minute {
+			if at.Sub(v[len(v)-1].at) > time.Minute {
 				delete(t.last, k)
 			}
 		}
 	}
-	dt := at.Sub(prev.at).Seconds()
-	if !ok || dt < 0.5 || dt > 30 {
-		return 0
+	for i := len(obs) - 1; i >= 0; i-- {
+		dt := at.Sub(obs[i].at)
+		if dt > 30*time.Second {
+			break
+		}
+		if dt >= turnBaseline {
+			d := math.Mod(track-obs[i].track+540, 360) - 180 // -180..180
+			return d / dt.Seconds()
+		}
 	}
-	d := math.Mod(track-prev.track+540, 360) - 180 // -180..180
-	return d / dt
+	return 0
 }
 
 func sat16(v float64) int16 {
