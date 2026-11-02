@@ -35,8 +35,7 @@ flowchart TD
   ~2.7 KB of RAM freed, contract v8; seen on the cart). **v0.6.1** (2026-11-02: cockpit mode near the ground: approach scale, runways and their lights, the
   renderer's column-step and roll fixes, the banked sky, smooth rides and rollouts; relay recordings and `make replay`;
   contract unchanged, v8; the arrival checked on the cart). 0.6.2 is open in `CHANGELOG.md`.
-- **The cart** runs 0.6.1 work in progress (contract v8, built at `1132e95` (banked sky, rollout brake, steady bank), CRC32 `2C63A1D7`, flashed 2026-11-02; the cockpit
-  smoothing and runway lights), tested against `scripts/relay replay` of `kbna-20r-scx3003-b738.jsonl.gz`
+- **The cart** runs the v0.6.1 tag (contract v8, built at `5883d6f`, CRC32 `AF018A63`, flashed 2026-11-02)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
