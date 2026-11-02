@@ -119,7 +119,9 @@ void voxel_render(const struct vox_cam *cam)
 {
     const s16 fx = sinq(cam->heading), fy = cosq(cam->heading);   /* forward: north is +y */
     const s16 rx = fy, ry = -fx;                                    /* right */
-    const s16 rxs = (s32)rx * 128 / (VOX_COLS / 2), rys = (s32)ry * 128 / (VOX_COLS / 2);
+    /* right per column, x 32 / 40 (Q14): at most 13,107, an s16 (x 128 overflowed it for every heading,
+     * mirroring and stretching the view sideways); the shifts below take the other x 4 */
+    const s16 rxs = (s32)rx * 32 / (VOX_COLS / 2), rys = (s32)ry * 32 / (VOX_COLS / 2);
     s16 horizon = cam->horizon;
     if (horizon < 8) horizon = 8;
     if (horizon > VOX_ROWS - 16) horizon = VOX_ROWS - 16;
@@ -149,8 +151,8 @@ void voxel_render(const struct vox_cam *cam)
         const s16 z = VOX->zt[k];
         const u32 px = cam->x + ((s32)z * (s16)(fx - rx) >> 6);
         const u32 py = cy + ((s32)z * (s16)(fy - ry) << 1);
-        const s32 dx = (s32)z * rxs >> 13;
-        const s32 dy = (s32)z * rys >> 6;
+        const s32 dx = (s32)z * rxs >> 11;
+        const s32 dy = (s32)z * rys >> 4;
 
         /* screen row of every second height level at this depth, 16.16 so each is a high word */
         u32 sc = ((u32)k_q8 << 8) / (u16)z;
