@@ -40,7 +40,7 @@ flowchart TD
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's built from the 0.6.0 checkout, **contract v8**, with its logbook on the `mwradar-data` volume, and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's built from the 0.6.1 work in progress (`fd03387`, matching the cart), **contract v8**, with its logbook on the `mwradar-data` volume, and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
@@ -53,9 +53,8 @@ flowchart TD
   the remembered sort order, the night sky in cockpit mode.
 
 ## Not yet checked on hardware
-- Cockpit mode near the ground and the renderer fix (0.6.1, [cockpit-low-altitude.md](cockpit-low-altitude.md)):
-  `scripts/relay replay relay/testdata/arrivals/kbna-20r-scx3003-b738.jsonl.gz`, ride SCX3003 down to 20R; also a
-  cruise ride (turns should now look right) and the HUD's fps low down.
+- Cockpit mode at cruise after the 0.6.1 renderer fixes (column step, roll overflow, banked sky): a live ride in a
+  steep turn, and the HUD's fps low down (the arrival itself is checked with `make replay`).
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
   close the Mac's lid ~2 min, open it; expect `STALE` → `RECONNECT` → `NET OK` within ≤ 60 s. Also confirm the
   patched `mw_http_cleanup` doesn't upset normal polling.

@@ -32,13 +32,17 @@ flowchart LR
   ground the camera rolls on at landing speed through frozen fixes, then snaps back.
 - [x] Lode, changelog, manual (Cockpit View note), `docs/relay.md`.
 
-## Second round (owner: "smoothing, then A and F", 2026-11-02): built, cart check pending
+## Second round (owner: "smoothing, then A and F", 2026-11-02): built, checked on the cart
 - Smoothing: 1.5 s blends up to 60 cells, ground deceleration + 3 s extrapolation cap, the relay's fix age
   counted from now. Not done: velocity averaging (velocity comes from gs/track, not from fixes, so the 0/200 m
   pattern was the age); entering approach scale higher (at 60 m cells from 750 m up the terrain would end
   31 rows under the horizon).
 - A: every column sampled at every depth (16 cells changed almost nothing: a pair is under a cell wide there).
 - F: band dithering, dotted runway edge + approach lights at night, dark airfields, dark night runway.
+- Then (owner, on the cart): the sky now banks and pitches with the ground (dithered bands), the roll overflow past
+  ~39° is fixed, rollouts brake instead of reversing, and the relay's bank comes from ≥ 4 s of sightings.
+  **Checked on the cart 2026-11-02** with `make replay` (SCX3003): the turn onto final banked steadily (relay
+  bank 4-17°, was 8-45°), and through two 22-25 s position freezes the rollout was smooth (owner: "it was smooth").
 - Still open: finer depth steps, bilinear heights (2-3x sampling), 160 columns (nibble writes in `vox.s`, ~half
   the fps), 30 m cells (view halves: RAM caps the map at 128²).
 
