@@ -1,5 +1,10 @@
 ## 0.5.1 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **cartridge:** about 2.7 KB more free RAM (for features to come): the scope's tile map is read from ROM, label
+    cells are one bit each, and the boot splash and setup's Wi-Fi list borrow the radar's memory while it's stopped.
+
 ## 0.5.0 (November 2, 2026)
 
 BACKWARDS INCOMPATIBILITIES:

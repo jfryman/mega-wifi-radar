@@ -2,6 +2,7 @@
  * Plane B: the scene, with the speech bubble's body written over it. Plane A: only the bubble
  * text. Sprites (low priority): the 787, so it climbs out *behind* the wordmark. Everything
  * moves in the V-Int; main only requests phases. */
+#include "overlay.h"
 #include "splash.h"
 #include "airports.h"
 #include "resources.h"
@@ -45,7 +46,7 @@ static u16 t_bg, t_logo, t_plane, t_bub;
 static char city[10];
 
 static volatile u16 phase, phase_frames, typed, typed_end, typed_at, skip, fade;   /* typed_at: frame typing ended */
-static char lines[BUB_LINES][BUB_TW];
+#define lines       ((char (*)[BUB_TW])(overlay_ram + OV_SPLASH))         /* [BUB_LINES][BUB_TW]: in the mode overlay */
 static u16 line_pal[BUB_LINES], line_len[BUB_LINES], nlines;
 static u16 bub_x, bub_y, bub_w, bub_h;          /* bubble body, cells (0 wide: none) */
 static u16 clr_x, clr_y, clr_w, clr_h;          /* body + tail: what to give back to the scene */
@@ -56,7 +57,8 @@ static volatile u16 status_dirty;
 static s32 px, py, vx, vy;              /* 8.8 */
 static u16 frame_no;
 static u16 spr[6][4];
-static u16 pal_now[64];
+_Static_assert(OV_SPLASH + BUB_LINES * BUB_TW + 64 * 2 <= OV_SETUP, "the splash's part must end before setup's");
+#define pal_now     ((u16 *)(overlay_ram + OV_SPLASH + BUB_LINES * BUB_TW))    /* [64], after lines (104 B, even) */
 static u16 ticks;
 static u16 talker;                      /* who the current bubble belongs to */
 static u16 rpm;                         /* engines, 0..255 (lode/ui/boot-sound.md) */

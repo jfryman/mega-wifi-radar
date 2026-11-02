@@ -15,7 +15,7 @@ flowchart LR
 ```
 
 ## RAM: none kept
-The heap had 267 B to spare (148 B after this module), so the body is fetched into **`frame_buf`** (free once the frame is ingested; the next
+The heap had 267 B to spare (148 B after this module; 11,096 B after the RAM trim), so the body is fetched into **`frame_buf`** (free once the frame is ingested; the next
 `feed_fetch` overwrites it) and turned into panel / pop-up text at once: those rows are already static buffers
 (`panel_text`, `popup_text`). `have` says the panel rows hold the log; drawing a list tab or `radar_up` forgets it,
 and `logbook_panel` shows LOADING until the next fetch. A failed fetch shows NO LOG.

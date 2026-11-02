@@ -1,3 +1,4 @@
+#include "overlay.h"
 #include "setup.h"
 #include "feed.h"
 #include "airports.h"
@@ -340,10 +341,12 @@ static void reset_page(void)
 
 #ifndef FAKE_FEED
 #define MAX_APS 14
+_Static_assert(OV_SETUP + MAX_APS * sizeof(struct net_ap) <= OV_SCOPE_TILES + SCOPE_NTILES * 32,
+               "setup's scan list must fit the overlay");
 
 static void wifi_page(void)
 {
-    static struct net_ap aps[MAX_APS];
+    struct net_ap *aps = (struct net_ap *)(overlay_ram + OV_SETUP);     /* [MAX_APS]: the radar is stopped */
     char pass[65], buf[41];
     u16 cur = 0;
     s16 n;

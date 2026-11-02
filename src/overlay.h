@@ -12,6 +12,10 @@
 #define OV_TRAIL_BITS   (OV_SCOPE_TILES + SCOPE_NTILES * 32)    /* u8[SCOPE_NTILES * 8]: scope.c */
 #define OV_TRACKS       (OV_TRAIL_BITS + SCOPE_NTILES * 8)      /* struct track[TR_MAX]: traffic.h */
 #define OV_COCKPIT      0                               /* struct vox_ram: voxel.h */
+/* Screens that run while neither the radar nor cockpit mode does borrow it too (each fills its part on entry):
+ * the boot splash, and setup's Wi-Fi scan list. They don't overlap each other (setup stops the splash). */
+#define OV_SPLASH       0                               /* splash.c: bubble lines + the palette being faded */
+#define OV_SETUP        1024                            /* setup.c: the Wi-Fi scan list */
 
 extern u8 overlay_ram[];
 

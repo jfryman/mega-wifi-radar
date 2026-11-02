@@ -18,7 +18,7 @@ static const u8 bitmask[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 static u8 dirty_flag[NTILES];
 static u16 dirty_q[NTILES];
 static u16 dirty_n;
-static u16 cell_tile[CELLS * CELLS];        /* block cell -> disc tile + 1, 0 = none */
+#define cell_tile   ((const u16 *)scope_map_rom)    /* block cell -> disc tile + 1, 0 = none: read in place from ROM */
 static u16 vram_base;
 static u16 tick;
 static const struct theme *theme;
@@ -92,7 +92,6 @@ void scope_init(const struct theme *t, u16 base)
     /* high priority: rings, sweep and trails draw over the weather, which is low-priority plane A
      * (lode/ui/weather.md); tags (high-priority plane A) still win */
     for (u16 i = 0; i < CELLS * CELLS; i++) {
-        cell_tile[i] = map[i];
         VDP_setTileMapXY(BG_B, map[i] ? TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, vram_base + map[i] - 1) : 0,
                          SCOPE_X / 8 + i % CELLS, SCOPE_Y / 8 + i / CELLS);
     }

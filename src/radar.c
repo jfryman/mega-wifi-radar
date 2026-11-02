@@ -72,7 +72,11 @@ static const s8 ltag[L_DIRS][2] = {
 static u16 t_blip, t_box, t_ofont, t_lead, t_wx;
 static u16 k_scale;
 static u8 grid[GRID_H][GRID_W];         /* tag/label occupancy per plane-A cell */
-static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
+static u8 label_bits[GRID_H * GRID_W / 8];     /* permanent: ring labels + compass, 1 bit per plane-A cell */
+_Static_assert(GRID_W == 28 && GRID_H * GRID_W % 8 == 0, "label_bit's index is y * 28 by shifts");
+static inline u16 label_bit(u16 x, u16 y) { return (y << 5) - (y << 2) + x; }   /* y * 28 + x, no multiply */
+static inline u8 label_at(u16 x, u16 y) { u16 i = label_bit(x, y); return (label_bits[i >> 3] >> (i & 7)) & 1; }   /* 0 or 1: SGDK bool is a u8 */
+static inline void label_set(u16 x, u16 y) { u16 i = label_bit(x, y); label_bits[i >> 3] |= 1 << (i & 7); }
 /* Weather (lode/ui/weather.md): plane A cells without text show it, at low priority under the scope's plane B.
  * Cells as struct ar_wx sends them; wx_dirty: rows (bit r = scope row r + 1) to redraw. */
 static u8 wx_cells[AR_WX_N * AR_WX_ROW];
@@ -260,7 +264,7 @@ static bool grid_free(s16 x, s16 y)
 {
     if (x < 1 || y < 1 || x + TAG_W > 27 || y + 2 > 27) return FALSE;
     for (s16 r = 0; r < 2; r++) {
-        if (label_cells[y + r][x - 1]) return FALSE;
+        if (label_at(x - 1, y + r)) return FALSE;
         for (s16 i = 0; i < TAG_SPAN && x + i < GRID_W; i++)
             if (grid[y + r][x + i]) return FALSE;
     }
@@ -427,17 +431,17 @@ static void put(VDPPlane plane, u16 pal, const char *s, s16 x, s16 y)
 }
 
 /* Erase the drawn ring labels + compass and their grid occupancy. Must run before
- * anything resets label_cells: it's the only record of which cells hold label text
+ * anything resets label_bits: it's the only record of which cells hold label text
  * (a shorter new label would otherwise leave the old one's digits behind). */
 static void clear_labels(void)
 {
     for (u16 y = 0; y < GRID_H; y++)
         for (u16 x = 0; x < GRID_W; x++)
-            if (label_cells[y][x]) {
+            if (label_at(x, y)) {
                 row_clear(x, y, 1);
-                grid[y][x] -= label_cells[y][x];
-                label_cells[y][x] = 0;
+                grid[y][x]--;
             }
+    memset(label_bits, 0, sizeof(label_bits));
 }
 
 static void draw_labels(void)
@@ -450,7 +454,7 @@ static void draw_labels(void)
     clear_labels();
     for (u16 i = 0; i < 4; i++) {
         put(BG_A, PAL_TEXT_LOW, compass[i].s, compass[i].x, compass[i].y);
-        label_cells[(u8)compass[i].y][(u8)compass[i].x] = 1;
+        label_set((u8)compass[i].x, (u8)compass[i].y);
     }
     for (u16 k = 1; k <= 5; k++) {
         char s[4];
@@ -458,10 +462,10 @@ static void draw_labels(void)
         s16 x = (SCOPE_X + SCOPE_CX + d) >> 3, y = (SCOPE_Y + SCOPE_CY - d) >> 3;
         u16 n = sprintf(s, "%u", range * k / 5);
         put(BG_A, PAL_TEXT_LOW, s, x, y);
-        for (u16 i = 0; i < n; i++) label_cells[y][x + i] = 1;
+        for (u16 i = 0; i < n; i++) label_set(x + i, y);
     }
     for (u16 y = 0; y < GRID_H; y++)
-        for (u16 x = 0; x < GRID_W; x++) grid[y][x] += label_cells[y][x];
+        for (u16 x = 0; x < GRID_W; x++) grid[y][x] += label_at(x, y);
 }
 
 /* ------------------------------------------------------------ notice box */
@@ -864,7 +868,7 @@ void radar_init(void)
     memset((void *)tr_state, 0, sizeof(tr_state));
     for (u16 i = 0; i < TR_MAX; i++) tracks[i].tag_x = tracks[i].tag_y = -1;
     memset(grid, 0, sizeof(grid));
-    memset(label_cells, 0, sizeof(label_cells));
+    memset(label_bits, 0, sizeof(label_bits));
     memset(wx_cells, 0, sizeof(wx_cells));
     wx_dirty = 0;
     map_n = map_next = 0;
