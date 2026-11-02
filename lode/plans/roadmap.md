@@ -28,7 +28,7 @@ flowchart TD
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below). 0.4.4 is open in `CHANGELOG.md`: the weather overlay, **contract v5**
   (MAME-tested; flashed with the matching dev relay 2026-11-02, cart checks below).
-- **The cart** runs 0.4.4 in progress (the weather overlay, contract v5, flashed 2026-11-02; brighter weather colours `0c43453`, CRC32 `A3F5EAC4`)
+- **The cart** runs 0.4.4 in progress (the weather overlay, contract v5, flashed 2026-11-02; brighter weather colours, built at `6b8059f`, CRC32 `EBA1A278`)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
