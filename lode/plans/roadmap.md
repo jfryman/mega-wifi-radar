@@ -24,7 +24,7 @@ flowchart TD
   cockpit's instrument-strip HUD; relay env config; contract v4; `docs/flyover.md`), **v0.4.1** (2026-11-01: boot
   radio calls in speech bubbles with time to read, the scene re-laid out; boot sound: PSG whine/roar/radio + FM twin
   engines and bass; setup CHIME → SOUND; contract unchanged, v4). 0.4.2 is open in `CHANGELOG.md`.
-- **The cart** runs 0.4.2-dev (`f09a6a3`, CRC32 `1910B917`, contract v4, flashed 2026-11-01: 0.4.1 + the scope-scroll fix after cockpit mode) with the
+- **The cart** runs 0.4.2-dev (`0ff84c1`, CRC32 `152CE7CC`, contract v4, flashed 2026-11-01: 0.4.1 + the scope-scroll fix after cockpit mode + seven new themes) with the
   dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
@@ -37,7 +37,7 @@ flowchart TD
   the detail pop-up against the real relay, X on a 6-button pad, setup CONTROLS, the relay-mismatch message; and of 0.4.0: flyover notices (C/B, chimes incl. the KBNA lick, cockpit
   ticker), setup CHIME, the MWR1 → MWR2 settings upgrade, the instrument-strip HUD; and of 0.4.1: the speech-bubble
   boot with its reading pauses, the boot sound (engines, radio, FM twin engines + bass) on a TV; and of 0.4.2: the
-  radar's layout after leaving cockpit mode (N at the top).
+  radar's layout after leaving cockpit mode (N at the top), all nine themes on a TV.
 
 ## Not yet checked on hardware
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
