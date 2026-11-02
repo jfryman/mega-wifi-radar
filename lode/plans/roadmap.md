@@ -26,9 +26,9 @@ flowchart TD
   engines and bass; setup CHIME → SOUND; contract unchanged, v4), **v0.4.2** (2026-11-01: seven new themes, the
   emergency alert, settings record MWR3 with radar changes remembered, real sky in cockpit mode, the scope-scroll fix after
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
-  cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below). 0.4.4 is open in `CHANGELOG.md`: the weather overlay, **contract v5**
-  (MAME-tested; flashed with the matching dev relay 2026-11-02, cart checks below).
-- **The cart** runs 0.4.4 in progress (the weather overlay, contract v5, flashed 2026-11-02; brighter weather colours, built at `6b8059f`, CRC32 `EBA1A278`)
+  cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
+  weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`.
+- **The cart** runs the 0.4.4 code (built at `6b8059f`, CRC32 `EBA1A278`, contract v5, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
@@ -58,8 +58,9 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 ## Open decisions / ideas
 - [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
 - [ ] Feature goals backlog (video maps, STARS type line, logbook): [ideas/summary.md](ideas/summary.md).
-- [ ] Weather overlay (0.4.4, [../ui/weather.md](../ui/weather.md)) on the cart during real rain: cells match a weather app's
-  radar within a cell; stipple dim enough on a TV in Classic, STARS and POCKET; Z on a 6-button pad; the MWR3 `wx` byte saved.
+- [ ] Weather overlay (0.4.4, [../ui/weather.md](../ui/weather.md)): seen on the cart's TV (light cells, after the brighter
+  colours). Still to check during real storms: cells match a weather app's radar within a cell; Z on a 6-button pad;
+  the MWR3 `wx` byte saved.
 - [ ] City lights in cockpit mode (0.4.3, relay only, MAME-previewed): look at a night ride on the TV with the rebuilt relay.
 - [ ] STARS data blocks (0.4.3, MAME-verified only): look at them on the TV at 10 and 25 nm.
 - [ ] Ambient mode (0.4.3, MAME-verified only): check on the cart: a tour after AFTER 1 MIN, a ride's 75 s, any button ending it.

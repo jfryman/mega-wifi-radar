@@ -1,4 +1,11 @@
-## 0.4.4 (Unreleased)
+## 0.4.5 (Unreleased)
+
+## 0.4.4 (November 2, 2026)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **relay:** the contract is now version 5. A 0.4.4 cartridge needs the 0.4.4 relay (and the other way
+    round); a mismatch is reported at boot or as `RELAY VER?`, as before.
 
 IMPROVEMENTS:
 
@@ -7,8 +14,7 @@ IMPROVEMENTS:
     five minutes and after each zoom; tags, rings and the sweep stay on top. US only (Iowa Environmental Mesonet's
     composite); the panel credits `IEM`. WEATHER in setup or Z on a six-button pad turns it off.
   * **setup:** the WEATHER row; WI-FI and RELAY now sit together.
-  * **relay:** serves `/v1/wx` (`-wx` / `RELAY_WX`; empty turns weather off). Contract v5: this release's cart
-    needs this release's relay.
+  * **relay:** serves `/v1/wx` (`-wx` / `RELAY_WX`; empty turns weather off).
 
 ## 0.4.3 (November 1, 2026)
 
