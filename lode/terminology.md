@@ -22,7 +22,7 @@
 - Data tag - the text block next to a blip (callsign / altitude / ground speed).
 - Sweep - the rotating radar line: a thin line drawn into plane B pixels, 256 steps/rev, with a palette-faded afterglow.
 - Glow slot - one of the 10 PAL0 indices a sweep pixel is written with; rotating the palette fades the tail.
-- Theme - palettes + flags (Classic: green phosphor + sweep; STARS: modern, no sweep).
+- Theme - palettes + flags (`theme.c`): Classic, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM; sweep or not, blip fade or not.
 - nm - nautical mile; frames use 1/32 nm.
 - Home point - the scope centre (airport ICAO + lat/lon in 1e-4 deg + range nm). Dev default KBNA.
 - KBNA - Nashville International, the dev home point (36.1245, -86.6782, 599 ft).

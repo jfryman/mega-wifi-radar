@@ -14,7 +14,8 @@
 #define C_BLIP0     1
 #define C_SELECT    5
 #define C_STALE     6
-/* every palette: index 15 = text colour (the SGDK font draws with 15) */
+/* every palette: index 14 = the scope's background (the pop-up's opaque fill), index 15 = text colour
+ * (the SGDK font draws with 15) */
 
 /* Text palettes: tags pick one by altitude band. */
 #define PAL_TEXT_HIGH   PAL0    /* white: >= FL180, panel */
@@ -22,7 +23,8 @@
 #define PAL_TEXT_MID    PAL2    /* cyan: FL100..FL179 */
 #define PAL_TEXT_EMERG  PAL3    /* red: emergency (blips too) */
 
-enum { THEME_CLASSIC, THEME_STARS, THEME_COUNT };
+enum { THEME_CLASSIC, THEME_STARS, THEME_AMBER, THEME_NIGHT, THEME_MARINE, THEME_ICE, THEME_POCKET, THEME_SUNSET,
+       THEME_ERAM, THEME_COUNT };
 
 struct theme {
     const char *name;

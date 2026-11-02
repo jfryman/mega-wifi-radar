@@ -35,7 +35,7 @@ Use up/down to move between rows; each row lists its controls below.
 
 | Row | Controls |
 |---|---|
-| THEME | left/right: CLASSIC / STARS |
+| THEME | left/right: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM |
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | left/right: ALL / SELECTED / OFF |
 | SOUND | left/right: ON / OFF, the boot sounds and the flyover notice chime; switching it on plays the chime |
@@ -119,11 +119,17 @@ never covers the view: `OVERHEAD!` shows next to the callsign and the notice scr
 
 ## Themes
 
-| | Classic | STARS |
+| Theme | Look | Sweep + blip fade |
 |---|---|---|
-| Look | green phosphor on black | black, white/cyan tags, blue rings |
-| Sweep | thin line with afterglow | none |
-| Blips | fade after each sweep hit | constant |
+| Classic | green phosphor on black | yes |
+| STARS | black, white/cyan tags, blue rings | no, constant blips |
+| AMBER | amber phosphor on black, orange sweep | yes |
+| NIGHT | dim reds for a dark room | yes |
+| MARINE | ship's radar: yellow-orange targets on navy, steel-blue rings | yes |
+| ICE | blue-white phosphor on black | yes |
+| POCKET | handheld LCD: dark olive on pea green | no, constant blips |
+| SUNSET | cyan sweep over purple, magenta rings | yes |
+| ERAM | en-route centre: grey-green maps, green targets | no, constant blips |
 
 ## Settings storage
 

@@ -13,7 +13,7 @@
 #define REDRAW_PER_FRAME 2
 #define PANEL_PER_FRAME  3
 #define POPUP_PER_FRAME  3       /* 28-cell rows: the pop-up fills in ~10 frames before it shows */
-#define C_OPAQUE         14      /* black in every palette of every theme: the pop-up's background */
+#define C_OPAQUE         14      /* the scope's background in every palette of every theme: the pop-up's fill */
 
 /* Blip tiles: 4 brightness levels (colour index 1..4) + stale; then the
  * 16x16 selection brackets (4 tiles, column-major). */

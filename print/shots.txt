@@ -6,6 +6,13 @@ cockpit  | 29 | 18:P1 Down,18.4:P1 Down,18.8:P1 Down,19.2:P1 C,20.5:P1 A
 setup    | 20 | 18:P1 Start
 notice   | 39 |
 stars    | 24 | 18:P1 Start,19:P1 Right,20:P1 Start
+theme-amber  | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,20.3:P1 Start
+theme-night  | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.7:P1 Start
+theme-marine | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,21.1:P1 Start
+theme-ice    | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21.5:P1 Start
+theme-pocket | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21:P1 Right,21.9:P1 Start
+theme-sunset | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21:P1 Right,21.4:P1 Right,22.3:P1 Start
+theme-eram   | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21:P1 Right,21.4:P1 Right,21.8:P1 Right,22.7:P1 Start
 zoom     | 21 | 18:P1 A,19:P1 A
 keyboard | 23 | 18:P1 Start,19:P1 Down,19.5:P1 Down,20:P1 Down,20.5:P1 Down,21:P1 Down,21.5:P1 Down,22:P1 A
 boot-taxi    | 4.6 |

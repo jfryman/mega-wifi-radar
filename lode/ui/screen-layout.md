@@ -83,14 +83,34 @@ flowchart TB
 A theme is data: four palettes plus a few flags. Switching one reloads the palettes and toggles features,
 with no change to the layer layout.
 
-| | **Classic** (default) | **STARS** |
+Nine themes, cycled in setup's THEME row or by X; `settings.theme` is their index (an index past
+`THEME_COUNT` invalidates the saved record, so only ever append to the enum).
+
+| Theme | Look | Sweep + blip fade |
 |---|---|---|
-| Look | green phosphor on black | black background, white/cyan tags, blue rings |
-| Sweep | thin line + afterglow | none (targets just update each scan) |
-| Blips | phosphor fade after the sweep | constant brightness |
+| **Classic** (default) | green phosphor on black | yes |
+| **STARS** | black, white/cyan tags, blue rings | no: targets just update each scan |
+| AMBER | amber phosphor, orange sweep, red emergencies | yes |
+| NIGHT | dim reds; tags red → orange with altitude, emergencies pale pink | yes |
+| MARINE | yellow-orange on navy (`0x200`), steel-blue rings | yes |
+| ICE | blue-white phosphor | yes |
+| POCKET | dark olive on pea green (`0x0A8`), brown emergencies | no |
+| SUNSET | cyan sweep over purple (`0x402`), magenta rings, pink trails | yes |
+| ERAM | grey-green maps, green targets, pale data blocks | no |
 
 ```c
-struct theme { u16 pal[4][16]; bool sweep; bool blip_fade; };
+struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS]; bool sweep; bool blip_fade; };
 ```
+
+Palette contract (`theme.h`), the same for every theme:
+- PAL0: 0 background (also the backdrop), 1 rings, 2-11 glow slots (written at runtime from `glow`, newest first;
+  the last step should approach the background), 12 trails, 15 white-ish text (high band + the panel).
+- PAL1: 1-4 blip brightness levels (all equal without `blip_fade`), 5 selection box, 6 stale; 15 low-band text.
+- PAL2: 15 mid-band text (and the selected list row). PAL3: 1-4 emergency blips, 15 emergency text.
+- **Index 14 of every palette = the scope's background**: the opaque font and box borders fill with it
+  (`C_OPAQUE`), so pop-ups and the notice box match a non-black background (MARINE, POCKET, SUNSET).
+- Without a sweep the glow slots take the background colour (`set_glow_palette`), not black.
+- The four text bands must stay distinct, and emergencies must stand out from all three.
+- Names ≤ 7 characters (panel row `%-7s ALL`).
 
 Related: [sweep.md](sweep.md), [../net/feed.md](../net/feed.md), [../architecture/frame-format.md](../architecture/frame-format.md).

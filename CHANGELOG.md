@@ -1,5 +1,12 @@
 ## 0.4.2 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **radar:** seven new themes: AMBER (amber phosphor), NIGHT (dim reds for a dark room), MARINE (a ship's
+    radar, yellow on navy), ICE (blue-white phosphor), POCKET (a handheld's green LCD), SUNSET (cyan sweep
+    over purple) and ERAM (an en-route centre display). Pick one in setup's THEME row, or press X. The manual
+    shows them all.
+
 BUG FIXES:
 
   * **radar:** coming back from cockpit mode no longer leaves the scope's text half a screen out of place

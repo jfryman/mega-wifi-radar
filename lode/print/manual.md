@@ -24,14 +24,15 @@ flowchart LR
 | 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
 | 15 | notices | `notice` shot (75%, the box open, callouts staggered into its empty space) + 4 keys, chime + cockpit line |
 | 16 | themes | Classic + STARS shots |
-| 17 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
-| 18 | credits | credits grid (incl. ELEVATION), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
-| 19 | (pad) | Notes |
+| 17 | themes | "More looks": 3-column grid of the other seven (`theme-*` shots), caption each, tag-colour line |
+| 18 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
+| 19 | credits | credits grid (incl. ELEVATION), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
 | 20 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
 
 Every page is full: the details, cockpit, notices and troubleshooting pages have no spare lines (an extra line pushed
 each onto a new page, and the manual to 24 pages). Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
-don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps.
+don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps. There is no
+Notes page any more: one more page of content pushes the manual to 24 pages.
 
 ## Building blocks (`print/manual/lib.typ`)
 ```typst

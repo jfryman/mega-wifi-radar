@@ -12,7 +12,7 @@ The rendering layer also runs against a fake in-ROM feed (`make sim`) for emulat
 Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44` patched for
 Rev.C); see [build/container-build.md](build/container-build.md). The ROM boots through a 787 departure splash narrated by the real boot steps in speech bubbles
 ([ui/boot-splash.md](ui/boot-splash.md)), with PSG engine and radio sound ([ui/boot-sound.md](ui/boot-sound.md)), then runs the full radar:
-a V-Int renderer (thin-line sweep, blips, trails, tags, Classic/STARS themes) fed once per sweep from the relay, a side
+a V-Int renderer (thin-line sweep, blips, trails, tags, nine colour themes) fed once per sweep from the relay, a side
 panel with a sortable traffic list ([ui/traffic-list.md](ui/traffic-list.md)), a detail pop-up per aircraft fed by the relay's
 `/v1/detail` ([ui/detail-popup.md](ui/detail-popup.md)), **cockpit mode**: the view from one aircraft over real terrain,
 Voxel Space drawn by the 68000 straight into VRAM from a relay terrain patch and live track

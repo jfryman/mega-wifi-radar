@@ -5,7 +5,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 
 | Row | Control |
 |---|---|
-| THEME | L/R: CLASSIC / STARS |
+| THEME | L/R: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM ([screen-layout.md](screen-layout.md)) |
 | RANGE | L/R: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | L/R: ALL / SELECTED / OFF |
 | SOUND | L/R: ON / OFF, the boot sound ([boot-sound.md](boot-sound.md)) and the flyover notice chime ([notices.md](notices.md)); switching to ON plays the chime (`ui_pad` ticks it) |

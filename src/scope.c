@@ -57,7 +57,7 @@ static void set_glow_palette(void)
     u16 cur = (tick / GLOW_Q) % GLOW_SLOTS;
 
     for (u16 k = 0; k < GLOW_SLOTS; k++)
-        cols[k] = theme->sweep ? theme->glow[(cur + GLOW_SLOTS - k) % GLOW_SLOTS] : 0;
+        cols[k] = theme->sweep ? theme->glow[(cur + GLOW_SLOTS - k) % GLOW_SLOTS] : theme->pal[PAL0][C_BG];
     PAL_setColors(PAL0 * 16 + C_GLOW0, cols, GLOW_SLOTS, CPU);
 }
 
