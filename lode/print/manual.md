@@ -31,8 +31,9 @@ flowchart LR
 
 Every page is full: the details, cockpit, notices and troubleshooting pages have no spare lines (an extra line pushed
 each onto a new page, and the manual to 24 pages). Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
-don't cover panel text. The `controls` page has room left over: page 7 holds only the range steps. There is no
-Notes page any more: one more page of content pushes the manual to 24 pages.
+don't cover panel text. Page 7 (controls) holds the range steps and Ambient mode. There is no Notes page any more:
+one more page of content pushes the manual to 24 pages. **The owner allows that** (2026-11-01): grow to 24 when a
+feature needs the room (a screenshot, a section), rather than cutting useful text; don't grow it for one line.
 
 ## Building blocks (`print/manual/lib.typ`)
 ```typst

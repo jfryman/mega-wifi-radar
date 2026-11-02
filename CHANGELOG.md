@@ -7,6 +7,9 @@ IMPROVEMENTS:
     details, rides along in the cockpit view for 75 seconds, and comes back; a minute later, another. The panel
     says `NET OK AUTO`. Any button takes over again, and that press does nothing else.
   * **setup:** the AMBIENT row; CONTROLS, RESET, SAVE & EXIT and EXIT now sit together at the bottom.
+  * **cockpit:** towns show: cells under city lights (NASA's night-lights map) are grey specks by day and warm
+    points of light at dusk and night, so an evening arrival into a city looks like one. The relay's
+    `RELAY_LIGHTS` points elsewhere or turns it off.
   * **radar:** the STARS and ERAM themes draw tags as data blocks: set off from the target on a short leader line,
     in whichever of eight directions has room, and staying on the same side from sweep to sweep. Classic and the
     other themes keep tags beside the target.

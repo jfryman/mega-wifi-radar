@@ -218,6 +218,8 @@ func main() {
 	flag.BoolVar(&mq.clear, "mqtt-clear", false, "clear a retained message on the topic after reading it")
 	flag.StringVar(&mq.clientID, "mqtt-client-id", mqttClientID(), "MQTT client id")
 	noticeTTL := flag.Duration("notice-ttl", 30*time.Second, "how long a flyover notice waits for a cart")
+	lights := flag.String("lights", "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/2012-01-01/GoogleMapsCompatible_Level8",
+		"night-lights tile base (WMTS, /{z}/{row}/{col}.jpeg) for cockpit mode's city lights; empty: off")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
@@ -227,6 +229,9 @@ func main() {
 	}
 
 	el := newDEM(*demURL)
+	if *lights != "" {
+		nightLights = newLights(*lights)
+	}
 	if *packCockpit != "" {
 		if err := packCockpitFile(*packCockpit, flag.Args(), el, *lat, *lon, *cell); err != nil {
 			log.Fatal(err)
@@ -297,6 +302,7 @@ var serverEnv = map[string]string{
 	"mqtt-client-id": "MQTT_CLIENT_ID",
 	"notice-ttl":     "RELAY_NOTICE_TTL",
 	"sky":            "RELAY_SKY",
+	"lights":         "RELAY_LIGHTS",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag

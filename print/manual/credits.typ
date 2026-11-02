@@ -9,6 +9,7 @@
   text(..cond, weight: "bold")[TRAFFIC DATA], [adsb.fi open data, from volunteer ADS-B receivers],
   text(..cond, weight: "bold")[AIRPORTS], [OurAirports (public domain)],
   text(..cond, weight: "bold")[ELEVATION], [AWS Terrain Tiles (Mapzen / Tilezen), from the sources below],
+  text(..cond, weight: "bold")[CITY LIGHTS], [NASA Earth Observatory / NOAA NGDC (VIIRS City Lights 2012), via NASA GIBS],
   text(..cond, weight: "bold")[TYPE], [Barlow and Press Start 2P (SIL Open Font License)],
 )
 

@@ -50,7 +50,7 @@ const (
 	_
 	cHigh // 12, 13
 	_
-	cUrban // 14 (reserved for land cover)
+	cUrban // 14: under city lights (lights.go)
 	cSnow  // 15
 )
 
@@ -61,7 +61,7 @@ var terrainPal = [16]uint16{
 	0x042, 0x064, 0x286, // low ground
 	0x022, 0x242, 0x264, // forest / mid ground
 	0x246, 0x468, // high ground
-	0x666, 0xEEE, // urban, snow
+	0x666, 0xEEE, // urban (grey by day, lit at night: sky.go), snow
 }
 
 // geom is a patch's placement and scale: everything /v1/track and /v1/strip need. Its cell grid goes on past
@@ -141,12 +141,13 @@ func cellFor(aglM float64) int {
 type cells struct {
 	x0, y0, w, h int
 	elev         []float64
+	lit          []bool // w x h, under city lights (lights.go); nil: none
 }
 
 func (c *cells) at(col, row int) float64 { return c.elev[(row-c.y0)*(c.w+1)+col-c.x0+1] }
 
 func sampleCells(ctx context.Context, el elevator, g geom, x0, y0, w, h int) (cells, error) {
-	c := cells{x0, y0, w, h, make([]float64, (w+1)*(h+1))}
+	c := cells{x0: x0, y0: y0, w: w, h: h, elev: make([]float64, (w+1)*(h+1))}
 	z := demZoom(g.lat, float64(g.cellM))
 	for r := 0; r <= h; r++ {
 		for k := 0; k <= w; k++ {
@@ -158,7 +159,27 @@ func sampleCells(ctx context.Context, el elevator, g geom, x0, y0, w, h int) (ce
 			c.elev[r*(w+1)+k] = e
 		}
 	}
+	sampleLights(ctx, &c, g)
 	return c, nil
+}
+
+// sampleLights marks the cells under city lights. Lights are decoration: a failed tile leaves the rest unlit.
+func sampleLights(ctx context.Context, c *cells, g geom) {
+	if nightLights == nil {
+		return
+	}
+	c.lit = make([]bool, c.w*c.h)
+	for r := 0; r < c.h; r++ {
+		for k := 0; k < c.w; k++ {
+			la, lo := g.latLon(c.x0+k, c.y0+r)
+			lum, err := nightLights.lum(ctx, la, lo)
+			if err != nil {
+				log.Printf("terrain %.4f,%.4f: %v: no lights", g.lat, g.lon, err)
+				return
+			}
+			c.lit[r*c.w+k] = litCell(lum, c.x0+k, c.y0+r)
+		}
+	}
 }
 
 // code is one cell's height level and palette index. Sea: Terrarium carries bathymetry, so open water is
@@ -204,6 +225,9 @@ func (g geom) fill(c *cells, flat bool, height, colour []uint8) {
 		for k := 0; k < c.w; k++ {
 			col, row := c.x0+k, c.y0+r
 			height[r*c.w+k], colour[r*c.w+k] = g.code(c.at(col, row), c.at(col-1, row+1), col, row, flat)
+			if c.lit != nil && c.lit[r*c.w+k] && colour[r*c.w+k] != cWater && colour[r*c.w+k] != cWater+1 {
+				colour[r*c.w+k] = cUrban
+			}
 		}
 	}
 }

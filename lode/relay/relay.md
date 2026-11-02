@@ -47,7 +47,8 @@ flowchart LR
   1.5 s snapshot age; strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
   The patch's palette follows the sun at the patch, now (`sky.go`: day / golden / twilight / night, details in
-  [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase.
+  [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase. Cells under city lights get the urban colour
+  (`lights.go`, NASA GIBS tiles); `-lights ""` turns that off.
 - Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
   `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=4` → one
   82 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
@@ -73,7 +74,7 @@ empty variables count as unset. For containers and the planned cluster deploymen
 | `-mdns` | `RELAY_MDNS` | `-mqtt-topic` (`atc/status`) | `MQTT_TOPIC` |
 | `-dem` | `RELAY_DEM` | `-mqtt-clear` | `MQTT_CLEAR` |
 | `-notice-ttl` (30 s) | `RELAY_NOTICE_TTL` | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
-| `-sky` (`real`) | `RELAY_SKY` | | |
+| `-sky` (`real`) | `RELAY_SKY` | `-lights` (NASA GIBS) | `RELAY_LIGHTS` |
 
 - The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
 - `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
@@ -197,5 +198,7 @@ AWS Terrain Tiles (Mapzen Terrarium, AWS Open Data): free, no key. Its attributi
 Austria, Canada, EU-DEM, ETOPO1, Mexico INEGI, LINZ, Kartverket, UK EA, USGS 3DEP/GMTED2010/SRTM), "in a place
 reasonable to the medium". Credited: the cockpit HUD (`ELEVATION DATA: AWS TERRAIN TILES`), the full list in the
 manual's credits (small print), `docs/relay.md` "Data terms", and the README.
+NASA GIBS (VIIRS City Lights 2012, NASA Earth Observatory / NOAA NGDC): free, no key; GIBS asks for an
+acknowledgement. Credited in the manual (CITY LIGHTS) and `docs/relay.md`; the HUD's credit row has no room.
 
 Related: [../ui/notices.md](../ui/notices.md), [../data/adsb-sources.md](../data/adsb-sources.md), [../net/net-layer.md](../net/net-layer.md).

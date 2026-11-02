@@ -17,7 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles), /v1/notice, version check, conversion, caching, discovery, env config, MQTT client + dev broker
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles, sky, city lights), /v1/notice, version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
@@ -44,7 +44,7 @@
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
-    - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; night lights
+    - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; STARS type line
     - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
     - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
     - [spotters-logbook.md](plans/ideas/spotters-logbook.md) - daily stats + rare types, relay persistence, /v1/log

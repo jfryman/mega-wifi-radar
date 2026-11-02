@@ -17,5 +17,5 @@ controller, *Y* goes straight there for the selected aircraft. *B* takes you bac
 The relay sends the ground and the aircraft's position every two seconds; your Genesis flies smoothly
 in between. Getting in takes a few seconds.
 
-#note[What you're seeing][Hills are true to scale, so flat country looks flat. Colours come from height,
-not photographs; the sky follows the real time of day.]
+#note[What you're seeing][Hills are true to scale. Colours come from height, not photographs; towns show
+as lights, and the sky follows the time of day.]

@@ -34,17 +34,19 @@ func parseSky(s string) (skyPhase, error) {
 	return -1, fmt.Errorf("sky %q: want real, day, golden, twilight or night", s)
 }
 
-// Per phase: the three sky entries (deep, mid, pale at the horizon), how bright the ground is, and a blue lift
-// for the ground (night reads blue-grey, not brown).
+// Per phase: the three sky entries (deep, mid, pale at the horizon), how bright the ground is, a blue lift for
+// the ground (night reads blue-grey, not brown), and the colour of cells under city lights (0: shaded like the
+// ground, grey by day).
 var skies = [...]struct {
 	sky    [3]uint16
 	ground float64
 	blue   uint16
+	urban  uint16
 }{
-	skyDay:      {[3]uint16{0xA42, 0xC86, 0xECA}, 1, 0},
-	skyGolden:   {[3]uint16{0xA64, 0xA8A, 0x6CE}, 0.85, 0},
-	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0},
-	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2},
+	skyDay:      {[3]uint16{0xA42, 0xC86, 0xECA}, 1, 0, 0},
+	skyGolden:   {[3]uint16{0xA64, 0xA8A, 0x6CE}, 0.85, 0, 0},
+	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0, 0x26A},
+	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2, 0x2AE},
 }
 
 // sunElevation is the sun's elevation in degrees at lat, lon (degrees) and t: the NOAA low-precision formulas,
@@ -89,6 +91,9 @@ func skyPalette(p skyPhase) [16]uint16 {
 		if b := pal[i] >> 8; b < skies[p].blue {
 			pal[i] = pal[i]&0x0FF | skies[p].blue<<8
 		}
+	}
+	if skies[p].urban != 0 {
+		pal[cUrban] = skies[p].urban
 	}
 	return pal
 }

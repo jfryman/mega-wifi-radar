@@ -36,7 +36,14 @@ sequenceDiagram
     Each phase sets the three sky entries and scales the ground (1, 0.85, 0.55, 0.3; night lifts blue to 2 so it
     reads blue-grey), on the VDP's even steps. Relay-only: the cart loads `pal` as it comes; the tint changes on
     patch reloads. `-sky`/`RELAY_SKY` fixes a phase (tests, and `-pack-cockpit` for emulator previews; the
-    committed fake patch is daylight).
+    committed fake patch and `make fake-feed` are `-sky day`).
+    **City lights** (`relay/lights.go`): palette 14 (`cUrban`) marks cells under city lights, from NASA GIBS's VIIRS
+    City Lights 2012 JPEG tiles (zoom 8, ~500 m a pixel, no key; `-lights`/`RELAY_LIGHTS`, empty = off). Lights are
+    points from the air, so lit cells are a sparse pattern by grid position (`litCell`): luminance ≥ 200 one cell
+    in 4, ≥ 120 one in 8, ≥ 70 one in 16; water is never lit. Grey by day (`0x666`), `0x26A` in twilight, warm
+    `0x2AE` at night (`skies[].urban`). Sampled in `sampleCells`, so a strip lights exactly the cells its patch did;
+    a failed tile leaves the rest unlit. Lesson (2026-11-01): a solid fill and then a checkerboard both read as a
+    yellow slab near Nashville at 750 m cells (the metro is that bright in the data); the sparse pattern reads as lights.
   - `key` = `"lat,lon,cell,level,base,hi"` (the centre rounded to 5 decimals, which the patch is sampled at; `hi`
     tops the colour bands): the cart passes it back verbatim; the relay is stateless.
   - The patch is centred where the aircraft will be 3 s on (`terrainLeadS`: the cart's download time).

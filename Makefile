@@ -30,7 +30,7 @@ contract:
 fake-feed:
 	cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json \
 		&& go run . -pack-detail ../res/fake/kbna_detail.bin testdata/kbna-seq/*.json \
-		&& go run . -pack-cockpit ../res/fake/kbna_cockpit.bin -lat 36.1245 -lon -86.6782 -cell 750 testdata/kbna-seq/*.json
+		&& go run . -sky day -pack-cockpit ../res/fake/kbna_cockpit.bin -lat 36.1245 -lon -86.6782 -cell 750 testdata/kbna-seq/*.json
 
 # After bumping AR_VER in src/arframe.h: record the new contract in relay/contract.lock.
 contract-lock:
