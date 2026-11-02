@@ -113,8 +113,8 @@ func TestEncodeLayout(t *testing.T) {
 		recs: []record{{icao: 0xa46745, flags: fStale, x: -2, y: 320, alt: 840, squawk: 0x7700,
 			gs: 139, track: 90, vrate: -20, cat: 0x11, cs: [8]byte{'U', 'A', 'L', '1', ' ', ' ', ' ', ' '}}}}
 	b := f.encode()
-	wantHex := "4152" + fmt.Sprintf("%02x", frameVer) + "0100181234010203040019010" + "1" +
-		"a46745" + "04" + "fffe" + "0140" + "0348" + "7700" + "8b" + "5a" + "ec" + "11" + "55414c3120202020"
+	wantHex := "4152" + fmt.Sprintf("%02x", frameVer) + "01001c1234010203040019010" + "1" +
+		"a46745" + "04" + "fffe" + "0140" + "0348" + "7700" + "8b" + "5a" + "ec" + "11" + "55414c3120202020" + "00000000"
 	if got := fmt.Sprintf("%x", b); got != wantHex {
 		t.Fatalf("encoding\n got %s\nwant %s", got, wantHex)
 	}
@@ -171,7 +171,7 @@ func TestHTTP(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode != 200 || resp.ContentLength != 2320 || len(body) != 2320 ||
+	if resp.StatusCode != 200 || resp.ContentLength != hdrSize+maxRecs*recSize || len(body) != hdrSize+maxRecs*recSize ||
 		len(resp.TransferEncoding) != 0 || resp.Header.Get("Content-Type") != "application/octet-stream" {
 		t.Fatalf("status %d len %d body %d te %v", resp.StatusCode, resp.ContentLength, len(body), resp.TransferEncoding)
 	}

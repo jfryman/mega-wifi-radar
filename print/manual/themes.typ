@@ -13,8 +13,8 @@ passes and fade until the next pass, like the big round scopes in a 1980s tower.
 == STARS
 
 #align(center, shot("stars", width: 58%))
-In the style of modern terminal radar displays: no sweep, blue rings, and targets at constant
-brightness that simply move on each update. Each tag is a data block set off on a short leader line.
+Modern terminal radar: no sweep, blue rings, steady targets. Tags are data blocks on leader lines;
+line 2 alternates altitude and speed with the aircraft type (*B738*), two seconds each.
 
 #pagebreak()
 

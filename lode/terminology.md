@@ -12,7 +12,7 @@
 - wflash - the MegaWiFi bootloader; the stock build doesn't fit Rev.C clocks.
 - User task - SGDK's cooperative task (`TSK_userSet`) that runs `mw_process()`; it must never touch the VDP.
 - Compact frame - the big-endian binary aircraft snapshot the console consumes (`"AR"`, `src/arframe.h`).
-- Record - one 24-byte aircraft entry in a frame (v2 adds the type → 28).
+- Record - one 28-byte aircraft entry in a frame (24 until v8 added the type).
 - 1/32 nm - frame position unit (~58 m); x east, y north of home.
 - Stale - position older than 15 s (flagged); older than 60 s means dropped by the relay.
 - Digester - whatever turns ADS-B JSON into compact frames (relay = option A, firmware = option B).

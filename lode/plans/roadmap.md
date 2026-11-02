@@ -31,7 +31,7 @@ flowchart TD
   (solid runways, dashed centrelines), setup MAP + GUIDE, a Video Map manual section (24 pages), contract v6; seen on
   the cart). **v0.5.0** (2026-11-02: panel tabs + the control
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
-  cart). 0.5.1 is open in `CHANGELOG.md`.
+  cart). 0.6.0 is open in `CHANGELOG.md`: the STARS type line, **contract v8** (MAME-tested).
 - **The cart** runs the 0.5.0 code (contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.

@@ -342,13 +342,26 @@ static bool want_tag(u16 i)
 
 /* right: the text moves right over the trailing spaces both lines share, so a tag west of its leader meets
  * the line (the cells, and the grid footprint, stay x .. x + TAG_W - 1). */
+/* STARS type line: in leader themes, line 2 shows the aircraft type instead of altitude + speed for TYPE_FRAMES of
+ * every 2 * TYPE_FRAMES (owner's go, 2026-11-02; real STARS time-shares line 2 the same way). */
+#define TYPE_FRAMES 120
+static u8 type_phase;                       /* 1: the type half */
+static u16 type_tick;
+
 static void put_tag(struct track *t, s16 x, s16 y, bool right)
 {
     u16 attr = TILE_ATTR(t->tag_pal, TRUE, FALSE, FALSE), pad = 0;
+    const char *line2 = t->tag[1];
+    char type_line[TAG_W];
+    if (type_phase && t->cur.type[0] > ' ') {
+        memcpy(type_line, t->cur.type, 4);
+        memset(type_line + 4, ' ', TAG_W - 4);
+        line2 = type_line;
+    }
     if (right)
-        while (pad < TAG_W - 1 && t->tag[0][TAG_W - 1 - pad] == ' ' && t->tag[1][TAG_W - 1 - pad] == ' ') pad++;
+        while (pad < TAG_W - 1 && t->tag[0][TAG_W - 1 - pad] == ' ' && line2[TAG_W - 1 - pad] == ' ') pad++;
     tag_row(x + pad, y, t->tag[0], TAG_W - pad, attr);
-    tag_row(x + pad, y + 1, t->tag[1], TAG_W - pad, attr);
+    tag_row(x + pad, y + 1, line2, TAG_W - pad, attr);
     tag_mark(x, y, 1);
     tag_mark(x, y + 1, 1);
     t->tag_x = x;
@@ -732,6 +745,16 @@ static void radar_vint(void)
             for (u16 k = 0; k < TRAIL_N; k++) tracks[i].dot_x[k] = NO_DOT;
             if (tracks[i].dirty < 2) tracks[i].dirty = 2;
         }
+    }
+    if (themes[settings.theme].leader) {    /* time-share line 2: all tags redraw (2 a frame) at each switch */
+        if (++type_tick >= TYPE_FRAMES) {
+            type_tick = 0;
+            type_phase ^= 1;
+            req_retag = 1;
+        }
+    } else if (type_phase) {
+        type_phase = 0;
+        req_retag = 1;
     }
     if (req_retag) {
         req_retag = 0;

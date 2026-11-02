@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	frameVer     = 7 // AR_VER: the relay and the cart only talk at the same version
+	frameVer     = 8 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
-	recSize      = 24
+	recSize      = 28
 	maxRecs      = 96
 	maxRangeNM   = 250
 	staleSec     = 15
@@ -99,6 +99,7 @@ type record struct {
 	vrate  int8
 	cat    uint8
 	cs     [8]byte
+	typ    [4]byte // ICAO type designator, space padded
 	distNM float64 // sort key, not encoded
 }
 
@@ -192,6 +193,7 @@ func convert(a *upstreamAC, homeLat, homeLon, rangeNM float64) (record, bool) {
 	}
 	r.cat = category(a.Category)
 	r.cs = callsign(a)
+	padASCII(r.typ[:], strings.ToUpper(strings.TrimSpace(a.Type)))
 	return r, true
 }
 
@@ -247,6 +249,7 @@ func (f *frame) encode() []byte {
 		be.PutUint16(p[10:], r.squawk)
 		p[12], p[13], p[14], p[15] = r.gs, r.track, uint8(r.vrate), r.cat
 		copy(p[16:24], r.cs[:])
+		copy(p[24:28], r.typ[:])
 	}
 	return b
 }

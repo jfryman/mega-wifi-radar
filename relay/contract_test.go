@@ -99,7 +99,7 @@ func loadHeader(t *testing.T) cHeader {
 
 // Every AR_* integer constant, and the relay value it must equal.
 var relayInts = map[string]int64{
-	"AR_VER": frameVer, "AR_REC_SIZE_V1": recSize, "AR_MAX_RECS": maxRecs, "AR_HDR_SIZE": hdrSize,
+	"AR_VER": frameVer, "AR_REC_SIZE": recSize, "AR_MAX_RECS": maxRecs, "AR_HDR_SIZE": hdrSize,
 	"AR_SRC_ADSBFI":  sourceADSBfi,
 	"AR_H_TRUNCATED": hTruncated, "AR_H_UPSTREAM_ERR": hUpstreamErr, "AR_H_NOTICE": hNotice,
 	"AR_F_GROUND": fGround, "AR_F_EMERG": fEmerg, "AR_F_STALE": fStale, "AR_F_ALT_UNK": fAltUnk,
@@ -175,7 +175,7 @@ func TestContractConstants(t *testing.T) {
 			t.Errorf("%s: relay maps it but arframe.h no longer defines it", n)
 		}
 	}
-	if got := h.ints["AR_HDR_SIZE"] + h.ints["AR_MAX_RECS"]*h.ints["AR_REC_SIZE_V1"]; h.exprs["AR_FRAME_MAX"] == "" ||
+	if got := h.ints["AR_HDR_SIZE"] + h.ints["AR_MAX_RECS"]*h.ints["AR_REC_SIZE"]; h.exprs["AR_FRAME_MAX"] == "" ||
 		got != hdrSize+maxRecs*recSize {
 		t.Errorf("AR_FRAME_MAX: want hdr + max*rec = %d", hdrSize+maxRecs*recSize)
 	}
@@ -200,7 +200,8 @@ func be(v uint64, size int) []byte {
 func TestContractLayout(t *testing.T) {
 	h := loadHeader(t)
 	r := record{icao: 0x0A0B0C, flags: 0x7F, x: 0x1122, y: -0x3344, alt: 0x2D2E, squawk: 0x7700,
-		gs: 0xC3, track: 0x3C, vrate: -5, cat: 0x11, cs: [8]byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'}}
+		gs: 0xC3, track: 0x3C, vrate: -5, cat: 0x11, cs: [8]byte{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'},
+		typ: [4]byte{'B', '3', '8', 'M'}}
 	f := frame{seq: 0x1234, time: 0x89ABCDEF, rangeNM: 0x0102, source: 0x5A, hflags: 0xA5, recs: []record{r}}
 	enc := f.encode()
 	d := detail{flags: 0x7F, icao: 0x0D0E0F, cat: 0x15, geomAlt: -0x1357, selAlt: 0x2468, selHdg: 271,
@@ -259,6 +260,7 @@ func TestContractLayout(t *testing.T) {
 			"vrate":  func(n int) []byte { return be(uint64(uint8(r.vrate)), n) },
 			"cat":    func(n int) []byte { return be(uint64(r.cat), n) },
 			"cs":     func(int) []byte { return r.cs[:] },
+			"type":   func(int) []byte { return r.typ[:] },
 		},
 		"ar_detail": {
 			"magic":    func(int) []byte { return []byte("AD") },
@@ -397,7 +399,7 @@ func TestContractLayout(t *testing.T) {
 	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0, "ar_wx": 0, "ar_map": 0,
 		"ar_seg": int(h.ints["AR_MAP_HDR"]), "ar_log": 0, "ar_log_rec": int(h.ints["AR_LOG_HDR"]),
 		"ar_log_rare": int(h.ints["AR_LOG_HDR"] + 16*h.ints["AR_LOG_RECS"])}
-	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
+	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE"]),
 		"ar_detail": int(h.ints["AR_DETAIL_SIZE"]), "ar_terrain": int(h.ints["AR_TERRAIN_HDR"]),
 		"ar_track": int(h.ints["AR_TRACK_SIZE"]), "ar_notice": int(h.ints["AR_NOTICE_SIZE"]),
 		"ar_wx": int(h.ints["AR_WX_SIZE"]), "ar_map": int(h.ints["AR_MAP_HDR"]), "ar_seg": 4,

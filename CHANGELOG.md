@@ -1,4 +1,14 @@
-## 0.5.1 (Unreleased)
+## 0.6.0 (Unreleased)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **relay:** the contract is now version 8 (each aircraft record carries its type). A 0.6.0 cartridge needs the
+    0.6.0 relay (and the other way round); a mismatch is reported at boot or as `RELAY VER?`, as before.
+
+FEATURES:
+
+  * **radar:** in the STARS and ERAM themes, a data block's second line takes turns, as on a real STARS scope:
+    altitude and speed for two seconds, then the aircraft type (B738, CRJ7, H60) for two.
 
 IMPROVEMENTS:
 

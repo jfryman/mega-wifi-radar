@@ -21,7 +21,7 @@ Pick any aircraft to ride along in a **cockpit view** over the real terrain bene
   **detail pop-up**: registration, type, operator, autopilot settings, squawk, distance and bearing.
 - **Cockpit view:** the view from the selected aircraft, drawn by the 68000 over real elevation data in real
   time. The sky follows the sun where the aircraft is, and towns show as lights at night.
-- **Nine themes:** Classic green phosphor, STARS (data blocks on leader lines, like a modern TRACON), AMBER,
+- **Nine themes:** Classic green phosphor, STARS (data blocks on leader lines whose second line alternates with the aircraft type, like a modern TRACON), AMBER,
   NIGHT, MARINE, ICE, POCKET, SUNSET and ERAM.
 - **Emergency alert:** a box and a two-tone alert when any aircraft squawks 7700, 7600 or 7500.
 - **Flyover notices:** with an MQTT feed of planes passing over your house, a box and a chime the moment one

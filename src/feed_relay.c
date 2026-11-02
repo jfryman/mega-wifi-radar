@@ -114,7 +114,7 @@ static enum feed_err check(const struct ar_hdr *h, u16 len)
 {
     if (len < AR_HDR_SIZE || h->magic[0] != 'A' || h->magic[1] != 'R') return FEED_ERR_FORMAT;
     if (h->ver != AR_VER) return FEED_ERR_VERSION;      /* an older relay that ignores v= */
-    if (h->rec_size < AR_REC_SIZE_V1 || (h->rec_size & 1) ||
+    if (h->rec_size != AR_REC_SIZE ||
             AR_HDR_SIZE + (u32)h->count * h->rec_size != len)
         return FEED_ERR_FORMAT;
     return FEED_OK;

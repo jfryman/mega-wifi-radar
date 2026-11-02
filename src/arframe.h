@@ -13,11 +13,11 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          7
-#define AR_REC_SIZE_V1  24
+#define AR_VER          8
+#define AR_REC_SIZE     28
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
-#define AR_FRAME_MAX    (AR_HDR_SIZE + AR_MAX_RECS * AR_REC_SIZE_V1)   /* 2320 */
+#define AR_FRAME_MAX    (AR_HDR_SIZE + AR_MAX_RECS * AR_REC_SIZE)   /* 2704 */
 
 /* struct ar_hdr.source */
 #define AR_SRC_ADSBFI   1
@@ -167,7 +167,7 @@ struct ar_hdr {
     char magic[2];      /* "AR" */
     u8 ver;
     u8 count;
-    u16 rec_size;       /* >= 24; skip the tail of larger (newer) records */
+    u16 rec_size;       /* AR_REC_SIZE */
     u16 seq;
     u32 time;           /* unix seconds of the upstream snapshot */
     u16 range_nm;
@@ -187,6 +187,7 @@ struct ar_rec {
     s8 vrate;           /* 64 ft/min units */
     u8 cat;             /* A3 -> 0x03, B1 -> 0x11 */
     char cs[8];         /* space padded, not NUL terminated */
+    char type[4];       /* ICAO type designator (B738), space padded; blank if unknown (lode/ui/radar-renderer.md) */
 };
 
 /* Per-aircraft detail for the pop-up (lode/ui/detail-popup.md); the live values stay in ar_rec. */
@@ -323,7 +324,7 @@ struct ar_log_rare {
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
-_Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE_V1, "ar_rec must be 24 bytes");
+_Static_assert(sizeof(struct ar_rec) == AR_REC_SIZE, "ar_rec must be 28 bytes");
 _Static_assert(sizeof(struct ar_detail) == AR_DETAIL_SIZE, "ar_detail must be 96 bytes");
 _Static_assert(sizeof(struct ar_terrain) == AR_TERRAIN_HDR, "ar_terrain must be 104 bytes");
 _Static_assert(sizeof(struct ar_track) == AR_TRACK_SIZE, "ar_track must be 40 bytes");
@@ -342,7 +343,7 @@ AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
 AR_AT(ar_hdr, range_nm, 12); AR_AT(ar_hdr, source, 14); AR_AT(ar_hdr, hflags, 15);
 AR_AT(ar_rec, icao, 0); AR_AT(ar_rec, flags, 3); AR_AT(ar_rec, x, 4); AR_AT(ar_rec, y, 6); AR_AT(ar_rec, alt, 8);
 AR_AT(ar_rec, squawk, 10); AR_AT(ar_rec, gs, 12); AR_AT(ar_rec, track, 13);
-AR_AT(ar_rec, vrate, 14); AR_AT(ar_rec, cat, 15); AR_AT(ar_rec, cs, 16);
+AR_AT(ar_rec, vrate, 14); AR_AT(ar_rec, cat, 15); AR_AT(ar_rec, cs, 16); AR_AT(ar_rec, type, 24);
 AR_AT(ar_detail, magic, 0); AR_AT(ar_detail, ver, 2); AR_AT(ar_detail, dflags, 3); AR_AT(ar_detail, icao, 4);
 AR_AT(ar_detail, cat, 7); AR_AT(ar_detail, geom_alt, 8); AR_AT(ar_detail, sel_alt, 10);
 AR_AT(ar_detail, sel_hdg, 12); AR_AT(ar_detail, qnh, 14); AR_AT(ar_detail, year, 16); AR_AT(ar_detail, reg, 18);

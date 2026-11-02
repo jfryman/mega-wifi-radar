@@ -1,4 +1,4 @@
-# Compact frame format (contract v7)
+# Compact frame format (contract v8)
 
 The binary snapshot of nearby traffic that the console consumes. The digester produces it: the relay
 (option A) now, possibly the ESP32 firmware (option B) later, in byte-identical form. The console
@@ -28,14 +28,14 @@ flowchart LR
 | 0 | `char[2]` | magic | `"AR"` |
 | 2 | `u8` | ver | `1` |
 | 3 | `u8` | count | records that follow (≤ requested `max`, ≤ 96 by default) |
-| 4 | `u16` | rec_size | `24`. Read the first 24 bytes of each record and skip `rec_size - 24` |
+| 4 | `u16` | rec_size | `28` (`AR_REC_SIZE`; the cart rejects any other: lock-step) |
 | 6 | `u16` | seq | +1 per upstream fetch (wraps). The same seq means the same snapshot |
 | 8 | `u32` | time | Unix seconds of the upstream snapshot |
 | 12 | `u16` | range_nm | filter radius applied |
 | 14 | `u8` | source | `1` adsb.fi, `2` adsb.lol, `3` OpenSky. Drives the on-screen attribution ("Data: adsb.fi") |
 | 15 | `u8` | hflags | bit0 `TRUNCATED` (cap hit), bit1 `UPSTREAM_ERR` (this is the last good snapshot), bit2 `NOTICE` (a flyover notice newer than `n=` waits: [../ui/notices.md](../ui/notices.md)), bit3 `WX` (weather other than `w=` waits: [../ui/weather.md](../ui/weather.md)) |
 
-## Aircraft record: 24 bytes
+## Aircraft record: 28 bytes
 | Off | Type | Field | Unit / encoding |
 |---|---|---|---|
 | 0 | `u8[3]` | icao | 24-bit ICAO address |
@@ -49,6 +49,7 @@ flowchart LR
 | 14 | `s8` | vrate | baro rate, **64 ft/min** units, saturating at ±127 |
 | 15 | `u8` | cat | emitter category: letter offset in the high nibble, digit in the low (`A3` → `0x03`, `B1` → `0x11`). `0xFF` = none |
 | 16 | `char[8]` | cs | callsign, space-padded, not NUL-terminated. Fallback order: `flight` → `r` (registration) → hex of `icao` |
+| 24 | `char[4]` | type | ICAO type designator (`B738`), space-padded; blank if unknown. STARS/ERAM tags show it on line 2 every other 2 s |
 
 ### Record flags
 | Bit | Name | Set when |
@@ -80,7 +81,7 @@ Sizing: 16 + 96 × 24 = **2,320 B maximum**. KORD at 25 nm (~74 aircraft) = 1,79
 MSS chunks. The console's frame buffer is 2,320 B.
 
 ## Versioning
-- `ver` is the contract version `AR_VER`: 7 since 0.5.0 (logbook: `/v1/log`); 6 in 0.4.5 (video maps); 5 in 0.4.4 (weather: `w=`, `AR_H_WX`, `/v1/wx`); 4 in 0.4.0-0.4.3 (flyover notices: `n=`, `AR_H_NOTICE`, `/v1/notice`); 3 in 0.3.x
+- `ver` is the contract version `AR_VER`: 8 since 0.6.0 (`ar_rec` 24 → 28 B: `type[4]` at 24; `AR_REC_SIZE`, frame max 2,704 B); 7 in 0.5.x (logbook: `/v1/log`); 6 in 0.4.5 (video maps); 5 in 0.4.4 (weather: `w=`, `AR_H_WX`, `/v1/wx`); 4 in 0.4.0-0.4.3 (flyover notices: `n=`, `AR_H_NOTICE`, `/v1/notice`); 3 in 0.3.x
   (cockpit mode's `/v1/terrain` and `/v1/track`); 2 in 0.2.x,
   when `v=`, the 409 mismatch and `/v1/detail` came in. The frame itself is unchanged since v2.
   The relay and the cart are released together and must match exactly: **any** change to `src/arframe.h`

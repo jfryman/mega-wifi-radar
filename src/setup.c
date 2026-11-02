@@ -175,8 +175,8 @@ static const struct grow g_tags[] = {
     { PAL0, "DOTS BEHIND", "LAST 5 POSITIONS: 20 S" },
     { PAL0, "HOLLOW BLIP", "NO REPORT FOR 15 S" },
     { PAL0, NULL, NULL },
-    { PAL1, "STARS, ERAM", "THE TAG SITS AT THE END" },
-    { PAL1, "", "OF A SHORT LEADER LINE" },
+    { PAL1, "STARS, ERAM", "TAG ON A LEADER LINE;" },
+    { PAL1, "", "LINE 2 FLIPS TO THE TYPE" },
 };
 static const struct grow g_wx[] = {
     { PAL1, "", "RAIN FROM NEXRAD WEATHER" },

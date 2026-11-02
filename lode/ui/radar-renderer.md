@@ -63,6 +63,10 @@ beside the blip (pixel-identical to before: checked against `print/shots/radar.p
   (`lead_in`).
 - **West side** (dx < 0): the text shifts right over the trailing spaces both lines share (`put_tag(..., right)`),
   so it meets the line; the footprint stays the tag's 8 cells.
+- **Type line** (0.6.0, contract v8: `ar_rec.type[4]`): in leader themes the V-Int flips `type_phase` every
+  `TYPE_FRAMES` (120, 2 s) and sets `req_retag`; `put_tag` then writes line 2 as the type (`cur.type`, padded to
+  `TAG_W`) instead of `tag[1]` when the type isn't blank. No per-track text kept (RAM); the tags redraw 2 a frame, so
+  a busy scope flips over ~15 frames, which reads as a ripple. Non-leader themes reset the phase.
 - **Crowding:** a leader can end beside another aircraft's block in a dense spot (tags may sit over other blips,
   as before), which reads as the wrong owner at a glance. Accepted: rare outside the centre at 25 nm and wider.
 - **Cost** (MAME, `RADAR_DEBUG`, STARS 25 nm, KBNA ~29 aircraft): tag stage 43 → 44 lines avg, total 105 → 107,

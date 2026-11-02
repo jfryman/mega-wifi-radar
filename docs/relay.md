@@ -41,7 +41,7 @@ Leave the cart's **RELAY** on **AUTO** and it finds the relay over mDNS. To pin 
 
 ## Discovery (mDNS)
 
-The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=7 path=/v1/frame`: the contract version and frame path) with a small built-in
+The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=8 path=/v1/frame`: the contract version and frame path) with a small built-in
 responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _mwradar._tcp` (Linux).
 
 | Where the relay runs | Who advertises |
@@ -104,37 +104,37 @@ scripts/mqtt sub     # watch atc/#
 ## HTTP API
 
 - **Versions:** the relay and the cartridge ship together; use the relay from your cartridge's release.
-  Every request carries `v=<contract version>` (`AR_VER`, 7 since 0.5.0). Any other value, or none, gets
+  Every request carries `v=<contract version>` (`AR_VER`, 8 since 0.6.0). Any other value, or none, gets
   `409` with a message naming the relay's release, and the cart reports `RELAY MISMATCH` at boot or
   `RELAY VER?` on the radar. The relay logs its release and contract version at start-up.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=7` returns `200` with
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=8` returns `200` with
   `application/octet-stream` and an explicit `Content-Length`. `range` is clamped to 1–250 and `max` to 1–96.
   A missing or bad `lat`/`lon` gives `400`.
-- `GET /v1/detail?icao=<6 hex>&v=7` returns one 96-byte detail record for the pop-up (below), from the newest
+- `GET /v1/detail?icao=<6 hex>&v=8` returns one 96-byte detail record for the pop-up (below), from the newest
   upstream snapshot if it's under 30 s old, otherwise from a single-aircraft upstream request
   (`/api/v2/hex/<icao>`, inside the same rate limit). An unknown aircraft gets a record without the FOUND flag.
-- `GET /v1/terrain?icao=<6 hex>&v=7` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
+- `GET /v1/terrain?icao=<6 hex>&v=8` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
   and a patch key), then 128×128 height levels and 128×128 colour indices, centred on the aircraft with cells of
   its height above ground / 5. Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
   so the relay needs HTTPS out to `s3.amazonaws.com`; without it the patch is flat ground. `404` if the
   aircraft isn't in the feed.
-- `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=7` returns 40 bytes: the aircraft placed in that patch (position,
+- `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=8` returns 40 bytes: the aircraft placed in that patch (position,
   height, velocity, heading, bank), for the cockpit camera.
-- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=7` returns more of the patch's grid (`w·h` heights,
+- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=8` returns more of the patch's grid (`w·h` heights,
   then `w·h` colours; at most 1,024 cells), which the cart streams in ahead of the aircraft.
 - **Flyover notices:** `n=` on `/v1/frame` and `/v1/track` is the id of the last notice the cart has seen (0 for
   none). If a newer one is waiting, the frame's header flags get `NOTICE` (`0x04`) and the track's flags
-  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=7` then returns an 82-byte notice: magic `"AN"`, version,
+  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=8` then returns an 82-byte notice: magic `"AN"`, version,
   flags (matched ICAO, emergency), a 16-bit id (ids wrap; 0 = none waiting any more), the ICAO address, the
   seconds to show it, and three 24-character lines of text composed by the relay.
 - **Weather:** `w=` on `/v1/frame` is the id of the weather the cart holds; when the relay has a newer NEXRAD scan the
-  frame's header flags get `WX` (`0x08`). `GET /v1/wx?lat=<deg>&lon=<deg>&range=<nm>&v=7` returns 190 bytes: magic
+  frame's header flags get `WX` (`0x08`). `GET /v1/wx?lat=<deg>&lon=<deg>&range=<nm>&v=8` returns 190 bytes: magic
   `"AW"`, version, flags (no coverage, old scan), the scan id, the range, and 26×26 cells of 2 bits (0 none, 1 light,
   2 moderate, 3 heavy) laid on the scope's 8-pixel cells.
-- **Video map:** `GET /v1/map?lat=<deg>&lon=<deg>&range=<nm>&v=7` returns a 10-byte header (magic `"AM"`, version,
+- **Video map:** `GET /v1/map?lat=<deg>&lon=<deg>&range=<nm>&v=8` returns a 10-byte header (magic `"AM"`, version,
   flags, range, then how many runway, centreline and tick segments follow) and up to 160 four-byte segments in
   scope pixels: the runways in view, and the home airport's extended centrelines out to 25 nm range.
-- **Logbook:** `GET /v1/log?lat=<deg>&lon=<deg>&v=7` returns 192 bytes: today's count of aircraft and types within
+- **Logbook:** `GET /v1/log?lat=<deg>&lon=<deg>&v=8` returns 192 bytes: today's count of aircraft and types within
   25 nm of that home, the busiest hour, the fastest / highest / longest-in-range aircraft, and up to 8 rare
   sightings with their times (local to the airport). See *Logbook* below.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
@@ -143,15 +143,15 @@ scripts/mqtt sub     # watch atc/#
 
 Try it:
 ```sh
-curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&n=0&v=7' | xxd | head
-curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=7' | xxd
-curl -s 'http://localhost:8080/v1/notice?after=0&v=7' | xxd
-curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=7' | head -c 104 | xxd
+curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&n=0&v=8' | xxd | head
+curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=8' | xxd
+curl -s 'http://localhost:8080/v1/notice?after=0&v=8' | xxd
+curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=8' | head -c 104 | xxd
 ```
 
-## Frame format (contract v7)
+## Frame format (contract v8)
 
-Big-endian and word-aligned: a 16-byte header followed by `count` 24-byte records. Positions are
+Big-endian and word-aligned: a 16-byte header followed by `count` 28-byte records (the last 4 bytes: the ICAO type, e.g. `B738`). Positions are
 east/north offsets from the home point in 1/32 nm. The records are sorted nearest first.
 
 | Header (16 B) | Size | Record (24 B) | Size |

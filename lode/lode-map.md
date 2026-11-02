@@ -42,7 +42,7 @@
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
-  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v7): header, record, flags, transport, versioning
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v8): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
