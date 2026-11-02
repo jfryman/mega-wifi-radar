@@ -3,7 +3,7 @@ MD      := scripts/md
 FLASHKIT:= scripts/flashkit
 SGDKMK  := make -f /sgdk/makefile.gen
 
-.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop mqtt-start mqtt-stop mqtt-pub print print-shots splash-art contract contract-lock fake-feed spike-voxel spike-voxel-run spike-voxel-flash
+.PHONY: all release debug clean image flash esp-flash sim sim-run relay-image relay-run relay-start relay-stop replay record mqtt-start mqtt-stop mqtt-pub print print-shots splash-art contract contract-lock fake-feed spike-voxel spike-voxel-run spike-voxel-flash
 
 all: release
 
@@ -89,6 +89,21 @@ relay-start:
 
 relay-stop:
 	scripts/relay stop
+
+# Recorded traffic on demand for the real cart (lode/relay/recordings.md): the relay serves a recording as if it
+# were live, looping, in place of the dev relay (make relay-start brings that back). REPLAY_ARGS="-sky night".
+REC ?= relay/testdata/arrivals/kbna-20r-scx3003-b738.jsonl.gz
+replay:
+	scripts/relay replay $(REC) $(REPLAY_ARGS)
+
+# Record live traffic around home for a new test flight; cut it with relay -cut (docs/relay.md).
+RECORD_OUT ?= out/recording.jsonl.gz
+RECORD_FOR ?= 30m
+LAT ?= 36.1245
+LON ?= -86.6782
+record:
+	mkdir -p $(dir $(RECORD_OUT))
+	cd relay && go run . -record $(abspath $(RECORD_OUT)) -lat $(LAT) -lon $(LON) -range 12 -for $(RECORD_FOR)
 
 # Dev MQTT broker for flyover notices (scripts/mqtt); start it before relay-start and the relay uses it.
 mqtt-start:

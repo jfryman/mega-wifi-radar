@@ -50,6 +50,8 @@ flowchart LR
 | `esp-flash` | Write the `rev-c-1250k` firmware to the cart's ESP32 |
 | `image` | Just make sure the build image exists |
 | `relay-image`, `relay-run`, `relay-start`, `relay-stop` | The relay container |
+| `replay` | Serve a recorded flight to the real cart as if live, looping (`REC=`, default SCX3003 landing on BNA 20R; `REPLAY_ARGS="-sky night"`); stops the dev relay, `make relay-start` brings it back |
+| `record` | Record live traffic within 12 nm of `LAT`/`LON` (default KBNA) for `RECORD_FOR` (30m) to `RECORD_OUT` |
 | `print` | Label, cover and manual PDFs in `out/print/` ([print.md](print.md)) |
 | `print-shots` | Recapture the manual's screenshots in MAME |
 | `splash-art` | Regenerate the boot splash data from `res/splash/src/art.typ` |
@@ -98,6 +100,12 @@ make contract                     # relay <-> cartridge contract (also runs befo
 cd relay && go vet ./... && go test ./...
 cd tools && go vet ./...
 ```
+
+On the cart, recorded flights stand in for live traffic, so a landing (or anything else) can be flown whenever
+it's needed: `make flash`, then `make replay` (or `make replay REC=relay/testdata/arrivals/<file>`), boot the cart,
+pick the flight. The relay log (`scripts/relay replay` prints it) shows every terrain load and track fix. New
+flights: `make record`, find the stretch you want, `cd relay && go run . -cut testdata/arrivals/<name>.jsonl.gz
+-replay-from 590s -for 340s ../out/recording.jsonl.gz` (`-hex` keeps only some aircraft).
 
 ## CI and releases
 

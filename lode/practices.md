@@ -8,6 +8,11 @@
 - The relay is Go: stdlib plus one dependency, a pure-Go SQLite for the logbook (`modernc.org/sqlite`, owner's call
   2026-11-02; keep CGO off). Add others only with the owner's say-so. It builds natively on both OSes (`go test ./...`, `go run .` in `relay/`) or as its own container (`make relay-run`); it doesn't use the SGDK image.
 - Develop rendering in emulators against the **fake source**. Test networking only on the real cart.
+- Test on the cart against **recorded traffic** when it matters what's flying: `make replay` (default: SCX3003
+  landing on BNA 20R) serves a recording through the dev relay, looping, so a landing or any scenario can be
+  flown on demand and repeated; the relay log is the record of terrain loads and fixes to analyse afterwards.
+  New scenarios: `make record` + `relay -cut` into `relay/testdata/arrivals/` ([relay/recordings.md](relay/recordings.md)).
+  Owner, 2026-11-02: keep this as a permanent test method.
 - Every user-visible change adds a bullet under `## X.Y.Z (Unreleased)` in `CHANGELOG.md`, in the same commit
   (format: [build/ci-release.md](build/ci-release.md)).
 - A change to what the player sees or does also updates its manual section in `print/manual/` and, if the
