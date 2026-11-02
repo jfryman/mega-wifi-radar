@@ -79,7 +79,8 @@ elevation < -5 m (bathymetry); colours are height bands of the patch's own relie
 Bank: reported `roll`, else from `track_rate`, else from the track's change over ≥ 4 s of sightings (`turns`: up to 8
 per aircraft, ≥ 0.5 s apart, so repeated stale fixes don't count), clamped ±45°. Over one 2 s step adsb.fi's ~1 s
 position-time jitter read SCX3003's steady ~3°/s turn as 8-45° (`TestRecordedTurnBank`).
-Track lookups use the cached snapshot if < 1.5 s old, else `/api/v2/hex/<hex>` (rate-limited 1/s).
+Track lookups use the cached snapshot if < 1.5 s old, else `/api/v2/hex/<hex>` (rate-limited 1/s); the fix's age
+is `seen_pos` plus the snapshot's age (`source.aircraftAt`), so a cached snapshot doesn't pull the camera back.
 
 ## RAM: the mode overlay ([../build/ram-budget.md](../build/ram-budget.md))
 `struct vox_ram` (36,672 B, with a 2 KB strip buffer) sits in `overlay_ram`, the block the radar uses for its scope tiles, trail bitmap and

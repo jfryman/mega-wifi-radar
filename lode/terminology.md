@@ -84,3 +84,6 @@
 - Runway cells - cockpit cells under a `runways.csv` centreline (cells ≤ 150 m): palette 15 at approach scale, 14 above.
 - Geoid / EGM96 - sea level's height above the WGS84 ellipsoid (−30 m at BNA); GPS altitude minus it = height above sea level (`geoid.go`).
 - Recording - a gzipped JSON-lines capture of upstream answers (`relay -record`); `-cut` trims one, `-replay` serves one as live.
+- Approach / edge lights, dark field - at approach scale, palette-14 cells (lit at night, ground by day) along a runway's sides and 900 m of its extended centreline, dotted; no city lights within 5 cells of them.
+- Brake (rollout) - on the ground a fix behind the cockpit camera (< 150 m) stops it instead of gliding it back: nothing on a rollout reverses.
+- `make replay` / `make record` - the standard cart test against recorded traffic (relay `-replay` in place of the dev relay) and capturing new flights.

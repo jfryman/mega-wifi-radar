@@ -24,7 +24,7 @@ flowchart LR
    Bundle them so the cart and relay bump `AR_VER` once ([../../architecture/contract.md](../../architecture/contract.md)).
 
 ## Shared constraints (from the lode)
-- RAM: ~9.7 KiB heap at start-up (0.6.0; the floor is 8 KiB), minimum 8 KiB ([../../build/ram-budget.md](../../build/ram-budget.md)); big buffers go
+- RAM: ~9.7 KiB heap at start-up (9,918 B in 0.6.1; the floor is 8 KiB), minimum 8 KiB ([../../build/ram-budget.md](../../build/ram-budget.md)); big buffers go
   in the mode overlay; boot the cart ROM in MAME after RAM changes.
 - V-Int: ~175 of 262 lines used on the radar; measure with `RADAR_DEBUG` ([../../ui/radar-renderer.md](../../ui/radar-renderer.md)).
 - Free palette entries: none in PAL0 (11 map, 13 weather); PAL1 7-13, PAL2 1-13, PAL3 5-13 (14 is the background everywhere) ([../../ui/screen-layout.md](../../ui/screen-layout.md)).

@@ -1,4 +1,4 @@
-# Cockpit mode near the ground (active plan, decided 2026-11-02; built, cart check pending)
+# Cockpit mode near the ground (decided and released 2026-11-02 in v0.6.1; follow-ups open)
 
 **Problem (owner, on the cart):** close to the ground the voxels turned into near-single colours and the view looked
 glitchy. **Goal:** a believable ride down to touchdown, with the runway visible. Agreed: A (camera above the
@@ -46,7 +46,9 @@ flowchart LR
 - Still open: finer depth steps, bilinear heights (2-3x sampling), 160 columns (nibble writes in `vox.s`, ~half
   the fps), 30 m cells (view halves: RAM caps the map at 128²).
 
-## Follow-ups (not started)
+## Follow-ups (not started; candidates for 0.6.2)
+- Not yet seen on the cart: a live ride through a steep turn at cruise (roll overflow + banked sky), the night
+  lights (`make replay REPLAY_ARGS="-sky night"`), the HUD's fps on short final.
 - Frame rate low down: ~10 fps (all depth steps; z_min is 0 when the camera is under the patch's `hmax`). A
   per-frame z_min from the terrain actually near the camera, or fewer far steps at approach scale.
 - Runway seen only from 64 cells (3.8 km); seeing it from further needs a wider buffer (the 90° view at depth > 64

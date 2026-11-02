@@ -31,7 +31,7 @@ Users reach their arrays through constant addresses, so the code is the same as 
 ```
 `overlay.c` sizes the block to the larger mode. A new mode borrows it instead of adding static RAM.
 
-## Largest static users (cart build, 0.6.0: **9,940 B heap**; 11,096 after the trim, then the type line took 1,156: records 24 → 28 B in `tracks` and `frame_buf`)
+## Largest static users (cart build, 0.6.1: **9,918 B heap**; 11,096 after the trim, then the type line took 1,156: records 24 → 28 B in `tracks` and `frame_buf`; 0.6.1's cockpit state ~22 B)
 | Symbol | Bytes | What |
 |---|---|---|
 | `overlay_ram` | 36,736 | radar: scope tiles 18,176 (568 tiles, for the sweep), trail bitmaps 4,544, `tracks` 14,016 (96 × 146 B); or cockpit: `struct vox_ram` (36,608: only **128 B** spare); or the boot splash (`OV_SPLASH`) / setup's Wi-Fi scan list (`OV_SETUP`) |

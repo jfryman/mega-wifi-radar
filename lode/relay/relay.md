@@ -44,7 +44,7 @@ flowchart LR
   fetched; 404 if the aircraft isn't in the feed; centred 3 s ahead of the aircraft), `GET /v1/track?icao=&p=<patch
   key>&n=&v=8` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=8`
   → more cells of that grid (`stripHandler`; 502 without elevation). Terrain and track look the aircraft up with a
-  1.5 s snapshot age; strips need no aircraft. Flag
+  1.5 s snapshot age (a track's `age` adds the snapshot's own age to `seen_pos`); strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
   The patch's palette follows the sun at the patch, now (`sky.go`: day / golden / twilight / night, details in
   [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase. Cells under city lights get the urban colour
