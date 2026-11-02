@@ -205,7 +205,7 @@ func trackHandler(src *source, el elevator, tr *turns, ns *notices) http.Handler
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		a, err := src.aircraft(r.Context(), hex, trackMaxAge)
+		a, snapNow, err := src.aircraftAt(r.Context(), hex, trackMaxAge)
 		if err != nil {
 			log.Printf("%s %s: %v", r.RemoteAddr, r.URL.RequestURI(), err)
 			http.Error(w, "upstream unavailable", http.StatusBadGateway)
@@ -213,6 +213,12 @@ func trackHandler(src *source, el elevator, tr *turns, ns *notices) http.Handler
 		}
 		var t trackRec
 		if a != nil {
+			// seen_pos counts from the snapshot's time, which a cached snapshot is behind now: without this the
+			// fix's age came up to 1.5 s short and the camera was pulled back ~100 m every few fixes
+			if a.SeenPos != nil && snapNow > 0 {
+				seen := *a.SeenPos + math.Max(0, float64(time.Now().UnixMilli())-snapNow)/1000
+				a.SeenPos = &seen
+			}
 			at := time.Now()
 			if a.SeenPos != nil {
 				at = at.Add(-time.Duration(*a.SeenPos * float64(time.Second)))

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"math"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -247,6 +249,39 @@ func TestRunwayCells(t *testing.T) {
 			urban++
 		}
 	}
+	// Approach lights 300 m past 20R's end on the extended centreline, edge lights beside 02L/20R's middle (just
+	// outside the surface), no lights at all 4 km from any runway on flat dark ground.
+	for _, r := range runways {
+		if r.airport != "KBNA" || r.he != "20R" {
+			continue
+		}
+		x1, y1 := p.g.cellXY(r.lat1, r.lon1)
+		x2, y2 := p.g.cellXY(r.lat2, r.lon2)
+		l := math.Hypot(x2-x1, y2-y1)
+		ux, uy := (x2-x1)/l, (y2-y1)/l
+		ax, ay := x2+ux*300/60, y2+uy*300/60
+		lights := 0 // dotted: some of the cells on the next 4 of the extended centreline
+		for _, d := range []float64{0, 1, 2, 3, 4} {
+			lights += btoi(p.colour[int(ay+uy*d)*tn+int(ax+ux*d)] == cUrban)
+		}
+		if lights == 0 {
+			t.Errorf("no approach light around cell %d,%d", int(ax), int(ay))
+		}
+		edge, lit := 0, 0 // cells whose centres are 1.2-1.9 cells beside the runway, along its length
+		for i, c := range p.colour {
+			px, py := float64(i%tn)+0.5, float64(i/tn)+0.5
+			along, side := (px-x1)*ux+(py-y1)*uy, math.Abs((px-x1)*uy-(py-y1)*ux)
+			if along > 2 && along < l-2 && side > 1.2 && side < 1.9 {
+				edge++
+				if c == cUrban {
+					lit++
+				}
+			}
+		}
+		if edge < 20 || lit < edge*4/10 || lit > edge*6/10 {
+			t.Errorf("edge lights: %d of %d cells beside 20R, want about half (dotted)", lit, edge)
+		}
+	}
 	if pal := patchPalette(skyNight, p.g.cellM); pal[cRunway] != skies[skyNight].runway {
 		t.Errorf("approach palette: entry %d is %#x, want the night runway", cRunway, pal[cRunway])
 	}
@@ -286,4 +321,33 @@ func TestRunwayCells(t *testing.T) {
 	if c := p.colour[5*tn+5]; c == cUrban {
 		t.Errorf("a corner cell, km from the runways, is runway")
 	}
+}
+
+// A fix's age counts from now, not from the cached snapshot's time: a snapshot 1.2 s old with seen_pos 2 is a
+// fix ~3 s old (it came up short before, pulling the camera back every few fixes).
+func TestTrackAgeFromSnapshot(t *testing.T) {
+	g := geom{lat: 36.1, lon: -86.7, cellM: 60, levelCm: 375, baseM: 150, hiM: 300}
+	la, lo := g.latLon(64, 64)
+	seen, alt := 2.0, 3000.0
+	src := newSource("http://upstream.invalid", time.Second)
+	src.last = &upstreamResp{Now: float64(time.Now().Add(-1200 * time.Millisecond).UnixMilli()),
+		AC: []upstreamAC{{Hex: "abcdef", Lat: &la, Lon: &lo, AltBaro: alt, SeenPos: &seen}}}
+	src.lastAt = time.Now()
+	rec := httptest.NewRecorder()
+	trackHandler(src, flatDEM(150), newTurns(), nil).ServeHTTP(rec, httptest.NewRequest("GET",
+		trackPath+"?icao=abcdef&p="+g.key()+"&n=0&v="+strconv.Itoa(frameVer), nil))
+	b := rec.Body.Bytes()
+	if len(b) != trackSize {
+		t.Fatalf("%d: %q", rec.Code, b)
+	}
+	if b[25] != 3 {
+		t.Errorf("age %d s, want 3", b[25])
+	}
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

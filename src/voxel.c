@@ -5,7 +5,7 @@
  * column-major, so a column's rows are 4 bytes apart and a vertical span is one address command plus n
  * writes with the auto-increment at 4. Two VRAM copies; plane A maps copy 0 on rows 2-15 and copy 1 on rows
  * 18-31, and a vertical scroll of 0 or 128 picks one. Only sky uncovered since a copy's last frame is
- * repainted. Near depth steps sample every column; past Z_LOD one sample serves two (vox_pairs). */
+ * repainted. Every depth step samples every column (Z_LOD = Z_FAR; vox_pairs, one sample for two, is unused). */
 #include "voxel.h"
 
 #define VIEW_ROW    2                       /* copy 0 on plane rows 2-15, copy 1 on 18-31 */
@@ -13,7 +13,8 @@
 #define FB_TH       (VOX_ROWS / 8)          /* 14 tile rows */
 #define Z_NEAR      192                     /* 0.75 cell, 8.8 */
 #define Z_FAR       (64 * 256)              /* half the patch: beyond it the map wraps */
-#define Z_LOD       (6 * 256)               /* one sample per two columns from here */
+#define Z_LOD       Z_FAR                   /* one sample per two columns from here: never (every column sampled
+                                             * is sharper far off for ~5-10% of the frame time; vox_pairs kept) */
 #define Z_MID       (16 * 256)              /* the depth step doubles from here */
 #define Z_SHIFT     3                       /* near: dz = z / 8 + 1/16 cell */
 #define K_MAX       16384                   /* px per level at 1 cell, Q8: past this the patch is squashed */

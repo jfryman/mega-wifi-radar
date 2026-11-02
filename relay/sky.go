@@ -36,7 +36,8 @@ func parseSky(s string) (skyPhase, error) {
 
 // Per phase: the three sky entries (deep, mid, pale at the horizon), how bright the ground is, a blue lift for
 // the ground (night reads blue-grey, not brown), the colour of cells under city lights (0: shaded like the
-// ground, grey by day), and the runways' at approach scale (asphalt by day, lit after dusk).
+// ground, grey by day: also runway edge and approach lights), and the runways' at approach scale (concrete by
+// day, dark after dusk between their lights).
 var skies = [...]struct {
 	sky    [3]uint16
 	ground float64
@@ -46,8 +47,8 @@ var skies = [...]struct {
 }{
 	skyDay:      {[3]uint16{0xA42, 0xC86, 0xECA}, 1, 0, 0, 0x666},
 	skyGolden:   {[3]uint16{0xA64, 0xA8A, 0x6CE}, 0.85, 0, 0, 0x666},
-	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0, 0x26A, 0x68A},
-	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2, 0x2AE, 0x46A},
+	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0, 0x26A, 0x444},
+	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2, 0x2AE, 0x222},
 }
 
 // sunElevation is the sun's elevation in degrees at lat, lon (degrees) and t: the NOAA low-precision formulas,

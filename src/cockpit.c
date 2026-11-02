@@ -17,8 +17,12 @@
 
 #define TRACK_FRAMES    120                 /* a track every 2 s */
 #define LOST_SECS       20                  /* no good fix this long: back to the radar */
-#define BLEND           32                  /* frames to absorb a fix's correction */
-#define SNAP            (6L << 16)          /* corrections bigger than this (16.16 cells) jump */
+#define BLEND           90                  /* frames (1.5 s) to absorb a fix's correction */
+#define SNAP            (60L << 16)         /* corrections bigger than this (16.16 cells) jump; smaller ones glide:
+                                             * a 24-cell jump after a gap in positions near the ground was a lurch */
+#define SNAP_Z          (64L << 16)         /* ... in height levels */
+#define GROUND_AGE      3                   /* on the ground, a stale fix is extrapolated this far at most (s) */
+#define TAXI_MS         8                   /* on the ground the camera eases down to this speed between fixes */
 #define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
@@ -43,6 +47,7 @@ static s16 wx, wy;                          /* the buffer holds grid cells [wx, 
 static struct vox_cam cam;
 static s32 z16;                             /* camera height, 16.16 levels */
 static s32 vx, vy, vz;                      /* per frame, 16.16 */
+static s32 taxi16;                          /* TAXI_MS per frame, 16.16 cells (|vx| + |vy|) */
 static s32 ex, ey, ez;                      /* correction per frame while blending */
 static u16 blend;
 static u16 hd_target;
@@ -317,17 +322,22 @@ static bool get_fix(bool snap)
     if (!snap && frames > 0 && frames < 30 * 60)
         hd_rate = (s16)(t.heading - trk.heading) / (s16)frames;
     else hd_rate = 0;
+    bool ground = (t.kflags & AR_K_GROUND) != 0;
+    u16 age = ground && t.age > GROUND_AGE ? GROUND_AGE : t.age;
+    s32 nvx = (s32)t.vx * 256 / 60, nvy = (s32)t.vy * 256 / 60;
+    /* a stale fix on the ground carries its touchdown speed: keep the slower, decelerated camera */
+    if (!(ground && t.age > GROUND_AGE && !snap && abs(vx) + abs(vy) < abs(nvx) + abs(nvy))) { vx = nvx; vy = nvy; }
     trk = t;
     fix_at = vtimer;
-    vx = (s32)t.vx * 256 / 60;
-    vy = (s32)t.vy * 256 / 60;
     vz = (s32)t.vz * 256 / 60;
-    hd_target = t.heading + (u16)(hd_rate * 60 * t.age);
+    hd_target = t.heading + (u16)(hd_rate * 60 * age);
+    taxi16 = hdr.cell_m ? (s32)TAXI_MS * 65536 / ((s32)hdr.cell_m * 60) : 0;
 
-    /* where it is now: the fix plus the time since upstream heard it */
-    s32 tx = (t.x << 8) + vx * 60 * t.age, ty = (t.y << 8) + vy * 60 * t.age, tz = (t.z << 8) + vz * 60 * t.age;
+    /* where it is now: the fix plus the time since upstream heard it (on the ground, at most GROUND_AGE) */
+    s32 tx = (t.x << 8) + (s32)t.vx * 256 * age, ty = (t.y << 8) + (s32)t.vy * 256 * age,
+        tz = (t.z << 8) + vz * 60 * age;
     s32 dx = tx - cam.x, dy = ty - cam.y, dz = tz - z16;
-    if (snap || abs(dx) > SNAP || abs(dy) > SNAP || abs(dz) > (32L << 16)) {
+    if (snap || abs(dx) > SNAP || abs(dy) > SNAP || abs(dz) > SNAP_Z) {
         cam.x = tx; cam.y = ty; z16 = tz;
         cam.heading = hd_target;
         blend = 0;
@@ -396,6 +406,10 @@ static void advance(u16 frames)
         cam.y += vy;
         z16 += vz;
         if (blend) { cam.x += ex; cam.y += ey; z16 += ez; blend--; }
+        if ((trk.kflags & AR_K_GROUND) && abs(vx) + abs(vy) > taxi16) {     /* rolling out: ~8 s time constant */
+            vx -= vx >> 9;
+            vy -= vy >> 9;
+        }
         hd_target += hd_rate;
         cam.heading += (s16)(hd_target - cam.heading) / 8;
         if (cam.bank < trk.bank) cam.bank++;

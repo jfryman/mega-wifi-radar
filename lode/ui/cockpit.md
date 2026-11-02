@@ -33,7 +33,7 @@ sequenceDiagram
   - `level_cm` = cell / 16 (true vertical scale), or more if the relief won't fit 64 levels.
   - `base_m` = 1st percentile of the ground (one bad pixel can't sink it); `hmax` = highest level.
   - `pal[16]` = PAL0: 1-3 sky, 4-5 water, 6-8 low ground, 9-11 mid, 12-13 high, 14 urban, 15 snow; at approach
-    scale 15 is the **runway** (`cRunway`, `patchPalette`: `0x666` by day, `0x68A` twilight, `0x46A` night; snow
+    scale 15 is the **runway** (`cRunway`, `patchPalette`: `0x666` by day, `0x444` twilight, `0x222` night; snow
     cells take 13 there) and by day 14 is plain ground (`cLow+1`): the lights pattern around an airport at 60 m
     cells is a grey mosaic that buried the runways.
     **Real sky** (`relay/sky.go`): the relay picks a phase from the sun's elevation at the patch centre, now (NOAA
@@ -54,10 +54,14 @@ sequenceDiagram
   - The patch is centred where the aircraft will be 3 s on (`terrainLeadS`: the cart's download time).
   - `AR_T_FLAT`: no elevation data (offline): flat ground, the mode still works.
   - **Colours** (`geom.code`): bands of base..max(hi, base + 100 m) (`minReliefM`: flat ground stays in the low
-    band), NW-slope shade; at cells ≤ 120 m flat cells get `fieldShade` (2×2-cell fields, a hash of the grid
+    band), each cell's band position jittered ±5 % (`cellHash`) so contours dither instead of stair-stepping, NW-slope shade; at cells ≤ 120 m flat cells get `fieldShade` (2×2-cell fields, a hash of the grid
     position: some dark, some light), a motion cue low down. **Runways** (`onRunway`, cells ≤ 150 m): cells within
     max(23 m, ½ cell) of a `runways.csv` centreline, 1 cell at approach scale (2-3 cells, ~3× real width: past
     6 cells the renderer samples every other column and a one-cell strip flickers away), `cUrban` above it.
+    At approach scale `runwayClass` also marks **lights** (palette 14, dotted by `(col + row) & 1`: solid read as
+    orange walls up close): the ring of cells along each runway's sides and 900 m of its extended centreline past
+    each end; and a **dark field**: no city lights within 5 cells of those. By day 14 is ground there, so only
+    nights show them: a dark runway (`0x222`) between converging rows of lights.
     All by grid position or geometry, so a strip colours exactly as its patch did.
 - **`/v1/strip?p=<key>&x=&y=&w=&h=&v=`** → `w·h` height levels then `w·h` palette indices of the patch's grid from
   cell (x, y); the grid goes on past the patch (any x, y), same scale and colouring. `w, h ≤ 128`,
@@ -103,8 +107,10 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
   plane A's vertical scroll to 0 or 128 (left as it is on exit: `radar_init` zeroes it). HUD: window plane from row 16.
 - No tile column straddles a 16 KB VRAM boundary (a column that would starts past it), so a span's command is
   `cmd + (y << 18)`.
-- Depth: 0.75..64 cells (beyond, the map wraps); steps × (1 + 1/8), × (1 + 1/4) past 16 cells; one sample per
-  two columns past 6 cells (`vox_pairs`); steps start at `z_min`, where the tallest terrain reaches the bottom row.
+- Depth: 0.75..64 cells (beyond, the map wraps); steps × (1 + 1/8), × (1 + 1/4) past 16 cells; every column
+  sampled at every depth (`Z_LOD` = `Z_FAR`: sharper far field, MAME 28 → 25 fps at 5 nm, 40 fps at cruise
+  either way; `vox_pairs`, one sample for two past 6 cells, stays unused); steps start at `z_min`, where the
+  tallest terrain reaches the bottom row.
 - Projection: rows per level at 1 cell `k = 160 · level / cell` (160 px focal length, a 90° view), Q8, ≤ 64.
 - Column step: right × 32 / 40 (Q14, `rxs`/`rys`, s16 ≤ 13,107) then `>> 11` / `>> 4`. **Lesson (2026-11-02):**
   it was × 128 / 40 in an s16, which overflows for every heading: the view was mirrored and stretched sideways
@@ -119,7 +125,13 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 
 ## Camera (`cockpit.c`)
 - Position 16.16 cells, height 16.16 levels; velocity per frame from the fix. Each frame: `pos += v`, plus
-  `err / 32` for 32 frames after a fix (`err` = fix + v · age − pos); errors > 6 cells (or 32 levels) snap.
+  `err / 90` for 90 frames (1.5 s) after a fix (`err` = fix + v · age − pos); only errors > 60 cells (or 64
+  levels) snap: a 24-cell jump after a gap in positions near the ground used to lurch the view.
+- **On the ground** (`AR_K_GROUND`): a fix's extrapolation stops at 3 s (`GROUND_AGE`), a stale fix (> 3 s)
+  never speeds the camera back up, and between fixes the speed decays (`v -= v >> 9` a frame, ~8 s) down to
+  8 m/s (`TAXI_MS`): fixes freeze for 20-70 s on the rollout and it used to roll on at landing speed, then snap back.
+- The relay counts a fix's age from now, not from its cached snapshot (up to 1.5 s older): it came up short,
+  pulling the camera back every few fixes.
 - **Ground:** every frame `z16` ≥ the level of the cell under the camera + `eye_lv` (a third of a cell: 20 m at
   approach scale; set per patch). Below that the nearest cell fills the screen's bottom in one colour; inside the
   ground, all of it. The flare and the rollout ride that high.

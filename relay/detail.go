@@ -105,20 +105,27 @@ func (d *detail) encode() []byte {
 
 // aircraft finds one aircraft: in the newest cached snapshot if it's younger than maxAge, else upstream.
 func (s *source) aircraft(ctx context.Context, hex string, maxAge time.Duration) (*upstreamAC, error) {
+	a, _, err := s.aircraftAt(ctx, hex, maxAge)
+	return a, err
+}
+
+// aircraftAt is aircraft plus the upstream time of the snapshot it came from (ms since epoch, 0 unknown): its
+// seen_pos counts from then, and a cached snapshot can be up to maxAge old.
+func (s *source) aircraftAt(ctx context.Context, hex string, maxAge time.Duration) (*upstreamAC, float64, error) {
 	s.mu.Lock()
 	if s.last != nil && time.Since(s.lastAt) < maxAge {
 		for i := range s.last.AC {
 			if strings.EqualFold(strings.TrimPrefix(s.last.AC[i].Hex, "~"), hex) {
-				a := s.last.AC[i]
+				a, now := s.last.AC[i], s.last.Now
 				s.mu.Unlock()
-				return &a, nil
+				return &a, now, nil
 			}
 		}
 	}
 	s.mu.Unlock()
 	up, err := s.get(ctx, fmt.Sprintf("%s/api/v2/hex/%s", s.baseURL, hex))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	s.mu.Lock()
 	if s.last == nil || len(s.last.AC) <= 1 { // no area snapshot to keep (cockpit mode): this one is newest
@@ -127,10 +134,10 @@ func (s *source) aircraft(ctx context.Context, hex string, maxAge time.Duration)
 	s.mu.Unlock()
 	for i := range up.AC {
 		if strings.EqualFold(strings.TrimPrefix(up.AC[i].Hex, "~"), hex) {
-			return &up.AC[i], nil
+			return &up.AC[i], up.Now, nil
 		}
 	}
-	return nil, nil
+	return nil, up.Now, nil
 }
 
 func detailHandler(src *source) http.HandlerFunc {

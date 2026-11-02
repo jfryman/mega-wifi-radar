@@ -182,19 +182,30 @@ func sampleCells(ctx context.Context, el elevator, g geom, x0, y0, w, h int) (ce
 type rwCells struct{ x1, y1, x2, y2 float64 }
 
 const (
-	runwayHalfM    = 23  // half a 150 ft runway (runways.csv has no widths)
-	runwayMaxCellM = 150 // above this a runway is under a third of a cell wide: not drawn (a cell would be a slab)
+	runwayHalfM     = 23  // half a 150 ft runway (runways.csv has no widths)
+	runwayMaxCellM  = 150 // above this a runway is under a third of a cell wide: not drawn (a cell would be a slab)
+	approachLightsM = 900 // approach lights along the extended centreline, beyond each end (approach scale)
+	darkFieldCells  = 5   // no city lights this close to a runway at approach scale: an airfield is dark
 )
 
-// runwaysIn is every runway (runways.csv: the home airports) whose centreline comes within a cell of the
-// rectangle, in g's cells.
+// What a cell is to the runways near it (runwayClass).
+const (
+	rwNone   = iota
+	rwNear   // within darkFieldCells: city lights left out
+	rwLights // edge or approach lights: palette 14, lit at night, ground by day at approach scale
+	rwSurface
+)
+
+// runwaysIn is every runway (runways.csv: the home airports) whose centreline, approach lights or dark field
+// come within reach of the rectangle, in g's cells.
 func runwaysIn(g geom, x0, y0, w, h int) []rwCells {
 	var out []rwCells
+	m := float64(approachLightsM)/float64(g.cellM) + darkFieldCells + 1
 	for _, r := range runways {
 		x1, y1 := g.cellXY(r.lat1, r.lon1)
 		x2, y2 := g.cellXY(r.lat2, r.lon2)
-		if math.Max(x1, x2) < float64(x0-1) || math.Min(x1, x2) > float64(x0+w+1) ||
-			math.Max(y1, y2) < float64(y0-1) || math.Min(y1, y2) > float64(y0+h+1) {
+		if math.Max(x1, x2) < float64(x0)-m || math.Min(x1, x2) > float64(x0+w)+m ||
+			math.Max(y1, y2) < float64(y0)-m || math.Min(y1, y2) > float64(y0+h)+m {
 			continue
 		}
 		out = append(out, rwCells{x1, y1, x2, y2})
@@ -202,27 +213,43 @@ func runwaysIn(g geom, x0, y0, w, h int) []rwCells {
 	return out
 }
 
-// onRunway: cell (col, row)'s centre is within half the runway's width of a centreline, or half a cell, so a
-// runway is at least one cell wide at any scale. At approach scale, within a cell: 2-3 cells wide (120-180 m,
-// some three times a real runway), because the renderer samples every other column past 6 cells and a
-// one-cell strip flickers away into the horizon.
-func (c *cells) onRunway(g geom, col, row int) bool {
+// runwayClass: rwSurface when cell (col, row)'s centre is within half the runway's width of a centreline, or
+// half a cell, so a runway is at least one cell wide at any scale. At approach scale, within a cell: 2-3 cells
+// wide (120-180 m, some three times a real runway: a one-cell strip flickers away toward the horizon); then the
+// ring of cells along its sides and its extended centreline for approachLightsM beyond each end are rwLights,
+// and anything within darkFieldCells of those is rwNear.
+func (c *cells) runwayClass(g geom, col, row int) int {
+	approach := g.cellM <= approachCellM
 	lim := math.Max(runwayHalfM, float64(g.cellM)/2) / float64(g.cellM)
-	if g.cellM <= approachCellM {
+	if approach {
 		lim = 1
 	}
+	ext := float64(approachLightsM) / float64(g.cellM)
 	px, py := float64(col)+0.5, float64(row)+0.5
+	class := rwNone
 	for _, r := range c.rws {
 		dx, dy := r.x2-r.x1, r.y2-r.y1
-		t := 0.0
-		if l2 := dx*dx + dy*dy; l2 > 0 {
-			t = math.Max(0, math.Min(1, ((px-r.x1)*dx+(py-r.y1)*dy)/l2))
+		l := math.Hypot(dx, dy)
+		if l == 0 {
+			continue
 		}
-		if math.Hypot(px-r.x1-t*dx, py-r.y1-t*dy) <= lim {
-			return true
+		along := ((px-r.x1)*dx + (py-r.y1)*dy) / l // cells from the first end, along the runway
+		side := math.Abs((px-r.x1)*dy-(py-r.y1)*dx) / l
+		beyond := math.Max(-along, along-l) // cells past an end (negative: alongside)
+		if beyond <= 0 && side <= lim || math.Hypot(math.Max(beyond, 0), side) <= lim {
+			return rwSurface
+		}
+		if !approach {
+			continue
+		}
+		switch {
+		case beyond <= 0 && side <= lim+1, beyond <= ext && side <= 0.5:
+			class = rwLights
+		case class == rwNone && beyond <= ext+darkFieldCells && side <= lim+darkFieldCells:
+			class = rwNear
 		}
 	}
-	return false
+	return class
 }
 
 // sampleLights marks the cells under city lights. Lights are decoration: a failed tile leaves the rest unlit.
@@ -271,7 +298,8 @@ func (g geom) code(e, nw float64, col, row int, flat bool) (uint8, uint8) {
 	} else if g.cellM <= textureCellM {
 		shade = fieldShade(col, row)
 	}
-	t := (e - lo) / math.Max(hi-lo, minReliefM)
+	// band edges dithered (±5% by a hash of the cell), so height contours aren't hard staircases
+	t := (e-lo)/math.Max(hi-lo, minReliefM) + (float64(cellHash(col, row)&15)-7.5)/150
 	switch {
 	case e > 2800 && g.cellM > approachCellM:
 		return h, cSnow
@@ -281,6 +309,14 @@ func (g geom) code(e, nw float64, col, row int, flat bool) (uint8, uint8) {
 		return h, uint8(cMid + shade)
 	}
 	return h, uint8(cHigh + min(shade, 1))
+}
+
+// cellHash is a hash of a grid position (patch and strips agree on it).
+func cellHash(col, row int) uint32 {
+	h := uint32(col)*0x9E3779B1 ^ uint32(row)*0x85EBCA77
+	h ^= h >> 15
+	h *= 0x2C1B3C6D
+	return h ^ h>>12
 }
 
 // fieldShade textures flat ground low down: 2 x 2-cell fields, some darker, some lighter, by a hash of the
@@ -306,14 +342,20 @@ func (g geom) fill(c *cells, flat bool, height, colour []uint8) {
 		for k := 0; k < c.w; k++ {
 			col, row := c.x0+k, c.y0+r
 			height[r*c.w+k], colour[r*c.w+k] = g.code(c.at(col, row), c.at(col-1, row+1), col, row, flat)
-			if c.lit != nil && c.lit[r*c.w+k] && colour[r*c.w+k] != cWater && colour[r*c.w+k] != cWater+1 {
+			rc := rwNone
+			if len(c.rws) > 0 {
+				rc = c.runwayClass(g, col, row)
+			}
+			if c.lit != nil && c.lit[r*c.w+k] && rc == rwNone && colour[r*c.w+k] != cWater && colour[r*c.w+k] != cWater+1 {
 				colour[r*c.w+k] = cUrban
 			}
-			if len(c.rws) > 0 && c.onRunway(g, col, row) { // asphalt by day, lit after dusk (sky.go)
+			switch {
+			case rc == rwSurface && g.cellM <= approachCellM: // grey by day, dark at night (sky.go)
+				colour[r*c.w+k] = cRunway
+			case rc == rwSurface: // above approach scale
 				colour[r*c.w+k] = cUrban
-				if g.cellM <= approachCellM {
-					colour[r*c.w+k] = cRunway
-				}
+			case rc == rwLights && (col+row)&1 == 0: // dotted, like rows of lights (solid read as orange walls)
+				colour[r*c.w+k] = cUrban // ground by day at approach scale, lit after dusk
 			}
 		}
 	}
