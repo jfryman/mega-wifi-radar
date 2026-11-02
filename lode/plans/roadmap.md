@@ -27,12 +27,12 @@ flowchart TD
   emergency alert, settings record MWR3 with radar changes remembered, real sky in cockpit mode, the scope-scroll fix after
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below). 0.4.4 is open in `CHANGELOG.md`: the weather overlay, **contract v5**
-  (MAME-tested; the dev relay must be rebuilt from this checkout before the cart talks to it).
-- **The cart** runs the 0.4.2 code (`37dc75c`, CRC32 `0EDE6D15`, contract v4, flashed 2026-11-01; the tag adds only the changelog date) with the
-  dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
+  (MAME-tested; flashed with the matching dev relay 2026-11-02, cart checks below).
+- **The cart** runs `5cce8ac` (0.4.4 in progress: the weather overlay, CRC32 `49B180A8`, contract v5, flashed 2026-11-02)
+  with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-01 it's **contract v4** and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's `v0.4.3-2-g5cce8ac`, **contract v5** (weather on), and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
