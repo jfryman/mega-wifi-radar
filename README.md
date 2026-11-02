@@ -1,14 +1,45 @@
 # mega-wifi-radar
 
 A live, ATC-style radar scope for the **Sega Mega Drive / Genesis**, running on a
-**MegaWiFi Rev.C** Wi-Fi cartridge. It shows range rings, a rotating thin-line sweep with
-phosphor afterglow, and aircraft blips with history trails and data tags (callsign, altitude,
-ground speed). The traffic is real ADS-B traffic around an airport you choose. It boots with a
-787 departure in which every ATC radio call is a real boot step. Pick any aircraft to ride along in a
-**cockpit view** over the real terrain beneath it, and, with an MQTT feed of planes passing over your house,
-get a **flyover notice** (and a chime) the moment one goes over ([docs/flyover.md](docs/flyover.md)).
+**MegaWiFi Rev.C** Wi-Fi cartridge. The traffic is real ADS-B traffic around an airport you choose: range
+rings, a rotating thin-line sweep with phosphor afterglow, aircraft blips with history trails and data tags.
+Pick any aircraft to ride along in a **cockpit view** over the real terrain beneath it.
 
 <p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, the traffic list with SWA692 selected"></p>
+
+## What it does
+
+- **Radar scope:** range rings at 5 to 100 nm, a sweep that updates each target as it passes, five-dot trails,
+  and tags with callsign, altitude and ground speed, coloured by altitude band.
+- **Traffic list:** every aircraft by distance, A–Z or altitude, emergencies pinned on top. Pick one for a
+  **detail pop-up**: registration, type, operator, autopilot settings, squawk, distance and bearing.
+- **Cockpit view:** the view from the selected aircraft, drawn by the 68000 over real elevation data in real
+  time. The sky follows the sun where the aircraft is, and towns show as lights at night.
+- **Nine themes:** Classic green phosphor, STARS (data blocks on leader lines, like a modern TRACON), AMBER,
+  NIGHT, MARINE, ICE, POCKET, SUNSET and ERAM.
+- **Emergency alert:** a box and a two-tone alert when any aircraft squawks 7700, 7600 or 7500.
+- **Flyover notices:** with an MQTT feed of planes passing over your house, a box and a chime the moment one
+  goes over ([docs/flyover.md](docs/flyover.md)).
+- **Ambient mode:** left alone, it tours flights by itself (details, a cockpit ride, back to the radar), for a
+  cartridge that lives on a TV.
+- **Boot sequence:** a 787 departure in which every radio call is a real boot step, with engine and radio
+  sound. Settings (airport, Wi-Fi, theme, zoom, sort...) are kept on the cartridge.
+
+<p align="center">
+<img src="docs/img/cockpit-day.png" width="320" alt="Cockpit view by day: SWA692 over Middle Tennessee, grey specks of town on green ground, the instrument strip below">
+<img src="docs/img/cockpit-night.png" width="320" alt="Cockpit view at night: the same ride over dark ground dotted with warm city lights under a navy sky">
+</p>
+<p align="center">
+<img src="docs/img/detail-popup.png" width="320" alt="Detail pop-up: UAL2414, Boeing 737-900 built 2013, on the ground at KBNA">
+<img src="docs/img/stars-data-blocks.png" width="320" alt="STARS theme: data blocks set off their targets on short leader lines, blue range rings">
+</p>
+<p align="center">
+<img src="docs/img/emergency-alert.png" width="320" alt="Emergency alert: SQUAWK 7700 EMERGENCY, AAL2910 3.8 NM SE, 33,000 ft 400 kt, the aircraft red at the top of the list">
+<img src="docs/img/ambient.png" width="320" alt="Ambient mode: SWA2011's details opened by itself, the panel reads NET OK AUTO">
+</p>
+<p align="center"><img src="docs/img/themes.png" width="660" alt="The nine themes: Classic, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET and ERAM"></p>
+
+## How it works
 
 ```mermaid
 flowchart LR
@@ -19,7 +50,8 @@ flowchart LR
 
 The console has 64 KiB of RAM and no TLS, so a small **relay** runs on your network. It
 fetches ADS-B JSON over HTTPS, digests it into a compact binary frame, and the cart polls it
-once per sweep.
+once per sweep. For the cockpit view it also serves terrain patches built from elevation tiles, and
+the aircraft's track placed in them; the 68000 draws the view itself (Voxel Space, straight into VRAM).
 
 ## What you need
 
@@ -58,7 +90,7 @@ See [docs/usage.md](docs/usage.md) for controls and settings.
 | Doc | |
 |---|---|
 | [docs/hardware.md](docs/hardware.md) | The Rev.C board, firmware, flashing both chips |
-| [docs/usage.md](docs/usage.md) | Boot, setup screen, controls, themes, what's on screen |
+| [docs/usage.md](docs/usage.md) | Boot, setup screen, controls, themes, ambient mode, what's on screen |
 | [docs/relay.md](docs/relay.md) | Running and configuring the relay; its HTTP API |
 | [docs/flyover.md](docs/flyover.md) | Flyover notices: connecting an MQTT feed of planes over your home, and its message format |
 | [docs/print.md](docs/print.md) | Cartridge label, box cover and manual: building and printing them |
@@ -79,7 +111,7 @@ Each [release](https://github.com/jfryman/mega-wifi-radar/releases) contains:
 
 The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64),
 tagged with each release. **Run the relay from the same release as your cartridge** (`:latest` is the newest
-release; `:0.2.0` pins one). A mismatched pair says so on screen instead of working half-way.
+release; `:0.4.3` pins one). A mismatched pair says so on screen instead of working half-way.
 
 ## Credits and data
 
@@ -93,6 +125,10 @@ release; `:0.2.0` pins one). A mismatched pair says so on screen instead of work
   (Mapzen / Tilezen), resampled and coloured by the relay. The cockpit view credits it on screen; the
   manual's credits and [docs/relay.md](docs/relay.md#data-terms) carry the
   [required attribution](https://github.com/tilezen/joerd/blob/master/docs/attribution.md) for each source.
+- Cockpit view city lights: [VIIRS City Lights 2012](https://earthobservatory.nasa.gov/features/NightLights)
+  (NASA Earth Observatory / NOAA NGDC), served by [NASA GIBS](https://www.earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs).
+  We acknowledge the use of imagery provided by services from NASA's Global Imagery Browse Services (GIBS),
+  part of NASA's Earth Science Data and Information System (ESDIS).
 
 Not for navigation or any operational use.
 

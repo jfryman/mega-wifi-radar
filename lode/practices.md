@@ -11,6 +11,7 @@
   (format: [build/ci-release.md](build/ci-release.md)).
 - A change to what the player sees or does also updates its manual section in `print/manual/` and, if the
   screen changed, `print/shots.txt` + `make print-shots`, in the same commit ([print/print-assets.md](print/print-assets.md)).
+  A new feature also gets a line in the README's "What it does", and a changed screen its `docs/img/` image.
 - Contract changes (frame/detail layout, constants, HTTP paths/queries, mDNS strings) start in `src/arframe.h` with an
   `AR_VER` bump; then the relay, then the mapping in `relay/contract_test.go`, then `make contract-lock`. `make contract` (run before every ROM build) and CI enforce it
   ([architecture/contract.md](architecture/contract.md)).

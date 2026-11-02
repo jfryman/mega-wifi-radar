@@ -79,6 +79,20 @@ scripts/print watch manual     # live rebuild while editing (marks off)
 make print-shots               # recapture print/shots/*.png from the emulator build
 ```
 
+## README images (`docs/img/`)
+Native 320×224 PNGs (no scaling: GitHub shows them at `width="320"`), no script makes them. Most are copies of
+`print/shots/` (`radar-classic`, `cockpit-day`, `detail-popup`, `stars-data-blocks`); the rest come from MAME runs:
+`boot-departure` (boot), `cockpit-night` (`relay -sky night -pack-cockpit` swapped into `res/fake/` for one build),
+`emergency-alert` (`make sim SIM_FLAGS=-DFAKE_EMERG`, ~33 s), `ambient` (AMBIENT 1 MIN via SIM_PRESS, ~79 s, see
+[../ui/ambient.md](../ui/ambient.md)). `themes.png` tiles the nine theme shots:
+```sh
+cd print/shots && montage radar.png stars.png theme-amber.png theme-night.png theme-marine.png theme-ice.png \
+    theme-pocket.png theme-sunset.png theme-eram.png -tile 3x -geometry 320x224+3+3 -background '#202020' \
+    -filter point ../../docs/img/themes.png
+```
+When a feature changes what's on screen, refresh its README image with the manual shot, and give a new feature a
+line in the README's "What it does" (the README fell two releases behind once).
+
 ## Typst lessons
 - `place()` with no alignment sits at the current *flow* position. Use `place(top + left, ...)` for absolute placement.
 - Closures capture by value: an overlap test over a list that grows in the loop must be rebuilt each iteration.

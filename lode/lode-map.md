@@ -31,7 +31,7 @@
   - [notices.md](ui/notices.md) - flyover notices + the emergency alert: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
   - [ambient.md](ui/ambient.md) - ambient mode: idle tours (details → cockpit ride → radar), picking, swallowed exit press, AMBIENT setting
 - print/
-  - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
+  - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots; README images
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
