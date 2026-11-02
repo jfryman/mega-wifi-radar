@@ -67,3 +67,4 @@
 - MWR3 - the settings record since 0.4.2 (adds `sort` and 7 spare bytes); 0.4.0-0.4.1 `MWR2` (added `sound`) and 0.3.x `MWR1` records are upgraded on load.
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).
+- Ambient mode - the radar touring flights by itself after setup's AMBIENT idle minutes: details, a 75 s cockpit ride, a minute on the radar (`ambient.c`); `NET OK AUTO` on the panel.

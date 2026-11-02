@@ -8,15 +8,19 @@
 #include "theme.h"
 #include "ui.h"
 
-enum { R_THEME, R_RANGE, R_TAGS, R_SOUND, R_AIRPORT, R_WIFI, R_RELAY, R_CONTROLS, R_RESET, R_SAVE, R_EXIT,
-       R_COUNT };
+enum { R_THEME, R_RANGE, R_TAGS, R_SOUND, R_AMBIENT, R_AIRPORT, R_WIFI, R_RELAY, R_CONTROLS, R_RESET, R_SAVE,
+       R_EXIT, R_COUNT };
 static const char *const labels[R_COUNT] = {
-    "THEME", "RANGE", "TAGS", "SOUND", "AIRPORT", "WI-FI", "RELAY", "CONTROLS", "RESET", "SAVE & EXIT", "EXIT",
+    "THEME", "RANGE", "TAGS", "SOUND", "AMBIENT", "AIRPORT", "WI-FI", "RELAY", "CONTROLS", "RESET", "SAVE & EXIT",
+    "EXIT",
 };
+static const char *const ambient_names[AMBIENT_MODES] = { "OFF", "AFTER 1 MIN", "AFTER 5 MIN", "AFTER 15 MIN" };
 static const char *const tag_names[TAGS_MODES] = { "ALL", "SELECTED", "OFF" };
 static const char *const sound_names[SOUND_MODES] = { "ON", "OFF" };
 
-#define ROW_Y(r)    (3 + (r) * 2 + ((r) > R_AIRPORT))   /* airport name gets a line; EXIT ends on row 24 */
+/* Settings double-spaced (the airport's name takes a line), then the four actions as a block; EXIT on row 24. */
+static const u8 row_y[R_COUNT] = { 3, 5, 7, 9, 11, 13, 16, 18, 21, 22, 23, 24 };
+#define ROW_Y(r)    row_y[r]
 #define HINT_ROW    26                                  /* below ui_status's row 25 */
 #define VAL_X       14
 #define VAL_W       25
@@ -48,6 +52,7 @@ static void draw_value(u16 r)
         break;
     case R_TAGS: ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, tag_names[settings.tag_mode]); break;
     case R_SOUND: ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, sound_names[settings.sound]); break;
+    case R_AMBIENT: ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, ambient_names[settings.ambient]); break;
     case R_AIRPORT:
         a = airport_idx();
         ui_field(PAL2, VAL_X, ROW_Y(r), VAL_W, settings.icao);
@@ -279,6 +284,7 @@ static void change(u16 r, s16 d, u16 pressed)
         settings.sound = (settings.sound + SOUND_MODES + d) % SOUND_MODES;
         chime_play();                       /* a preview, when it's on: the home airport's chime */
         break;
+    case R_AMBIENT: settings.ambient = (settings.ambient + AMBIENT_MODES + d) % AMBIENT_MODES; break;
     case R_AIRPORT:
         a = airport_idx();
         if (pressed & BUTTON_C) {

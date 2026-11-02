@@ -4,7 +4,8 @@ The view from one aircraft over real terrain, in real time. The cart draws it (V
 the relay only sends data: a **terrain patch** centred on the aircraft on entry, the aircraft's **track** placed
 in that patch's grid every 2 s, and **strips** of new cells as it moves (the buffer wraps, so the view never jumps).
 Measured on the cart (2026-11-01): solid colours (byte writes to the VDP work), 16-22 fps, a whole patch ~2.5 s
-(~13 KB/s over the UART), a track well under the 2 s interval; streamed strips cause no visible stutter. Entry: **A in the detail pop-up**, or **Y** (6-button). **B** goes back to the radar.
+(~13 KB/s over the UART), a track well under the 2 s interval; streamed strips cause no visible stutter. Entry: **A in the detail pop-up**, or **Y** (6-button). **B** goes back to the radar. Ambient mode ([ambient.md](ambient.md))
+rides with `cockpit_run(icao, ride_secs)`: any button or the time ends it, HUD `LIVE  AUTO` / `ANY BUTTON: RADAR`.
 
 ```mermaid
 sequenceDiagram

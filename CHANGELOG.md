@@ -1,5 +1,13 @@
 ## 0.4.3 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **radar:** ambient mode. Set AMBIENT in setup to 1, 5 or 15 minutes and, left alone that long, the radar
+    tours flights by itself: it picks one (an emergency first, then low traffic near your airport), shows its
+    details, rides along in the cockpit view for 75 seconds, and comes back; a minute later, another. The panel
+    says `NET OK AUTO`. Any button takes over again, and that press does nothing else.
+  * **setup:** the AMBIENT row; CONTROLS, RESET, SAVE & EXIT and EXIT now sit together at the bottom.
+
 ## 0.4.2 (November 1, 2026)
 
 IMPROVEMENTS:

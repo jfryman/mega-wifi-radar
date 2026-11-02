@@ -39,6 +39,7 @@ Use up/down to move between rows; each row lists its controls below.
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | left/right: ALL / SELECTED / OFF |
 | SOUND | left/right: ON / OFF, the boot sounds and the flyover notice chime; switching it on plays the chime |
+| AMBIENT | left/right: OFF / AFTER 1, 5 or 15 MIN. Left alone that long, the radar tours flights by itself (details, then a 75 s cockpit ride, then a minute on the radar); the panel shows `NET OK AUTO`; any button takes over again |
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |

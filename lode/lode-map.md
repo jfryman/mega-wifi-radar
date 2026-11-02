@@ -29,6 +29,7 @@
   - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, real sky, Voxel Space into VRAM, overlay RAM, camera, HUD
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR3, spare bytes, migration, saves from the radar), airports
   - [notices.md](ui/notices.md) - flyover notices + the emergency alert: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
+  - [ambient.md](ui/ambient.md) - ambient mode: idle tours (details → cockpit ride → radar), picking, swallowed exit press, AMBIENT setting
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
@@ -44,7 +45,6 @@
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
     - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; night lights
-    - [ambient-mode.md](plans/ideas/ambient-mode.md) - idle cart tours flights (details → cockpit → radar)
     - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
     - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
     - [stars-data-blocks.md](plans/ideas/stars-data-blocks.md) - leader lines, 8-direction tags in STARS/ERAM

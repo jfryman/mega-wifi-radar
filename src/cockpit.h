@@ -6,7 +6,8 @@
  * stop the radar first, and bring it back (radar_init) after. */
 #include <genesis.h>
 
-/* Blocking: runs until B, or until the aircraft has been lost for a while. */
-void cockpit_run(const u8 icao[3]);
+/* Blocking: runs until B, or until the aircraft has been lost for a while. With ride_secs (ambient mode,
+ * ambient.c): any button ends it too, and so does the time; TRUE if a button ended it. */
+bool cockpit_run(const u8 icao[3], u16 ride_secs);
 
 #endif

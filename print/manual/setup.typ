@@ -5,10 +5,10 @@
 Press *Start* on the radar to open Setup, or hold *Start* while you turn the power on. Setup
 also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 
-#shot("setup", callouts: ((1, 18, 51), (2, 18, 91), (3, 18, 115), (4, 18, 131), (5, 18, 147), (6, 18, 163), (7, 18, 179)))
+#shot("setup", callouts: ((1, 18, 59), (2, 18, 107), (3, 18, 131), (4, 18, 147), (5, 18, 171), (6, 130, 178), (7, 18, 187)))
 #v(1mm)
 #grid(columns: (1fr, 1fr), column-gutter: 4mm, row-gutter: 1.6mm,
-  key(1)[THEME, RANGE, TAGS, SOUND][#sym.arrow.l #sym.arrow.r on the D-Button changes them.],
+  key(1)[THEME ... AMBIENT][#sym.arrow.l #sym.arrow.r on the D-Button changes them. *AMBIENT*: see _Controls_.],
   key(2)[AIRPORT][#sym.arrow.l #sym.arrow.r steps through airports, *C* jumps to the next letter,
     *A* lets you type the four-letter ICAO code (KBNA, KORD, EGLL...).],
   key(3)[WI-FI][*A* scans for networks: pick yours, type its password.],

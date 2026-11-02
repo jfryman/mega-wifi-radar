@@ -29,3 +29,11 @@ screen's *CONTROLS* page lists these buttons too.]
   has zoomed in twice to 5 nm, with rings every mile.],
   shot("zoom", width: 44mm),
 )
+
+== Ambient mode
+
+Leave the radar alone and it can run itself, like a display in an airport lobby. Set *AMBIENT* in
+Setup to 1, 5 or 15 minutes: after that long without a button, it picks a flight (an emergency first,
+then low traffic near your airport), shows its details, rides along in the Cockpit View for a little
+over a minute, and comes back to the radar. A minute later it picks another. The panel says
+*NET OK AUTO* while it does. Press any button to take over again; that press does nothing else.

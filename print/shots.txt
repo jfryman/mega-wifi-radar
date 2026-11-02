@@ -14,6 +14,6 @@ theme-pocket | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 
 theme-sunset | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21:P1 Right,21.4:P1 Right,22.3:P1 Start
 theme-eram   | 26 | 18:P1 Start,19:P1 Right,19.4:P1 Right,19.8:P1 Right,20.2:P1 Right,20.6:P1 Right,21:P1 Right,21.4:P1 Right,21.8:P1 Right,22.7:P1 Start
 zoom     | 21 | 18:P1 A,19:P1 A
-keyboard | 23 | 18:P1 Start,19:P1 Down,19.5:P1 Down,20:P1 Down,20.5:P1 Down,21:P1 Down,21.5:P1 Down,22:P1 A
+keyboard | 23.5 | 18:P1 Start,19:P1 Down,19.5:P1 Down,20:P1 Down,20.5:P1 Down,21:P1 Down,21.5:P1 Down,22:P1 Down,22.5:P1 A
 boot-taxi    | 4.6 |
 boot-takeoff | 11.5 |

@@ -46,6 +46,7 @@ static u16 hd_target;
 static s16 hd_rate;                         /* heading change per frame between fixes */
 static s16 horizon_target;
 static u8 status;
+static u16 ride;                            /* ambient ride length (s), 0: until B */
 static u16 fps10;
 static const struct ar_notice *nt;          /* the notice on the HUD */
 static u16 nt_id;
@@ -73,6 +74,12 @@ static bool riding(void) { return (nt->nflags & AR_N_ICAO) && !memcmp(nt->icao, 
 static void hud_status(u8 st)
 {
     static const char *const text[] = { "LIVE       ", "NO SIGNAL  ", "TERRAIN... ", "SIGNAL LOST" };
+    if (st == ST_LIVE && !nt && ride) {     /* ambient mode: say why the view will change by itself */
+        status = st;
+        VDP_setTextPalette(PAL1);
+        VDP_drawText("LIVE  AUTO ", 28, 17);
+        return;
+    }
     status = st;
     VDP_setTextPalette(st == ST_LIVE && !nt ? PAL1 : PAL3);
     VDP_drawText(st == ST_LIVE && nt ? (riding() ? "OVER HOME! " : "OVERHEAD!  ") : text[st], 28, 17);  /* cols 28-38 */
@@ -202,7 +209,7 @@ static void hud_frame(void)
     sprintf(s, "FROM %-4s   BRG       DIST", settings.icao);
     hud_text(22, s);
     VDP_setTextPalette(PAL1);
-    hud_text(ROW_BACK, "B  BACK TO RADAR");
+    hud_text(ROW_BACK, ride ? "ANY BUTTON: RADAR" : "B  BACK TO RADAR");
 }
 
 /* One row per call (part 0-3): text costs render time, so it's spread over frames. */
@@ -402,9 +409,13 @@ static void message(const char *s)
 
 /* ------------------------------------------------------------ mode */
 
-void cockpit_run(const u8 icao_in[3])
+bool cockpit_run(const u8 icao_in[3], u16 ride_secs)
 {
+    bool by_user = FALSE;
+    u32 start = vtimer;
+
     icao = icao_in;
+    ride = ride_secs;
     memset(&trk, 0, sizeof(trk));
     memset(&cam, 0, sizeof(cam));
     cam.horizon = horizon_target = VOX_HORIZON;
@@ -443,7 +454,15 @@ void cockpit_run(const u8 icao_in[3])
         u32 now = vtimer;
         advance(now - last);
         last = now;
-        if (JOY_readJoypad(JOY_1) & BUTTON_B) break;
+        u16 j = JOY_readJoypad(JOY_1);
+        if (j & BUTTON_B) {
+            by_user = TRUE;
+            break;
+        }
+        if (ride && (j || now - start >= ride * 60UL)) {    /* an ambient ride: any button, or time's up */
+            by_user = j != 0;
+            break;
+        }
 
         if (now - req_at >= TRACK_FRAMES) {
             if (!get_fix(FALSE) && status == ST_LIVE) hud_status(ST_STALE);
@@ -484,4 +503,5 @@ out:
     if (nt) notice_done();                  /* seen: the radar doesn't show it again */
     wait_release();
     VDP_setTextPlane(BG_A);
+    return by_user;
 }

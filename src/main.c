@@ -16,6 +16,7 @@
 #include "splash.h"
 #include "settings.h"
 #include "alert.h"
+#include "ambient.h"
 #include "theme.h"
 #include "tlist.h"
 #include "traffic.h"
@@ -146,6 +147,13 @@ static void panel_static(void)
     tlist_rebuild();                        /* radar_init() emptied the track table */
 }
 
+static bool net_ok;                         /* the last poll was fine: the panel says NET OK */
+
+static void panel_net(void)
+{
+    if (net_ok) radar_panel(ROW_NET, ambient_on() ? "NET OK AUTO" : "NET OK");
+}
+
 /* ------------------------------------------------------------ input */
 
 static bool want_setup;
@@ -178,8 +186,15 @@ static void reselect(const u8 icao[3])
 static void handle_input(void)
 {
     static u16 prev, c_held, dir_held;
+    static bool swallow;
     u16 j = radar_joy(), pressed = j & ~prev;
 
+    if (swallow || ambient_input(j)) {      /* the press that ends ambient mode does nothing else */
+        swallow = j != 0;
+        prev = j;
+        panel_net();
+        return;
+    }
     prev = j;
     if (popup_is_open() && (pressed & BUTTON_A)) {
         ask_cockpit();                      /* A in the pop-up: cockpit mode (lode/ui/cockpit.md) */
@@ -268,7 +283,9 @@ static void poll(void)
         have_snap = TRUE;
         sprintf(buf, "%2u AC", traffic_count());
         radar_panel(ROW_COUNT, buf);
-        radar_panel(ROW_NET, (h->hflags & AR_H_UPSTREAM_ERR) ? "UPSTRM ERR" : "NET OK");
+        net_ok = !(h->hflags & AR_H_UPSTREAM_ERR);
+        if (net_ok) panel_net();
+        else radar_panel(ROW_NET, "UPSTRM ERR");
         radar_panel(ROW_DATA2, source_name(h->source));
         tlist_rebuild();
         popup_after_poll();
@@ -276,6 +293,7 @@ static void poll(void)
         alert_check();                      /* an emergency squawk: the box + a tone (alert.c) */
         if (settings_save_due()) settings_save();   /* zoom, tags, theme or sort changed here */
     } else {
+        net_ok = FALSE;
         radar_panel(ROW_NET, feed_err_str(e));
         popup_after_poll();
     }
@@ -304,6 +322,7 @@ static void clock_tick(void)
     u32 age = (vtimer - last_ok_vtimer) / 60;
     if (age > STALE_SECS) {
         sprintf(buf, "STALE %lus", age);
+        net_ok = FALSE;
         radar_panel(ROW_NET, buf);
     }
 }
@@ -335,16 +354,22 @@ int main(bool hard)
         handle_input();
         popup_tick();
         notice_radar_tick();
-        if (want_cockpit) {
-            want_cockpit = FALSE;
+        enum ambient_act act = ambient_tick();
+        if (act == AMB_PANEL) panel_net();
+        if (want_cockpit || act == AMB_COCKPIT) {
+            bool by_user;
+            if (act == AMB_COCKPIT) memcpy(cockpit_icao, ambient_icao(), 3);
             notice_banner_close(TRUE);
             popup_close();
             radar_stop();
-            cockpit_run(cockpit_icao);
+            by_user = cockpit_run(cockpit_icao, want_cockpit ? 0 : AMBIENT_RIDE_SECS);
+            want_cockpit = FALSE;
             radar_up();
             poll();                 /* refill the track table the cockpit's terrain overwrote */
             reselect(cockpit_icao);
             rot = radar_rotations();
+            if (act == AMB_COCKPIT) ambient_back(by_user);
+            else ambient_input(BUTTON_B);   /* the B that ended your own ride: activity, so no tour at once */
         }
         if (want_setup) {
             want_setup = FALSE;

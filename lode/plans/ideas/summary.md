@@ -7,7 +7,6 @@ then move it to `plans/` as the active plan and update it to the current state a
 
 | Goal | What you get | Where | Contract | Size | Depends on |
 |---|---|---|---|---|---|
-| [ambient-mode.md](ambient-mode.md) | idle cart tours flights: details → cockpit → radar | cart | none | M | a setup row (screen is full) |
 | *night lights* (below) | cockpit: urban cells lit warm yellow at night | relay | none | M | a land-cover / night-lights source |
 | [weather-overlay.md](weather-overlay.md) | NEXRAD precipitation as STARS-style stippled cells | both | v5+ `/v1/wx` | L | — |
 | [video-maps.md](video-maps.md) | runways + extended centrelines (+ rivers, airspace) | both | v5+ `/v1/map` | L | sweep slow-path measurement |
@@ -19,11 +18,10 @@ S = a session or two, M = a few sessions, L = a release of its own.
 
 ```mermaid
 flowchart LR
-  ARR[watch-arrivals] -. arrivals score .-> AMB[ambient-mode]
+  ARR[watch-arrivals] -. arrivals score .-> AMB[ambient mode: built, ui/ambient.md]
   MAP[video-maps] -. centrelines .-> ARR
   NOT[flyover notice ring] --> LOG[spotters-logbook rare notices]
-  CFG[MWR3 spare bytes] --> AMB
-  CFG --> WX[weather-overlay]
+  CFG[MWR3 spare bytes] --> WX[weather-overlay]
   CFG --> MAP
 ```
 
@@ -35,8 +33,8 @@ Relay-only (cells' colour codes and the palette), no contract change. Done when:
 `code()` marks urban cells, night shows them lit in a `-sky night` emulator preview and on the cart.
 
 ## Suggested order
-1. **Ambient mode**: the best fit for a cart that sits on a TV all day; cart only.
-2. **Night lights**, if the real sky makes you want more.
+1. **Night lights**, if the real sky makes you want more; relay only.
+2. **STARS data blocks** (phase 1, cart only).
 3. **One contract release (v5)** bundling what needs the relay: pick from weather, maps, logbook, arrivals.
    Bundle them so the cart and relay bump `AR_VER` once ([../../architecture/contract.md](../../architecture/contract.md)).
 
