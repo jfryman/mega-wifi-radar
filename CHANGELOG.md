@@ -1,5 +1,11 @@
 ## 0.4.2 (Unreleased)
 
+BUG FIXES:
+
+  * **radar:** coming back from cockpit mode no longer leaves the scope's text half a screen out of place
+    (compass letters, ring labels, tags and the notice box shifted down and wrapped round, N below the
+    centre). Cockpit mode's page flip could leave the text layer scrolled; the radar now resets it.
+
 ## 0.4.1 (November 1, 2026)
 
 IMPROVEMENTS:

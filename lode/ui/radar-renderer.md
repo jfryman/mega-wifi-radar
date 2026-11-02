@@ -37,6 +37,9 @@ flowchart LR
   `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
 - `radar_stop()` (setup screen) removes the callback; come back with `radar_init()` + `radar_start()`
   (the track table is cleared and refilled by the next poll).
+- `radar_init()` owns the whole VDP layout it needs: plane size, window, and **all four scroll values zeroed**.
+  Never assume the previous screen left them at 0: cockpit mode's `voxel_flip` leaves plane A's vertical scroll at
+  128 about half the time, and the scope's text then sits 16 rows down, wrapped (N below the centre, S above it).
 
 ## Measured cost (MAME, KBNA ~30 aircraft; avg scanlines of 262 per frame)
 | stage | lines | how it got there |

@@ -74,7 +74,7 @@ converted as they're spread. A raw odd height would make `vox.s` read a word at 
 column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical span is one address command and n
 **byte** writes (a byte write puts the byte on both bus halves: four identical pixels). No frame buffer, no DMA.
 - Two VRAM copies: plane A maps copy 0 on rows 2-15 and copy 1 on 18-31; `voxel_flip` waits for a vblank and sets
-  plane A's vertical scroll to 0 or 128. HUD: window plane from row 16.
+  plane A's vertical scroll to 0 or 128 (left as it is on exit: `radar_init` zeroes it). HUD: window plane from row 16.
 - No tile column straddles a 16 KB VRAM boundary (a column that would starts past it), so a span's command is
   `cmd + (y << 18)`.
 - Depth: 0.75..64 cells (beyond, the map wraps); steps × (1 + 1/8), × (1 + 1/4) past 16 cells; one sample per

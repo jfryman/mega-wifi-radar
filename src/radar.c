@@ -635,6 +635,10 @@ void radar_init(void)
 {
     VDP_setScreenWidth320();
     VDP_setPlaneSize(64, 32, TRUE);
+    VDP_setVerticalScroll(BG_A, 0);         /* cockpit mode's page flip can leave plane A at 128 */
+    VDP_setVerticalScroll(BG_B, 0);
+    VDP_setHorizontalScroll(BG_A, 0);
+    VDP_setHorizontalScroll(BG_B, 0);
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
     VDP_clearPlane(WINDOW, TRUE);
