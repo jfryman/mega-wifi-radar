@@ -34,9 +34,9 @@ flowchart LR
 - **Plane A blanks are weather:** every clear of a tag, leader, label or box cell writes the cell's weather word
   (`row_clear`, `wx_word`), and a tag's spaces show it too (`tag_row`). `grid`'s low nibble counts drawn cells; a
   tag's gap column counts `GAP` (0x10), so it blocks placement but isn't text ([weather.md](weather.md)).
-- Ring labels + compass: `label_cells` is the only record of which plane-A cells hold label text.
+- Ring labels + compass: `label_bits` (1 bit per cell, `label_at`/`label_set`) is the only record of which plane-A cells hold label text.
   `clear_labels()` erases those cells and their `grid` counts, and must run **before** anything zeroes
-  `label_cells` or `grid`. Rescale order: clear tags, `scope_clear_dots`, `clear_labels`, zero `grid`,
+  `label_bits` or `grid`. Rescale order: clear tags, `scope_clear_dots`, `clear_labels`, zero `grid`,
   weather rows dirty and the map raster restarted (`radar_rescale` in main already wiped both: they were for the old
   range), `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
 - `radar_stop()` (setup screen) removes the callback; come back with `radar_init()` + `radar_start()`

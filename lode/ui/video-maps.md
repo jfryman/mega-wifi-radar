@@ -76,7 +76,7 @@ noise); 0 late frames. The slow path over map tiles is not a problem at this den
 
 ## Budget
 Cart start-up heap **8,459 B** (min 8,192): `map_buf` 650 B. The next RAM user must free some first (candidates:
-`popup_text`/`grid`/`label_cells`, 784 B each; the overlay has no spare: the radar is its larger user).
+see [../build/ram-budget.md](../build/ram-budget.md)); heap 11,096 B after the 2026-11-02 trim.
 
 Related: [weather.md](weather.md), [sweep.md](sweep.md), [radar-renderer.md](radar-renderer.md),
 [../relay/relay.md](../relay/relay.md), [../plans/watch-arrivals.md](../plans/watch-arrivals.md).
