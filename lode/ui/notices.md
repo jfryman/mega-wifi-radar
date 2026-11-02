@@ -1,6 +1,7 @@
 # Flyover notices (`src/notice.c`, `src/chime.c`; relay `notice.go`, `mqtt.go`)
 
-When a plane passes over the owner's house, the cart shows a short notice and plays a chime. The trigger is the
+When a plane passes over the owner's house, the cart shows a short notice and plays a chime. The cart also
+raises the same box itself for an emergency squawk (below: *Emergency alert*). The trigger is the
 owner's `atc-mqtt` service (FR24, 500 m geofence); the relay subscribes to its MQTT topic, composes the text
 and serves it ([../relay/relay.md](../relay/relay.md)). Without a broker the relay never has a notice, and the cart
 behaves as before.
@@ -92,7 +93,33 @@ static const struct tune generic = { &bell, 4, { { 0, 45, 12 }, { 9, 45, 16 }, {
 /* { start frame, length frames, semitones above C4 } */
 ```
 
+## Emergency alert (`alert.c`, cart only)
+The cart raises its own notice when an aircraft squawks an emergency: no relay or contract involvement.
+```mermaid
+flowchart LR
+  I[traffic_ingest] -->|AR_F_EMERG: emerg++ to 2; clear: 0| T[(track.emerg)]
+  P[poll: after notice_check] --> A[alert_check: first track with emerg == 2,<br/>60 s since the last alert]
+  T --> A
+  A --> C[compose ar_notice: 3 lines] --> L[notice_local] --> B[the notice box, as a flyover]
+  A --> S[chime_alert: hi-lo A5 E5 x3]
+  A -->|emerg = 3 until the flag clears| T
+```
+- **Debounce:** the flag on 2 polls in a row (`track.emerg`, in a padding byte after `trail_n`: no RAM). One alert
+  per episode (3 = alerted, back to 0 when the flag clears); at most one alert a minute (`GAP_SECS`), a second
+  emergency waits for the next poll after that.
+- **Text** (24 cols): `SQUAWK 7700 EMERGENCY` / `SQUAWK 7600 RADIO FAIL` / `SQUAWK 7500 HIJACK` / `EMERGENCY`;
+  `AAL2910   3.8 NM SE` (callsign, distance, 8-point bearing from home); `33,000FT 400KT` (`ON GROUND`, `ALT ?`).
+  `nflags = AR_N_ICAO | AR_N_EMERG` (red blinking headline; C opens the aircraft's details), shown 20 s.
+- **Priority:** `notice.c` marks a local notice (`local`); `notice_check()` doesn't fetch a flyover while one is
+  pending or showing (the relay keeps flyovers 30 s, longer than the alert's 20 s). `notice_current()` drops a
+  local notice, so cockpit mode never shows one (its HUD speaks of flyovers, and it doesn't ingest frames).
+- **Tone:** `beep` patch (algorithm 7, only OP1 sounding, TL 8, feedback 4) about as loud as the chime
+  (-26 dB vs -22 dB peak in MAME's mix).
+
 ## Verifying
+- Emergency alert: `make sim SIM_FLAGS=-DFAKE_EMERG` makes the fake feed's third aircraft squawk 7700 from its
+  second frame (a RAM copy of the frame, that build only); the box opens ~10 s after the radar starts (two
+  polls), about 30 s into `scripts/sim`.
 - `make sim`: the fake feed raises a notice about the nearest airborne aircraft 20 s after the first frame, then
   every 90 s (`feed_fake.c`). `print/shots.txt` `notice | 34` is the manual's shot (the box open).
 - Sound: `SIM_WAV=out/x.wav scripts/sim out/sim.bin 36` records MAME's mix. The pitch check (2026-11-01) took, at

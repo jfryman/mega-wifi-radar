@@ -49,10 +49,10 @@ clean:
 	$(MD) $(SGDKMK) clean
 
 # Emulator build: fake feed (no MegaWiFi), out/sim.bin. Objects are wiped
-# before and after so flags never mix with the cart build.
+# before and after so flags never mix with the cart build. SIM_FLAGS=-DFAKE_EMERG: an emergency in the feed.
 sim: version contract
 	rm -rf out/release
-	$(MD) $(SGDKMK) release EXTRA_FLAGS=-DFAKE_FEED
+	$(MD) $(SGDKMK) release EXTRA_FLAGS="-DFAKE_FEED $(SIM_FLAGS)"
 	scripts/ram-check out/release/symbol.txt
 	cp out/rom.bin out/sim.bin
 	rm -rf out/release out/rom.bin

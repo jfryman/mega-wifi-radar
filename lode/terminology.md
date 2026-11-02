@@ -61,7 +61,9 @@
 - Flyover notice - a short message on the cart when a plane passes over the owner's house, from atc-mqtt via the relay's MQTT subscription; `struct ar_notice`, three 24-char lines composed by the relay.
 - Notice box - the bordered box on plane A over the scope's centre that grows open, shows a flyover notice and shrinks shut (`radar_box_*`).
 - Notice id / `n=` - u16 id of a notice (wraps, never 0); the cart sends the last one it saw as `n=` and the relay flags a newer one (`AR_H_NOTICE` / `AR_K_NOTICE`).
-- Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; setup's SOUND turns it off (with the boot sound).
-- MWR2 - the settings record since 0.4.0 (adds the `sound` byte, called `chime` in 0.4.0); a 0.3.x `MWR1` record is upgraded on load.
+- Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; the emergency alert's hi-lo tone; setup's SOUND turns them off (with the boot sound).
+- Emergency alert - the notice box + hi-lo tone the cart raises itself when an aircraft shows `AR_F_EMERG` on 2 polls in a row (`alert.c`, `notice_local`).
+- Sky phase - day / golden / twilight / night, picked by the relay from the sun's elevation for a terrain patch's palette (`sky.go`).
+- MWR3 - the settings record since 0.4.2 (adds `sort` and 7 spare bytes); 0.4.0-0.4.1 `MWR2` (added `sound`) and 0.3.x `MWR1` records are upgraded on load.
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).

@@ -66,7 +66,7 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 | up / down | select the previous / next aircraft in the traffic list (hold to scroll) |
 | C | open the detail pop-up for the selected aircraft (with a flyover notice up: for its aircraft); C or B closes it |
 | A (in the pop-up) | cockpit view from that aircraft; B goes back to the radar |
-| hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude |
+| hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude (remembered) |
 | left / right | tags: all, selected only, off |
 | X (6-button pad) | next theme |
 | Y (6-button pad) | cockpit view from the selected aircraft. X and Y are shortcuts: Z is unused, and everything works on a 3-button pad |
@@ -133,7 +133,9 @@ never covers the view: `OVERHEAD!` shows next to the callsign and the notice scr
 
 ## Settings storage
 
-Settings are saved as one record in ESP32 flash sector 0 of `user_data`. **RESET** in setup erases them and/or the
+Settings are saved as one record (`MWR3`) in ESP32 flash sector 0 of `user_data`, by SAVE & EXIT and also
+after a change on the radar (zoom, tags, theme with X, sort order with hold C) at the next poll, at most every
+30 s. Records from 0.3.x (`MWR1`) and 0.4.0-0.4.1 (`MWR2`) are upgraded on load. **RESET** in setup erases them and/or the
 module's Wi-Fi config. On a dev build (`src/dev_config.h`) it also keeps the compiled-in dev Wi-Fi and relay off
 until a different ROM is flashed, so you can test the Wi-Fi-not-set and AUTO-relay flows. Wi-Fi credentials are
 kept separately by the MegaWiFi firmware. Reflashing the ROM or the ESP32 firmware

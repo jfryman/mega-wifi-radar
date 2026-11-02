@@ -218,8 +218,13 @@ func main() {
 	flag.BoolVar(&mq.clear, "mqtt-clear", false, "clear a retained message on the topic after reading it")
 	flag.StringVar(&mq.clientID, "mqtt-client-id", mqttClientID(), "MQTT client id")
 	noticeTTL := flag.Duration("notice-ttl", 30*time.Second, "how long a flyover notice waits for a cart")
+	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
+	var err error
+	if skyOverride, err = parseSky(*sky); err != nil {
+		log.Fatal(err)
+	}
 
 	el := newDEM(*demURL)
 	if *packCockpit != "" {
@@ -291,6 +296,7 @@ var serverEnv = map[string]string{
 	"mqtt-clear":     "MQTT_CLEAR",
 	"mqtt-client-id": "MQTT_CLIENT_ID",
 	"notice-ttl":     "RELAY_NOTICE_TTL",
+	"sky":            "RELAY_SKY",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag
@@ -401,6 +407,10 @@ func packCockpitFile(out string, ins []string, el elevator, lat, lon float64, ce
 	}
 	ctx := context.Background()
 	p := buildPatch(ctx, el, lat, lon, 0, cellM)
+	if skyOverride >= 0 { // -sky: the emulator's patch at another time of day
+		pal := skyPalette(skyOverride)
+		p.pal = &pal
+	}
 	buf := []byte{'F', 'C', 0, 0, 0, 0}
 	binary.BigEndian.PutUint16(buf[2:], uint16(len(ins)))
 	buf = append(buf, p.encode()...)

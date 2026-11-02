@@ -2,7 +2,9 @@
  * recorded around KBNA (res/fake/kbna_seq.bin, made by `relay -pack`), with their aircraft's
  * pop-up details (res/fake/kbna_detail.bin) and, for cockpit mode, one terrain patch around KBNA with every
  * aircraft's track in it (res/fake/kbna_cockpit.bin, `relay -pack-cockpit`). A flyover notice about the nearest
- * airborne aircraft turns up NOTICE_FIRST seconds after the first frame, then every NOTICE_EVERY. */
+ * airborne aircraft turns up NOTICE_FIRST seconds after the first frame, then every NOTICE_EVERY.
+ * Built with FAKE_EMERG (`make sim SIM_FLAGS=-DFAKE_EMERG`), the third aircraft squawks 7700 from the second
+ * frame on, for the emergency alert (alert.c). */
 #include "feed.h"
 
 #ifdef FAKE_FEED
@@ -31,6 +33,17 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     st->http_status = 200;
     st->bytes = AR_HDR_SIZE + h->count * h->rec_size;
     st->chunks = 1;
+#ifdef FAKE_EMERG
+    static u16 buf[AR_FRAME_MAX / 2];
+    static u16 polls;
+    memcpy(buf, h, st->bytes);
+    h = (const struct ar_hdr *)buf;
+    if (++polls >= 2 && h->count > 2) {
+        struct ar_rec *r = (struct ar_rec *)feed_rec(h, 2);
+        r->squawk = 0x7700;
+        r->flags |= AR_F_EMERG;
+    }
+#endif
     *hdr = h;
     last_frame = h;
     if (!notice_at) notice_at = vtimer + NOTICE_FIRST * 60UL;

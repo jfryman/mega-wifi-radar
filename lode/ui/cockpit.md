@@ -30,6 +30,12 @@ sequenceDiagram
   - `level_cm` = cell / 16 (true vertical scale), or more if the relief won't fit 64 levels.
   - `base_m` = 1st percentile of the ground (one bad pixel can't sink it); `hmax` = highest level.
   - `pal[16]` = PAL0: 1-3 sky, 4-5 water, 6-8 low ground, 9-11 mid, 12-13 high, 14 urban (unused), 15 snow.
+    **Real sky** (`relay/sky.go`): the relay picks a phase from the sun's elevation at the patch centre, now (NOAA
+    low-precision formulas, tested at KBNA's solar noons): day > 6°, golden 0..6°, twilight -6..0°, night below.
+    Each phase sets the three sky entries and scales the ground (1, 0.85, 0.55, 0.3; night lifts blue to 2 so it
+    reads blue-grey), on the VDP's even steps. Relay-only: the cart loads `pal` as it comes; the tint changes on
+    patch reloads. `-sky`/`RELAY_SKY` fixes a phase (tests, and `-pack-cockpit` for emulator previews; the
+    committed fake patch is daylight).
   - `key` = `"lat,lon,cell,level,base,hi"` (the centre rounded to 5 decimals, which the patch is sampled at; `hi`
     tops the colour bands): the cart passes it back verbatim; the relay is stateless.
   - The patch is centred where the aircraft will be 3 s on (`terrainLeadS`: the cart's download time).

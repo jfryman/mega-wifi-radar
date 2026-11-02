@@ -6,6 +6,14 @@ IMPROVEMENTS:
     radar, yellow on navy), ICE (blue-white phosphor), POCKET (a handheld's green LCD), SUNSET (cyan sweep
     over purple) and ERAM (an en-route centre display). Pick one in setup's THEME row, or press X. The manual
     shows them all.
+  * **radar:** an emergency alert: when an aircraft squawks 7700, 7600 (radio failure) or 7500, or reports an
+    emergency, the notice box opens with the code, where it is and how high, and a two-tone alert sounds
+    (SOUND in setup turns it off). Once per aircraft, at most one a minute; flyover notices wait their turn.
+  * **radar:** zoom, tags, theme and the traffic list's sort order are remembered when you change them on the
+    radar, not only from setup. Saved settings from 0.3 and 0.4 carry over.
+  * **cockpit:** the sky follows the real sun where the aircraft is: blue by day, gold at a low sun, orange
+    and purple in twilight, and a dark navy night over a dimmed ground. The relay's `RELAY_SKY` fixes one for
+    testing.
 
 BUG FIXES:
 

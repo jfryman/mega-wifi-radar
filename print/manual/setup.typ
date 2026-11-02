@@ -29,8 +29,9 @@ also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 == Remembering your settings
 
 *SAVE & EXIT* (or *Start* on any row) writes your theme, range, tags, sound, airport and relay into the
-cartridge's own memory. Your Wi-Fi network is kept separately. Both stay when the power is off,
-and even when the cartridge's program is updated.
+cartridge's own memory. Zoom, tags, theme and the list's sort order changed on the radar are kept
+too. Your Wi-Fi network is kept separately. Both stay when the power is off, and even when the
+cartridge's program is updated.
 
 There are *1,143* airports to choose from: every large airport in the world with scheduled
 passenger service.

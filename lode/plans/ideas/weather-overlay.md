@@ -60,7 +60,7 @@ re-fetches every N polls (no flag, no `w=`). Pick during design: the flag is one
 - `dBZ` scale and the colour → value mapping of the IEM product (read their docs; test against a known storm).
 - Non-CONUS homes get nothing from IEM: show "WX N/A" or hide the feature.
 - Readability with dense tags: the stipple must stay dimmer than any text. Test on Classic and POCKET (non-black bg).
-- Toggle: a setup row (WX ON/OFF) means a settings field (MWR3, see [persist-sort-order.md](persist-sort-order.md)).
+- Toggle: a setup row (WX ON/OFF) takes a spare byte of the MWR3 settings record ([../../ui/config-screen.md](../../ui/config-screen.md)).
 
 ## Done when
 - [ ] Relay: `/v1/wx` + IEM source + cache + tests from a saved storm tile in `relay/testdata/`; contract test, lock.

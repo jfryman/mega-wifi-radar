@@ -19,7 +19,7 @@ stateDiagram-v2
   Cockpit --> Manual: any button (back to radar)
 ```
 - **Picking a flight** (score, highest wins; skip the one just shown, and ground traffic):
-  1. emergency squawk (`AR_F_EMERG`);
+  1. emergency squawk (`AR_F_EMERG`; the emergency alert has already shown its box: [../../ui/notices.md](../../ui/notices.md));
   2. the aircraft of the latest flyover notice ([../../ui/notices.md](../../ui/notices.md));
   3. an arrival, if [../watch-arrivals.md](../watch-arrivals.md) exists (`AR_F_ARRIVING`);
   4. lowest airborne aircraft within 10 nm (most interesting terrain close to the ground);
@@ -35,8 +35,8 @@ stateDiagram-v2
   (Y's path), return through `radar_up`. Cockpit mode needs an exit hook: `cockpit_run` checks a "time's up"
   callback or deadline as well as B. Any pad input in cockpit mode ends ambient mode and stays in the cockpit? No:
   simplest is any button = back to the radar, manual.
-- **Setting:** AMBIENT OFF / 2 / 5 / 15 min in setup. A new settings byte → `MWR3` record + migration from
-  `MWR2` (bundle with [persist-sort-order.md](persist-sort-order.md): one format bump for both).
+- **Setting:** AMBIENT OFF / 2 / 5 / 15 min in setup: one of the MWR3 record's spare bytes, 0 = OFF, so no new
+  record format ([../../ui/config-screen.md](../../ui/config-screen.md)). Setup's screen is full: the row needs a new layout.
 - Notices still pop up in ambient mode; ambient waits while a notice box is open.
 
 ```c
@@ -54,7 +54,7 @@ s16  ambient_pick(void);           /* track slot or -1 */
 
 ## Done when
 - [ ] Idle detection, the state machine, the picker; any button exits cleanly from every state.
-- [ ] Setup AMBIENT row, MWR3 with migration, tested from an MWR2 record.
+- [ ] Setup AMBIENT row in a spare settings byte; an MWR3 record from 0.4.2 loads with ambient OFF.
 - [ ] `make sim` runs a full cycle unattended (fake feed + fake cockpit track); a long MAME run with no leaks
       (RAM, VRAM, sprite state after many cockpit round trips: the [scroll bug](../../ui/radar-renderer.md) class).
 - [ ] An afternoon on the cart without a hang; manual: a short section and a controls note.

@@ -63,6 +63,7 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 | `-min-interval` | `RELAY_MIN_INTERVAL` | `1s` | Minimum time between upstream requests (adsb.fi allows 1 per second) |
 | `-mdns` | `RELAY_MDNS` | `true` | Advertise `_mwradar._tcp` over mDNS (UDP 5353) |
 | `-dem` | `RELAY_DEM` | AWS Terrain Tiles | Terrarium elevation tile base URL, for cockpit mode |
+| `-sky` | `RELAY_SKY` | `real` | Cockpit sky: `real` follows the sun at the aircraft; `day`, `golden`, `twilight` or `night` fixes it (also for `-pack-cockpit`) |
 | `-convert FILE -o OUT -lat -lon -range` |  | | Convert a saved upstream JSON file into one frame, then exit |
 | `-pack OUT FILES...` |  | | Pack several JSON snapshots into a fake-feed file for the emulator build |
 | `-pack-detail OUT FILES...` |  | | Pack the details of every aircraft in the snapshots for the emulator build's pop-up |

@@ -14,13 +14,15 @@ enum tag_mode { TAGS_ALL, TAGS_SELECTED, TAGS_OFF, TAGS_MODES };
 enum sound_mode { SOUND_ON, SOUND_OFF, SOUND_MODES };     /* boot sound + the flyover chime */
 
 struct settings {
-    u8 theme;                   /* THEME_CLASSIC / THEME_STARS */
+    u8 theme;                   /* enum THEME_* (theme.h) */
     u8 range_idx;               /* index into range_steps */
     u8 tag_mode;
     char icao[5];               /* home airport */
     s32 lat_e4, lon_e4;         /* home point, 1e-4 deg */
     char relay[RELAY_LEN + 1];  /* relay base URL, "" = AUTO (found over mDNS) */
     u8 sound;                   /* SOUND_ON / SOUND_OFF (was CHIME: same byte, same values) */
+    u8 sort;                    /* traffic list order (enum sort_mode, tlist.h); MWR3 on */
+    u8 rsv[7];                  /* spare, 0 until a later build gives one a meaning (and 0 its default) */
 };
 
 extern struct settings settings;
@@ -40,6 +42,10 @@ bool settings_reset(enum settings_reset what);
 bool settings_load(void);
 /* Write to ESP32 flash. TRUE on success. */
 bool settings_save(void);
+/* A setting changed on the radar (zoom, tags, theme, sort): settings_save_due() says when to write it, from
+ * the radar's poll (a blocking flash write, like the poll's own HTTP), at most every SAVE_GAP_SECS. */
+void settings_changed(void);
+bool settings_save_due(void);
 static inline u16 settings_range_nm(void) { return range_steps[settings.range_idx]; }
 
 #endif

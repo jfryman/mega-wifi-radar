@@ -15,3 +15,6 @@ flyover feed, a service that announces planes overhead (see _The Relay_).
 
 A chime plays as it arrives (*SOUND* in Setup turns it off). Some home airports have a tune of their
 own. In the Cockpit View, *OVERHEAD!* shows next to the callsign and the notice scrolls along the bottom.
+
+When any aircraft on the radar squawks an emergency (7700, 7600 radio failure or 7500), the same box
+opens with *SQUAWK 7700 EMERGENCY*, where it is, and a two-tone alert.

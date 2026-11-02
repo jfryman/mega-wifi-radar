@@ -13,7 +13,7 @@ row 22  ^2 v11 MORE     hidden above / below; blank when everything fits
 ```
 
 ## Behaviour
-- **Orders** (`enum sort_mode`, RAM only, every boot starts at NEAREST): NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT.
+- **Orders** (`enum sort_mode` in `settings.sort`, saved: [config-screen.md](config-screen.md)): NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT.
   Emergencies (`AR_F_EMERG`) come first in every order. Ties keep slot order, so the list is stable.
 - **Altitude key:** ground lowest, unknown altitude after every known one in both altitude orders.
 - **Data:** the `[main]` side of the track table (`tracks[i].next`, used && !drop), so it never races the V-Int.

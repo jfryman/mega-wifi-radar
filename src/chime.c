@@ -43,6 +43,19 @@ static const struct tune nashville = { &guitar, 8, {
     { 60, 60, 16 },
 } };
 
+/* Alert: algorithm 7 with only OP1 sounding, some feedback for an edge: a plain electronic tone. */
+static const struct fm_patch beep = { 0x27, {
+    { 0x01, 8, 0x1F, 0, 0, 0x0F },
+    { 0x01, 127, 0x1F, 0, 0, 0x0F },
+    { 0x01, 127, 0x1F, 0, 0, 0x0F },
+    { 0x01, 127, 0x1F, 0, 0, 0x0F },
+} };
+
+/* Emergency squawk: hi-lo three times, A5 E5, like a caution tone. */
+static const struct tune alert = { &beep, 6, {
+    { 0, 10, 21 }, { 14, 10, 16 }, { 28, 10, 21 }, { 42, 10, 16 }, { 56, 10, 21 }, { 70, 14, 16 },
+} };
+
 /* F-numbers for C..B at block 4 (A4 = 440 Hz -> 1083 with the NTSC 7.67 MHz clock); block = octave. */
 static const u16 fnum[12] = { 644, 682, 723, 766, 811, 859, 910, 965, 1022, 1083, 1147, 1215 };
 static const u8 op_off[4] = { 0, 8, 4, 12 };            /* OP1..OP4 register offsets */
@@ -57,6 +70,8 @@ static u16 done_at;
 static void reg(u16 ch, u8 r, u8 v) { YM2612_writeReg(ch >> 2, r + (ch & 3), v); }  /* ch 0-2, 4-6 */
 static u16 chan(u16 i) { return i < 3 ? i : i + 1; }   /* channel i -> YM channel code */
 
+static void play(const struct tune *t);
+
 static void key(u16 i, bool on)
 {
     YM2612_writeReg(0, 0x28, (on ? 0xF0 : 0x00) | chan(i));
@@ -64,10 +79,12 @@ static void key(u16 i, bool on)
     else keyed &= ~(1 << i);
 }
 
-void chime_play(void)
+void chime_play(void) { play(memcmp(settings.icao, "KBNA", 4) ? &generic : &nashville); }
+void chime_alert(void) { play(&alert); }
+
+static void play(const struct tune *t)
 {
     if (settings.sound == SOUND_OFF) return;
-    const struct tune *t = memcmp(settings.icao, "KBNA", 4) ? &generic : &nashville;
     const struct fm_patch *p = t->patch;
 
     SYS_disableInts();

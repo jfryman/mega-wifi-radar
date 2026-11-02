@@ -39,7 +39,7 @@ flowchart LR
      sweep crosses it. Measure (`RADAR_DEBUG`); the sweep is ~45 lines/frame today, total ~175 of 262.
   2. Maps only in no-sweep themes (STARS, POCKET, ERAM): trivial, but Classic users never see them.
   3. Plane A unique tiles per map cell: conflicts with tags and labels cell by cell; no.
-- **Toggle:** MAP OFF / RWY / ALL in setup (settings field → MWR3, [persist-sort-order.md](persist-sort-order.md)).
+- **Toggle:** MAP OFF / RWY / ALL in setup (a spare byte of the MWR3 record, [../../ui/config-screen.md](../../ui/config-screen.md)).
 
 ## Contract (v5 or later)
 ```c

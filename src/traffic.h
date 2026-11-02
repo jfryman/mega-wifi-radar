@@ -30,6 +30,7 @@ struct track {
     s16 trail_x[TRAIL_N];       /* [vint] past positions, [0] newest (1/32 nm) */
     s16 trail_y[TRAIL_N];
     u8 trail_n;
+    u8 emerg;                   /* [main] polls in a row with AR_F_EMERG (to 2); 3 = alerted (alert.c) */
     s16 bx, by;                 /* [vint] cur position in disc-block px */
     u16 spr_y, spr_x;           /* [vint] sprite words (VDP +128 offsets) */
     u16 spr_attr;               /* [vint] blip attr with brightness level 0 */

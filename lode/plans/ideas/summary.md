@@ -7,11 +7,9 @@ then move it to `plans/` as the active plan and update it to the current state a
 
 | Goal | What you get | Where | Contract | Size | Depends on |
 |---|---|---|---|---|---|
-| [ambient-mode.md](ambient-mode.md) | idle cart tours flights: details → cockpit → radar | cart | none | M | MWR3 for its setting |
-| [real-sky.md](real-sky.md) | cockpit sky/ground follow the real sun; night lights later | relay | none | S | — |
-| [emergency-alert.md](emergency-alert.md) | sound + box when a 7500/7600/7700 appears | cart | none | S | — |
-| [persist-sort-order.md](persist-sort-order.md) | settings `MWR3`: sort order saved, spare bytes for the rest | cart | none | S | — |
-| [weather-overlay.md](weather-overlay.md) | NEXRAD precipitation as STARS-style stippled cells | both | v5+ `/v1/wx` | L | MWR3 for a toggle |
+| [ambient-mode.md](ambient-mode.md) | idle cart tours flights: details → cockpit → radar | cart | none | M | a setup row (screen is full) |
+| *night lights* (below) | cockpit: urban cells lit warm yellow at night | relay | none | M | a land-cover / night-lights source |
+| [weather-overlay.md](weather-overlay.md) | NEXRAD precipitation as STARS-style stippled cells | both | v5+ `/v1/wx` | L | — |
 | [video-maps.md](video-maps.md) | runways + extended centrelines (+ rivers, airspace) | both | v5+ `/v1/map` | L | sweep slow-path measurement |
 | [stars-data-blocks.md](stars-data-blocks.md) | leader lines + 8-direction tags in STARS/ERAM | cart | none (phase 2: type in record) | M | — |
 | [spotters-logbook.md](spotters-logbook.md) | "today at KBNA" stats, rare types, rare-type notices | both | v5+ `/v1/log` | L | relay persistence |
@@ -21,18 +19,24 @@ S = a session or two, M = a few sessions, L = a release of its own.
 
 ```mermaid
 flowchart LR
-  MWR3[persist-sort-order<br/>MWR3] --> AMB[ambient-mode]
-  MWR3 --> WX[weather-overlay]
-  MWR3 --> MAP[video-maps]
-  ARR[watch-arrivals] -. arrivals score .-> AMB
-  MAP -. centrelines .-> ARR
+  ARR[watch-arrivals] -. arrivals score .-> AMB[ambient-mode]
+  MAP[video-maps] -. centrelines .-> ARR
   NOT[flyover notice ring] --> LOG[spotters-logbook rare notices]
-  NOT --> EMG[emergency-alert box + ticker]
+  CFG[MWR3 spare bytes] --> AMB
+  CFG --> WX[weather-overlay]
+  CFG --> MAP
 ```
 
+## Night lights (phase 2 of the real sky)
+The relay already tints the cockpit palette by the sun ([../../ui/cockpit.md](../../ui/cockpit.md)). Palette 14 "urban"
+is unused: a land-cover or night-lights layer (ESA WorldCover "built-up", or VIIRS Black Marble tiles) could mark
+urban cells, coloured dark grey by day and warm yellow at night, so Nashville glows under an evening arrival.
+Relay-only (cells' colour codes and the palette), no contract change. Done when: a source is chosen and cached,
+`code()` marks urban cells, night shows them lit in a `-sky night` emulator preview and on the cart.
+
 ## Suggested order
-1. **Quick wins, no contract change:** emergency-alert, real-sky, persist-sort-order (MWR3 with spare bytes).
-2. **Ambient mode** on top of MWR3: the best fit for a cart that sits on a TV all day.
+1. **Ambient mode**: the best fit for a cart that sits on a TV all day; cart only.
+2. **Night lights**, if the real sky makes you want more.
 3. **One contract release (v5)** bundling what needs the relay: pick from weather, maps, logbook, arrivals.
    Bundle them so the cart and relay bump `AR_VER` once ([../../architecture/contract.md](../../architecture/contract.md)).
 

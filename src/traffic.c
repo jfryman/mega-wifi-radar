@@ -74,6 +74,8 @@ void traffic_ingest(const struct ar_hdr *h)
             t->tag_x = t->tag_y = -1;
             for (u16 k = 0; k < TRAIL_N; k++) t->dot_x[k] = -32768;   /* NO_DOT */
         }
+        if (!(r->flags & AR_F_EMERG)) t->emerg = 0;
+        else if (t->emerg < 2) t->emerg++;
         t->next = *r;
         memcpy(t->next_tag, tag, sizeof(tag));
         t->next_pal = band_pal(r);

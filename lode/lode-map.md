@@ -26,9 +26,9 @@
   - [boot-sound.md](ui/boot-sound.md) - boot sound on the PSG: engine whine/roar from rpm, radio squelch + voice blips, SOUND setting
   - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
-  - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, Voxel Space into VRAM, overlay RAM, camera, HUD
-  - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR2 + migration), airports
-  - [notices.md](ui/notices.md) - flyover notices: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
+  - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, real sky, Voxel Space into VRAM, overlay RAM, camera, HUD
+  - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR3, spare bytes, migration, saves from the radar), airports
+  - [notices.md](ui/notices.md) - flyover notices + the emergency alert: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
@@ -43,11 +43,8 @@
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
-    - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints
+    - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; night lights
     - [ambient-mode.md](plans/ideas/ambient-mode.md) - idle cart tours flights (details → cockpit → radar)
-    - [real-sky.md](plans/ideas/real-sky.md) - cockpit sky follows the real sun (relay-only palette tint)
-    - [emergency-alert.md](plans/ideas/emergency-alert.md) - sound + box on 7500/7600/7700
-    - [persist-sort-order.md](plans/ideas/persist-sort-order.md) - settings MWR3: sort order + spare bytes
     - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
     - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
     - [stars-data-blocks.md](plans/ideas/stars-data-blocks.md) - leader lines, 8-direction tags in STARS/ERAM

@@ -18,4 +18,4 @@ The relay sends the ground and the aircraft's position every two seconds; your G
 in between. Getting in takes a few seconds.
 
 #note[What you're seeing][Hills are true to scale, so flat country looks flat. Colours come from height,
-not photographs, so rivers and towns don't show.]
+not photographs; the sky follows the real time of day.]

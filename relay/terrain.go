@@ -124,6 +124,7 @@ func (g geom) level(m float64) float64 {
 
 type patch struct {
 	g      geom
+	pal    *[16]uint16 // nil: terrainPal (daylight)
 	flags  uint8
 	hmax   uint8
 	height [tn * tn]uint8
@@ -272,7 +273,11 @@ func (p *patch) encode() []byte {
 	put16(8, uint16(p.g.levelCm))
 	put16(10, uint16(int16(p.g.baseM)))
 	b[12] = p.hmax
-	for i, c := range terrainPal {
+	pal := &terrainPal
+	if p.pal != nil {
+		pal = p.pal
+	}
+	for i, c := range pal {
 		put16(14+2*i, c)
 	}
 	copy(b[46:46+keyLen-1], p.g.key()) // NUL-terminated: the last byte stays 0
@@ -324,10 +329,13 @@ func terrainHandler(src *source, el elevator) http.HandlerFunc {
 			lon += d * math.Sin(t) / (metresPerDegN * math.Cos(lat*math.Pi/180))
 		}
 		p := buildPatch(r.Context(), el, lat, lon, alt, 0)
+		phase := phaseAt(lat, lon, time.Now())
+		pal := skyPalette(phase)
+		p.pal = &pal
 		body := p.encode()
 		writeBinary(w, body)
-		log.Printf("%s %s -> %d m cells, %d cm levels, base %d m, hmax %d, flags %#x, %d B, %v", r.RemoteAddr,
-			r.URL.RequestURI(), p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, len(body),
+		log.Printf("%s %s -> %d m cells, %d cm levels, base %d m, hmax %d, flags %#x, sky %d, %d B, %v", r.RemoteAddr,
+			r.URL.RequestURI(), p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, phase, len(body),
 			time.Since(start).Round(time.Millisecond))
 	}
 }

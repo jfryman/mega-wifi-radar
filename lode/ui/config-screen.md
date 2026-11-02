@@ -25,11 +25,19 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
   the checksum and the dev defaults come back. Then `SYS_hardReset()`.
 - Keyboard: 7 rows of 13 chars + SPACE/DEL/OK/CANCEL; A type, B delete, START OK.
 - `ui_wait_release()` on entry: the press that opened a screen must not act on it.
-- Persistence: `settings_save()` writes `"MWR2" + struct settings + checksum` to ESP32 user_data
+- Persistence: `settings_save()` writes `"MWR3" + struct settings + checksum` to ESP32 user_data
   sector 0 (`mw_flash_sector_erase/write`); `settings_load()` at boot. Defaults come from devcfg.
-  A 0.3.x `"MWR1"` record (the same struct without `chime`, `struct saved_v1`) is read and upgraded with the chime
-  ON, so updating loses nothing; a `_Static_assert` keeps the old fields first and unchanged. A new field means a
-  new magic and the same kind of migration (there are no spare bytes).
+  Older records are upgraded on load, so updating loses nothing: `"MWR2"` (0.4.0-0.4.1, `struct saved_v2`: no
+  `sort`, loaded as NEAREST) and `"MWR1"` (0.3.x, `struct saved_v1`: no `sound` either, loaded ON). New fields
+  start zeroed (`memset` before the copy), so **0 must be every new field's default**. `_Static_assert`s keep the
+  old fields first and unchanged.
+- **Spare bytes:** `rsv[7]` are saved as 0 and not validated. The next small setting takes one (0 = its
+  default) without a new magic; older builds keep them as they found them. A field whose 0 can't be the
+  default, or more than 7 bytes, still needs `MWR4` and a migration.
+- **Saving from the radar:** zoom (A/B), tags (◀▶), theme (X) and the sort order (hold C) call
+  `settings_changed()`; the radar's `poll()` writes the record when `settings_save_due()` (dirty, and 30 s since
+  the last radar save), right after the frame and notice requests: a blocking flash write in the poll's blocking
+  slot, never from the input handler. A failed write isn't retried until the next change.
 - `src/airports.c` is generated: `cd tools && go run ./airportgen -o ../src/airports.c` (OurAirports, public domain).
 - Layout: title on row 1, `ROW_Y(r) = 3 + 2r + (r > R_AIRPORT)` (the airport name gets a line), EXIT on row 24,
   status on row 25, one hint line on row 26 (`L/R CHANGE  A EDIT  C JUMP  START SAVE`). The screen is full: another
@@ -45,12 +53,14 @@ flowchart TD
   R -- START --> S2[setup_run] --> R
 ```
 ```c
-struct settings {               /* src/settings.h; saved as "MWR2" + struct + checksum */
+struct settings {               /* src/settings.h; saved as "MWR3" + struct + checksum */
     u8 theme, range_idx, tag_mode;
     char icao[5];
     s32 lat_e4, lon_e4;
     char relay[RELAY_LEN + 1];  /* "" = AUTO (mDNS) */
     u8 sound;                   /* SOUND_ON / SOUND_OFF (was CHIME: same byte, same values) */
+    u8 sort;                    /* traffic list order (enum sort_mode); MWR3 on */
+    u8 rsv[7];                  /* spare, 0 */
 };
 ```
 

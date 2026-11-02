@@ -10,6 +10,9 @@
 
 /* After a frame or track: fetch a waiting notice (one small blocking GET) and play the chime. */
 void notice_check(void);
+/* A notice composed on the cart (the emergency alert, alert.c): shown like a fetched one in the radar; no chime;
+ * cockpit mode drops it (its HUD speaks of flyovers). */
+void notice_local(const struct ar_notice *n);
 
 /* ---- radar ---- */
 /* Every frame: show a pending notice in the box (once the detail pop-up is closed), blink, time it out. */

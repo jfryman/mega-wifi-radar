@@ -9,7 +9,6 @@ static const char *const sort_names[SORT_MODES] = {
     "- NEAREST -", "--- A-Z ---", "--- Z-A ---", "- LOW ALT -", "- HIGH ALT",
 };
 
-static u8 sort_mode = SORT_NEAREST;     /* RAM only: every boot starts at NEAREST */
 static u8 order[TR_MAX];                /* track slots in list order */
 static u16 dist[TR_MAX];                /* per slot: distance from home, 1/32 nm */
 static u16 count, top, first_row;
@@ -35,7 +34,7 @@ static bool before(u8 a, u8 b)
     s16 c = 0;
 
     if (ea != eb) return ea;
-    switch (sort_mode) {
+    switch (settings.sort) {
     case SORT_NEAREST: c = dist[a] < dist[b] ? -1 : dist[a] > dist[b]; break;
     case SORT_AZ: c = memcmp(ra->cs, rb->cs, sizeof(ra->cs)); break;
     case SORT_ZA: c = memcmp(rb->cs, ra->cs, sizeof(ra->cs)); break;
@@ -44,7 +43,7 @@ static bool before(u8 a, u8 b)
         s16 ka = alt_key(ra), kb = alt_key(rb);
         if ((ka == ALT_UNKNOWN) != (kb == ALT_UNKNOWN)) return kb == ALT_UNKNOWN;
         c = ka < kb ? -1 : ka > kb;
-        if (sort_mode == SORT_ALT_HIGH) c = -c;
+        if (settings.sort == SORT_ALT_HIGH) c = -c;
         break;
     }
     }
@@ -85,7 +84,7 @@ void tlist_draw(u16 row)
 
     first_row = row;
     drawn = TRUE;
-    radar_panel(row, sort_names[sort_mode]);
+    radar_panel(row, sort_names[settings.sort]);
     for (u16 r = 0; r < LIST_ROWS; r++) {
         u16 k = top + r;
         if (k >= count) {
@@ -141,6 +140,7 @@ void tlist_move(s16 d)
 
 void tlist_sort_next(void)
 {
-    sort_mode = (sort_mode + 1) % SORT_MODES;
+    settings.sort = (settings.sort + 1) % SORT_MODES;
+    settings_changed();
     tlist_rebuild();
 }

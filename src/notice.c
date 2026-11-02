@@ -18,20 +18,31 @@
 static struct ar_notice cur;
 static bool have;           /* cur is pending or showing */
 static bool shown;          /* in the banner */
+static bool local;          /* composed on the cart (notice_local): radar only */
 static u32 got_at, shown_at;
 
 void notice_check(void)
 {
     const struct ar_notice *n;
 
-    if (!feed_notice_waiting()) return;
+    if (!feed_notice_waiting() || (have && local)) return;     /* an emergency alert first: the relay keeps it 30 s */
     if (feed_notice(&n) != FEED_OK || !n->id) return;
     cur = *n;
+    local = FALSE;
     if (!cur.secs) cur.secs = DEFAULT_SECS;     /* cockpit pages are secs / 3: never 0 */
     have = TRUE;
     shown = FALSE;          /* the banner (if up) is rewritten with this one */
     got_at = vtimer;
     chime_play();
+}
+
+void notice_local(const struct ar_notice *n)
+{
+    cur = *n;
+    local = TRUE;
+    have = TRUE;
+    shown = FALSE;
+    got_at = vtimer;
 }
 
 /* ------------------------------------------------------------ radar box */
@@ -104,7 +115,7 @@ void notice_select(void)
 
 const struct ar_notice *notice_current(void)
 {
-    if (have && vtimer - got_at > (WAIT_SECS + cur.secs) * 60UL) have = FALSE;
+    if (have && (local || vtimer - got_at > (WAIT_SECS + cur.secs) * 60UL)) have = FALSE;   /* alerts: radar only */
     return have ? &cur : NULL;
 }
 

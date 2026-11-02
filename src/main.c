@@ -15,6 +15,7 @@
 #include "setup.h"
 #include "splash.h"
 #include "settings.h"
+#include "alert.h"
 #include "theme.h"
 #include "tlist.h"
 #include "traffic.h"
@@ -201,6 +202,7 @@ static void handle_input(void)
             sprintf(buf, "RNG %3uNM", settings_range_nm());
             radar_panel(ROW_RANGE, buf);
             radar_rescale();
+            settings_changed();
         }
     }
     /* C: a tap (released before HOLD_FRAMES) opens / closes the pop-up; a hold changes the sort */
@@ -228,11 +230,13 @@ static void handle_input(void)
         settings.tag_mode = (settings.tag_mode + ((pressed & BUTTON_RIGHT) ? 1 : TAGS_MODES - 1)) % TAGS_MODES;
         radar_retag();
         panel_modes();
+        settings_changed();
     }
     if (pressed & BUTTON_X) {
         settings.theme = (settings.theme + 1) % THEME_COUNT;
         radar_retheme();
         panel_modes();
+        settings_changed();
     }
     if (pressed & BUTTON_START) want_setup = TRUE;
 }
@@ -269,6 +273,8 @@ static void poll(void)
         tlist_rebuild();
         popup_after_poll();
         notice_check();                     /* a flyover notice waiting? (lode/ui/notices.md) */
+        alert_check();                      /* an emergency squawk: the box + a tone (alert.c) */
+        if (settings_save_due()) settings_save();   /* zoom, tags, theme or sort changed here */
     } else {
         radar_panel(ROW_NET, feed_err_str(e));
         popup_after_poll();
