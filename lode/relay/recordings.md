@@ -31,7 +31,8 @@ A recording that is still being written isn't a valid gzip yet; decompress what'
   `/api/v2/hex/{hex}` returns that aircraft from the current snapshot (`~` prefixes ignored).
 - The logbook stays **in memory** while replaying (`-db` is cleared), so recorded aircraft never reach the real one.
 - `scripts/relay replay FILE [args]` runs it in the container in the foreground, mounting the file, and stops the
-  detached `mwradar-relay` first (port 8080); `make relay-start` brings the normal relay back.
+  detached `mwradar-relay` first (port 8080), names its container `mwradar-replay` and uses `-it` only from a
+  terminal (so it also runs in the background); `make relay-start` brings the normal relay back.
 
 ## Fixtures (`relay/testdata/arrivals/`, adsb.fi terms in `testdata/NOTICE.md`)
 | File | Aircraft | Runway | Window |
