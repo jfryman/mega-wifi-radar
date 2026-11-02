@@ -65,7 +65,8 @@ only if it fits 11 chars).
   tag show the weather), `box_rows` (cells the shrinking notice box leaves).
 - **Full redraw** `wx_rows()`: ≤ `WX_PER_FRAME` (3) rows a frame, after `box_tick`; skips cells whose `grid` low
   nibble is set (text there). A tag's gap column is marked `GAP` (0x10) in `grid` (`tag_mark`), so it still
-  blocks placement but gets weather. Rescale wipes `wx_cells` (sampled at the old range) and dirties all rows.
+  blocks placement but gets weather. A zoom wipes `wx_cells` (sampled at the old range) in `radar_rescale()` itself (main, ints off, so a fetch right
+  after the zoom can't be wiped by a V-Int rescale still pending) and the V-Int rescale dirties all rows.
 - Cost: 26 words/row, ~5 lines a frame while redrawing (9 frames per refresh), nothing in steady state.
   No `jsr __` added in `radar_vint`.
 

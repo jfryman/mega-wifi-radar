@@ -6,6 +6,7 @@
  * network. The main loop talks to it only through the calls below and the
  * track table (traffic.h). Design: lode/ui/radar-renderer.md. */
 #include <genesis.h>
+#include "arframe.h"
 
 #define PANEL_COL   28      /* window plane: cols 28..38 */
 #define PANEL_W     11
@@ -34,6 +35,12 @@ bool radar_box_up(void);                /* drawn at all (opening, open or closin
 /* Weather (lode/ui/weather.md): AR_WX_N rows of AR_WX_ROW bytes as struct ar_wx sends them, or NULL for none.
  * Drawn a few rows a frame under the tags; a zoom wipes it (it was sampled at the old range). */
 void radar_wx(const u8 *cells);
+/* Video map (lode/ui/video-maps.md), main loop. radar_map_begin() removes the map (a drawn one is cleared from the
+ * scope, trail dots redrawn) and lends its buffer (*size bytes) for a struct ar_map + segments to be fetched into;
+ * radar_map_end(TRUE) draws it, a few lines a frame; radar_map_end(FALSE) leaves none. A zoom wipes it (it was
+ * projected at the old range). */
+u8 *radar_map_begin(u16 *size);
+void radar_map_end(bool ok);
 void radar_rescale(void);       /* range changed: rescale trails, tags, labels */
 void radar_retheme(void);       /* settings.theme changed */
 void radar_retag(void);         /* tag mode or selection changed */

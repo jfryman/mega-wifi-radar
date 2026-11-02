@@ -18,8 +18,8 @@ flowchart LR
 | 4–5 | starting-up | Model 1 top + front with callouts, 3 steps, first time, if nothing appears, what you need |
 | 6–7 | controls | pad drawing + 5 keys (A: cockpit from the details), six-button note (X theme, Y cockpit, Z weather); range steps + `zoom` shot (page 7) |
 | 8 | relay | what the relay is, docker command, same-release rule, URL rules, optional flyover feed (→ docs/flyover.md), adsb.fi fair use |
-| 9–10 | setup | `setup` shot + 7 keys (THEME ... AMBIENT incl. WEATHER, AIRPORT, WI-FI, RELAY, CONTROLS, RESET, SAVE), `keyboard` shot, persistence, airport count |
-| 11–12 | scope | `radar` shot (with the recorded storm) + 7 keys (traffic list, theme/tags/data + IEM), Weather paragraph, tag colours table, stale/drop (page 12 has ~8 lines spare) |
+| 9–10 | setup | `setup` shot + 7 keys (THEME ... AMBIENT incl. WEATHER, MAP, AIRPORT, WI-FI, RELAY, CONTROLS, RESET, SAVE), `keyboard` shot, persistence, airport count |
+| 11–12 | scope | `radar` shot (with the recorded storm) + 7 keys (traffic list, theme/tags/data + IEM), Weather and Runways paragraphs, tag colours table, stale/drop (page 12 has ~3 lines spare) |
 | 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
 | 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
 | 15 | notices | `notice` shot (75%, the box open, callouts staggered into its empty space) + 4 keys, chime + cockpit line |

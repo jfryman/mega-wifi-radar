@@ -112,6 +112,7 @@ var relayInts = map[string]int64{
 	"AR_TRACK_SIZE": trackSize, "AR_K_FOUND": kFound, "AR_K_GROUND": kGround, "AR_K_EMERG": kEmerg,
 	"AR_K_ALT_UNK": kAltUnk, "AR_STRIP_CELLS": stripCells, "AR_K_NOTICE": kNotice,
 	"AR_NOTICE_SIZE": noticeSize, "AR_NOTICE_COLS": noticeCols, "AR_N_ICAO": nICAO, "AR_N_EMERG": nEmerg,
+	"AR_MAP_MAX": mapMax, "AR_MAP_HDR": mapHdr, "AR_M_NONE": mNone,
 	"AR_H_WX": hWx, "AR_WX_N": wxN, "AR_WX_ROW": wxRow, "AR_WX_SIZE": wxSize, "AR_W_NONE": wNone, "AR_W_OLD": wOld,
 }
 
@@ -135,6 +136,8 @@ var checkedElsewhere = map[string]string{
 	"AR_NOTICE_QUERY":  "TestContractHTTP",
 	"AR_WX_PATH":       "TestContractHTTP",
 	"AR_WX_QUERY":      "TestContractHTTP",
+	"AR_MAP_PATH":      "TestContractHTTP",
+	"AR_MAP_QUERY":     "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
 	"AR_MDNS_SRC_PORT": "TestContractDiscovery",
@@ -216,6 +219,8 @@ func TestContractLayout(t *testing.T) {
 	wg := wxGrid{flags: 0x03, id: 0xC0DE, rangeNM: 0x0064}
 	wg.cells[0][0], wg.cells[1][5], wg.cells[25][25] = 3, 2, 1
 	encW := wg.encode()
+	vm := vmap{flags: 0x81, rangeNM: 0x0019, segs: []seg{{0x11, 0x22, 0x33, 0x44}}}
+	encM := vm.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
 	want := map[string]map[string]func(size int) []byte{
@@ -313,6 +318,19 @@ func TestContractLayout(t *testing.T) {
 				return append(append(append([]byte{}, nt.lines[0][:]...), nt.lines[1][:]...), nt.lines[2][:]...)
 			},
 		},
+		"ar_map": {
+			"magic":    func(int) []byte { return []byte("AM") },
+			"ver":      func(n int) []byte { return be(frameVer, n) },
+			"mflags":   func(n int) []byte { return be(uint64(vm.flags), n) },
+			"count":    func(n int) []byte { return be(1, n) },
+			"range_nm": func(n int) []byte { return be(uint64(vm.rangeNM), n) },
+		},
+		"ar_seg": {
+			"x1": func(n int) []byte { return be(0x11, n) },
+			"y1": func(n int) []byte { return be(0x22, n) },
+			"x2": func(n int) []byte { return be(0x33, n) },
+			"y2": func(n int) []byte { return be(0x44, n) },
+		},
 		"ar_wx": {
 			"magic":    func(int) []byte { return []byte("AW") },
 			"ver":      func(n int) []byte { return be(frameVer, n) },
@@ -332,12 +350,14 @@ func TestContractLayout(t *testing.T) {
 		},
 	}
 	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD, "ar_terrain": encT, "ar_track": encK,
-		"ar_notice": encN, "ar_wx": encW}
-	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0, "ar_wx": 0}
+		"ar_notice": encN, "ar_wx": encW,
+		"ar_map": encM, "ar_seg": encM}
+	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0, "ar_wx": 0, "ar_map": 0,
+		"ar_seg": int(h.ints["AR_MAP_HDR"])}
 	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
 		"ar_detail": int(h.ints["AR_DETAIL_SIZE"]), "ar_terrain": int(h.ints["AR_TERRAIN_HDR"]),
 		"ar_track": int(h.ints["AR_TRACK_SIZE"]), "ar_notice": int(h.ints["AR_NOTICE_SIZE"]),
-		"ar_wx": int(h.ints["AR_WX_SIZE"])}
+		"ar_wx": int(h.ints["AR_WX_SIZE"]), "ar_map": int(h.ints["AR_MAP_HDR"]), "ar_seg": 4}
 	// The maps follow the terrain header: heights, then colours.
 	if len(encT) != terrainSize || encT[terrainHdr] != p.height[0] || encT[terrainHdr+tn*tn] != p.colour[0] {
 		t.Errorf("terrain body: %d bytes, height[0] %#x, colour[0] %#x", len(encT), encT[terrainHdr], encT[terrainHdr+tn*tn])
@@ -555,6 +575,22 @@ func TestContractHTTP(t *testing.T) {
 		if b := rec.Body.Bytes(); rec.Code != 200 || (b[15]&byte(h.ints["AR_H_WX"]) != 0) != (held == 0) {
 			t.Errorf("frame with w=%d: status %d, hflags %#x", held, rec.Code, b[15])
 		}
+	}
+
+	// Video maps: the cart's map query returns a header and count segments within AR_MAP_MAX.
+	if h.strs["AR_MAP_PATH"] != mapPath {
+		t.Errorf("AR_MAP_PATH %q, relay serves %q", h.strs["AR_MAP_PATH"], mapPath)
+	}
+	mq := h.strs["AR_MAP_QUERY"]
+	if strings.Count(mq, "%") != 4 {
+		t.Fatalf("AR_MAP_QUERY %q: expected lat, lon, range, version", mq)
+	}
+	rec = httptest.NewRecorder()
+	mapHandler().ServeHTTP(rec, httptest.NewRequest("GET", mapPath+fmt.Sprintf(cFormat(mq), "36.1245", "-86.6782", 10, ver), nil))
+	mb := rec.Body.Bytes()
+	if n := int(binary.BigEndian.Uint16(mb[4:])); rec.Code != 200 || string(mb[:2]) != "AM" || n == 0 ||
+		n > int(h.ints["AR_MAP_MAX"]) || len(mb) != int(h.ints["AR_MAP_HDR"])+4*n {
+		t.Errorf("map for the cart's query: status %d, %d bytes, % x", rec.Code, len(mb), mb[:8])
 	}
 
 	// The patch is centred on the aircraft (projected terrainLeadS ahead): it sits near the middle cell.

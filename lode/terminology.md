@@ -64,7 +64,7 @@
 - Chime - the FM tune played with a notice (`chime.c`): a generic bell, or the KBNA "Music City" lick; the emergency alert's hi-lo tone; setup's SOUND turns them off (with the boot sound).
 - Emergency alert - the notice box + hi-lo tone the cart raises itself when an aircraft shows `AR_F_EMERG` on 2 polls in a row (`alert.c`, `notice_local`).
 - Sky phase - day / golden / twilight / night, picked by the relay from the sun's elevation for a terrain patch's palette (`sky.go`).
-- MWR3 - the settings record since 0.4.2 (adds `sort` and 7 spare bytes, now `ambient`, `wx` and 5 spare); 0.4.0-0.4.1 `MWR2` (added `sound`) and 0.3.x `MWR1` records are upgraded on load.
+- MWR3 - the settings record since 0.4.2 (adds `sort` and 7 spare bytes, now `ambient`, `wx`, `map` and 4 spare); 0.4.0-0.4.1 `MWR2` (added `sound`) and 0.3.x `MWR1` records are upgraded on load.
 - atc-mqtt - the owner's service that watches FR24 within 500 m of home and publishes `atc/status` to MQTT.
 - Dev broker - `mwradar-mqtt`, a local mosquitto container on the `mwradar` network (`make mqtt-start`).
 - Ambient mode - the radar touring flights by itself after setup's AMBIENT idle minutes: details, a 75 s cockpit ride, a minute on the radar (`ambient.c`); `NET OK AUTO` on the panel.
@@ -72,4 +72,6 @@
 - Weather overlay - NEXRAD precipitation as stippled cells under the tags: 3 levels (light 20-35, moderate 35-50, heavy 50+ dBZ), plane A low priority (`wx.c`, relay `wx.go`).
 - IEM / n0q - the Iowa Environmental Mesonet and its NEXRAD base-reflectivity composite (CONUS, every 5 min), the weather source; value v = v/2 − 32.5 dBZ.
 - Weather id / `w=` - a scan's unix minute (u16, never 0); the cart sends the one it holds as `w=` and the frame flags another (`AR_H_WX`).
+- Video map - faint plane-B lines on the scope: runways in view + the home airport's extended centrelines (10 nm, mile ticks) at ≤ 25 nm (`vmap.c`, relay `maps.go`).
+- Fixed pixel - a plane-B pixel in `trail_bits` (trail dot or map line) that the sweep's slow path leaves alone; its colour says whose it is.
 - City lights - cockpit cells under night lights (NASA GIBS VIIRS City Lights 2012), palette 14: grey specks by day, warm points at night (`lights.go`).

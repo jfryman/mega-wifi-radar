@@ -39,7 +39,7 @@ row 27  ·· overscan margin ·········│···············
 | Layer | Contents | Notes |
 |---|---|---|
 | Plane A (high) | data tags (tile-aligned text), ring labels, compass; the flyover notice box | trail dots are on plane B |
-| Plane B (high) | scope disc: rings/ticks + **thin-line sweep** with afterglow | 568 unique tiles, RAM copy, see [sweep.md](sweep.md) |
+| Plane B (high) | scope disc: rings/ticks + **thin-line sweep** with afterglow, trail dots, video map lines | 568 unique tiles, RAM copy, see [sweep.md](sweep.md), [video-maps.md](video-maps.md) |
 | Plane A (low) | weather stipple in the cells without text ([weather.md](weather.md)) | under the scope's lines, over its background |
 | Window | side panel; the detail pop-up over cols 0–27 while open | fixed: the scope never scrolls |
 | Sprites | one 8×8 blip per aircraft (4 brightness tiles), selection box, emergency marker | ≤ 80 total, ≤ 20 per line |
@@ -103,12 +103,12 @@ Nine themes, cycled in setup's THEME row or by X; `settings.theme` is their inde
 | ERAM | grey-green maps, green targets, pale data blocks on leader lines | no |
 
 ```c
-struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS]; bool sweep; bool blip_fade; bool leader; };
+struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS /* 9 */]; bool sweep; bool blip_fade; bool leader; };
 ```
 
 Palette contract (`theme.h`), the same for every theme:
-- PAL0: 0 background (also the backdrop), 1 rings, 2-11 glow slots (written at runtime from `glow`, newest first;
-  the last step should approach the background), 12 trails, 13 weather (`C_WX`, dim), 15 white-ish text (high band + the panel).
+- PAL0: 0 background (also the backdrop), 1 rings, 2-10 glow slots (written at runtime from `glow`, newest first;
+  the last step should approach the background), 11 video map (`C_MAP`), 12 trails, 13 weather (`C_WX`, dim), 15 white-ish text (high band + the panel).
 - PAL1: 1-4 blip brightness levels (all equal without `blip_fade`), 5 selection box, 6 stale; 15 low-band text.
 - PAL2: 15 mid-band text (and the selected list row). PAL3: 1-4 emergency blips, 15 emergency text.
 - **Index 14 of every palette = the scope's background**: the opaque font and box borders fill with it

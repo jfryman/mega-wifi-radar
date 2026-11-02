@@ -144,7 +144,8 @@ bool settings_load(void)
         return FALSE;
     }
     if (s.theme >= THEME_COUNT || s.range_idx >= RANGE_COUNT || s.tag_mode >= TAGS_MODES ||
-            s.sound >= SOUND_MODES || s.sort >= SORT_MODES || s.ambient >= AMBIENT_MODES || s.wx >= WX_MODES)
+            s.sound >= SOUND_MODES || s.sort >= SORT_MODES || s.ambient >= AMBIENT_MODES || s.wx >= WX_MODES ||
+            s.map >= MAP_MODES)
         return FALSE;
     s.icao[4] = 0;
     s.relay[RELAY_LEN] = 0;

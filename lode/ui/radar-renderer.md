@@ -13,7 +13,7 @@ flowchart LR
   subgraph vint[V-Int, every frame]
     U[V-Blank: CPU-copy dirty tiles + sprite DMA + glow palette] --> A[scope_advance]
     A --> X[apply tracks whose bearing == sweep step]
-    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows] --> Q[<= 3 pop-up rows] --> B[notice box] --> W[<= 3 weather rows]
+    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows] --> Q[<= 3 pop-up rows] --> B[notice box] --> W[<= 3 weather rows] --> M[<= 96 px of map lines]
   end
   I -. tr_state / tr_brg / track.next .-> X
 ```
@@ -37,7 +37,8 @@ flowchart LR
 - Ring labels + compass: `label_cells` is the only record of which plane-A cells hold label text.
   `clear_labels()` erases those cells and their `grid` counts, and must run **before** anything zeroes
   `label_cells` or `grid`. Rescale order: clear tags, `scope_clear_dots`, `clear_labels`, zero `grid`,
-  wipe the weather (it was sampled at the old range; all rows dirty), `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
+  weather rows dirty and the map raster restarted (`radar_rescale` in main already wiped both: they were for the old
+  range), `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
 - `radar_stop()` (setup screen) removes the callback; come back with `radar_init()` + `radar_start()`
   (the track table is cleared and refilled by the next poll).
 - `radar_init()` owns the whole VDP layout it needs: plane size, window, and **all four scroll values zeroed**.

@@ -27,7 +27,8 @@ flowchart TD
   emergency alert, settings record MWR3 with radar changes remembered, real sky in cockpit mode, the scope-scroll fix after
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
-  weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`.
+  weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`: video maps, **contract v6**
+  (MAME-tested and measured; not yet on the cart).
 - **The cart** runs the 0.4.4 code (built at `6b8059f`, CRC32 `EBA1A278`, contract v5, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
@@ -57,7 +58,9 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 
 ## Open decisions / ideas
 - [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
-- [ ] Feature goals backlog (video maps, STARS type line, logbook): [ideas/summary.md](ideas/summary.md).
+- [ ] Feature goals backlog (STARS type line, logbook): [ideas/summary.md](ideas/summary.md).
+- [ ] Video maps (0.4.5, [../ui/video-maps.md](../ui/video-maps.md)) on the cart: KBNA's runways and centrelines at 5/10/25
+  nm, arrivals riding them; colours on a TV; MAP OFF clears it and trail dots come back.
 - [ ] Weather overlay (0.4.4, [../ui/weather.md](../ui/weather.md)): seen on the cart's TV (light cells, after the brighter
   colours). Still to check during real storms: cells match a weather app's radar within a cell; Z on a 6-button pad;
   the MWR3 `wx` byte saved.

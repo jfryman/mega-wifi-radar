@@ -189,6 +189,9 @@ this attribution ([details](https://github.com/tilezen/joerd/blob/master/docs/at
 > reserved; United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S.
 > Geological Survey.
 
+The video map's runways come from [OurAirports](https://ourairports.com/data/) (public domain), built into the
+relay (`relay/runways.csv`, regenerated with `cd tools && go run ./runwaygen -o ../relay/runways.csv`).
+
 The weather comes from NOAA's NEXRAD radars, composited by the [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/)
 (Iowa State University; free, no key). The relay checks for a new scan at most once a minute while a cart is
 polling and fetches one small picture per home point and range per scan (every 5 minutes); the cart credits

@@ -1,5 +1,19 @@
 ## 0.4.5 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * **relay:** the contract is now version 6. A 0.4.5 cartridge needs the 0.4.5 relay (and the other way
+    round); a mismatch is reported at boot or as `RELAY VER?`, as before.
+
+IMPROVEMENTS:
+
+  * **radar:** a video map. The runways of the airports in view are drawn as faint lines, and out to 25 nm your
+    home airport's runways get extended centrelines (10 nm, a tick every mile) that arrivals line up on. The
+    sweep passes over them, and over trail dots, without wiping them. MAP in setup turns it off.
+  * **setup:** the MAP row; the settings now sit in blocks (scope, sound, airport, network).
+  * **radar:** the sweep's afterglow is a step shorter (9 shades instead of 10), freeing a colour for the map.
+  * **relay:** serves `/v1/map` from OurAirports runway data built in (`tools/runwaygen`).
+
 ## 0.4.4 (November 2, 2026)
 
 BACKWARDS INCOMPATIBILITIES:

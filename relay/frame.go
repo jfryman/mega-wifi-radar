@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	frameVer     = 5 // AR_VER: the relay and the cart only talk at the same version
+	frameVer     = 6 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
 	recSize      = 24
 	maxRecs      = 96

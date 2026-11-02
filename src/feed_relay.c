@@ -1,5 +1,5 @@
 /* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&n&w&v, /v1/detail?icao&v, /v1/notice?after&v,
- * /v1/wx?lat&lon&range&v, and
+ * /v1/wx?lat&lon&range&v, /v1/map?lat&lon&range&v, and
  * cockpit mode's /v1/terrain?icao&v, /v1/track?icao&p&n&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
@@ -313,6 +313,27 @@ enum feed_err feed_wx(const struct ar_wx **w)
     wx_held = r->id;
     wx_flag = FALSE;
     *w = r;
+    return counted(FEED_OK);
+}
+
+enum feed_err feed_map(u8 *buf, u16 size)
+{
+    static char url[RELAY_LEN + 64];
+    struct collect_to t = { { 0, FALSE }, buf, size };
+    const struct ar_map *m = (const struct ar_map *)buf;
+    char lat[12], lon[12];
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    fmt_deg_e4(lat, settings.lat_e4);
+    fmt_deg_e4(lon, settings.lon_e4);
+    /* base (<= RELAY_LEN) + "/v1/map?lat=-90.0000&lon=-180.0000&range=100&v=6" (<= 49) */
+    sprintf(url, "%s" AR_MAP_PATH AR_MAP_QUERY, relay_url, lat, lon, settings_range_nm(), AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    if (t.c.len < AR_MAP_HDR || m->magic[0] != 'A' || m->magic[1] != 'M') return counted(FEED_ERR_FORMAT);
+    if (m->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    if (m->count > AR_MAP_MAX || t.c.len != AR_MAP_HDR + m->count * sizeof(struct ar_seg))
+        return counted(FEED_ERR_FORMAT);
     return counted(FEED_OK);
 }
 

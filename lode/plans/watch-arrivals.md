@@ -10,7 +10,7 @@ played back through the relay and cockpit mode.
 ```mermaid
 flowchart LR
   ANT[owner's ADS-B receiver] --> FR[fr24feed on the Pi<br/>local aircraft JSON] --> R[relay on the same Pi<br/>RELAY_UPSTREAM=local]
-  R -->|frame v6: arrival flag| L[traffic list: ARRIVALS]
+  R -->|frame v7: arrival flag| L[traffic list: ARRIVALS]
   L -->|Y| C[cockpit mode<br/>through touchdown]
   REC[recorded arrivals<br/>relay/testdata] -.->|playback| R
 ```
@@ -37,7 +37,7 @@ func arriving(distNM, aglFt, vrateFPM, bearingToHome, track float64) bool {
 ```
 Departing is the mirror (close, low, climbing, heading away). Ground traffic is neither.
 
-## Contract (v6, when built)
+## Contract (v7, when built)
 - Record flag bit 7 (reserved today, [../architecture/frame-format.md](../architecture/frame-format.md)) becomes
   `AR_F_ARRIVING`; the record stays **24 bytes**, no RAM cost. Departures would need a second bit: grow the record
   to 26 (`u8 route` + pad, ~576 B static RAM: 96 × 2 recs × 2 B + 192 B `frame_buf`) only if DEPARTURES is wanted.

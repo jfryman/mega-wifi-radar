@@ -3,7 +3,8 @@
 
 /* The relay <-> cartridge contract (lode/architecture/contract.md): the compact traffic frame
  * (spec: lode/architecture/frame-format.md), the aircraft detail record, cockpit mode's terrain patch
- * and track (lode/ui/cockpit.md), flyover notices (lode/ui/notices.md), weather (lode/ui/weather.md), the HTTP requests,
+ * and track (lode/ui/cockpit.md), flyover notices (lode/ui/notices.md), weather (lode/ui/weather.md), video maps
+ * (lode/ui/video-maps.md), the HTTP requests,
  * and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
  * item here, so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Any change here must bump AR_VER (relay/contract.lock enforces it; `make contract-lock` after).
@@ -12,7 +13,7 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          5
+#define AR_VER          6
 #define AR_REC_SIZE_V1  24
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
@@ -126,6 +127,17 @@
 #define AR_W_NONE        0x01   /* no weather radar covers the home point: cells all 0 */
 #define AR_W_OLD         0x02   /* the newest scan the relay could get is over 15 minutes old */
 
+/* Video maps (lode/ui/video-maps.md): runways around home and the home airport's extended centrelines, as line
+ * segments in scope pixels at the request's range. GET <relay> AR_MAP_PATH AR_MAP_QUERY (lat, lon as degrees;
+ * range nm; AR_VER): struct ar_map, then count struct ar_seg (AR_MAP_HDR + 4 * count bytes, count <= AR_MAP_MAX). */
+#define AR_MAP_PATH      "/v1/map"
+#define AR_MAP_QUERY     "?lat=%s&lon=%s&range=%u&v=%u"
+#define AR_MAP_MAX       160
+#define AR_MAP_HDR       8
+
+/* struct ar_map.mflags */
+#define AR_M_NONE        0x01   /* no known airport with runways in view: no segments */
+
 /* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
 #define AR_MDNS_SERVICE  "_mwradar._tcp.local"
 #define AR_MDNS_QUERY_ID 0x4D57
@@ -235,6 +247,23 @@ struct ar_wx {
     u8 cells[182];      /* AR_WX_N rows from the north, AR_WX_ROW bytes each; 4 cells a byte, west first, high bits first */
 };
 
+/* A video map's header; its segments follow. */
+struct ar_map {
+    char magic[2];      /* "AM" */
+    u8 ver;             /* AR_VER */
+    u8 mflags;          /* AR_M_* */
+    u16 count;          /* segments that follow */
+    u16 range_nm;       /* the range they were projected at */
+};
+
+/* One line, both ends in the scope's 208 px block (centre 104, 104; y down), clipped to the disc. */
+struct ar_seg {
+    u8 x1;
+    u8 y1;
+    u8 x2;
+    u8 y2;
+};
+
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
@@ -247,6 +276,8 @@ _Static_assert(sizeof(((struct ar_notice *)0)->text) == 3 * AR_NOTICE_COLS, "ar_
 _Static_assert(sizeof(struct ar_wx) == AR_WX_SIZE, "ar_wx must be 190 bytes");
 _Static_assert(sizeof(((struct ar_wx *)0)->cells) == AR_WX_N * AR_WX_ROW, "ar_wx.cells is AR_WX_N rows");
 _Static_assert(AR_WX_ROW * 4 >= AR_WX_N, "a weather row holds AR_WX_N cells");
+_Static_assert(sizeof(struct ar_map) == AR_MAP_HDR, "ar_map must be 8 bytes");
+_Static_assert(sizeof(struct ar_seg) == 4, "ar_seg must be 4 bytes");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
@@ -270,6 +301,9 @@ AR_AT(ar_notice, magic, 0); AR_AT(ar_notice, ver, 2); AR_AT(ar_notice, nflags, 3
 AR_AT(ar_notice, icao, 6); AR_AT(ar_notice, secs, 9); AR_AT(ar_notice, text, 10);
 AR_AT(ar_wx, magic, 0); AR_AT(ar_wx, ver, 2); AR_AT(ar_wx, wflags, 3); AR_AT(ar_wx, id, 4); AR_AT(ar_wx, range_nm, 6);
 AR_AT(ar_wx, cells, 8);
+AR_AT(ar_map, magic, 0); AR_AT(ar_map, ver, 2); AR_AT(ar_map, mflags, 3); AR_AT(ar_map, count, 4);
+AR_AT(ar_map, range_nm, 6);
+AR_AT(ar_seg, x1, 0); AR_AT(ar_seg, y1, 1); AR_AT(ar_seg, x2, 2); AR_AT(ar_seg, y2, 3);
 #undef AR_AT
 
 #endif

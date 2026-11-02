@@ -26,8 +26,11 @@ void scope_advance(void);
 u8 scope_step(void);
 /* 2x2 trail dot at block coords (px, py). VInt. */
 void scope_dot(s16 px, s16 py, bool on);
-/* Remove every trail dot (zoom/pan redraw). VInt. */
+/* Remove every fixed pixel: trail dots and map lines (zoom redraw, map off). VInt. */
 void scope_clear_dots(void);
+/* A video map line between block coords, in C_MAP (lode/ui/video-maps.md): fixed pixels the sweep leaves alone,
+ * taking over trail dots' pixels. Returns the pixels stepped, for the caller's budget. VInt. */
+u16 scope_map_line(s16 x0, s16 y0, s16 x1, s16 y1);
 /* First VRAM tile after the scope's tiles. */
 u16 scope_vram_end(void);
 

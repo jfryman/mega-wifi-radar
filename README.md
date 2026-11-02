@@ -13,6 +13,8 @@ Pick any aircraft to ride along in a **cockpit view** over the real terrain bene
   and tags with callsign, altitude and ground speed, coloured by altitude band.
 - **Weather:** rain and storms from NEXRAD radar behind the traffic, as stippled cells like a real STARS scope
   (light, moderate, heavy), refreshed every five minutes (US only).
+- **Video map:** the runways in view, and your airport's extended centrelines with mile ticks, as faint lines
+  on the scope; arrivals line up on them.
 - **Traffic list:** every aircraft by distance, A–Z or altitude, emergencies pinned on top. Pick one for a
   **detail pop-up**: registration, type, operator, autopilot settings, squawk, distance and bearing.
 - **Cockpit view:** the view from the selected aircraft, drawn by the 68000 over real elevation data in real

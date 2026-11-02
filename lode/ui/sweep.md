@@ -23,9 +23,9 @@ flowchart LR
   T --> Q[DMA dirty tiles in VBlank]
   P[every q frames: rotate glow palette] --> V[newest slot brightest,<br/>older slots dimmer]
 ```
-- **Glow slots:** PAL0 indices 2..11 (G = 10). A pixel drawn at step `s` gets slot `2 + (s / q) mod G`.
+- **Glow slots:** PAL0 indices 2..10 (G = 9; 11 went to the video map, [video-maps.md](video-maps.md)). A pixel drawn at step `s` gets slot `2 + (s / q) mod G`.
   Every `q` frames the glow palette rotates by one, so the slot just written is brightest and older
-  slots step down to dark. Tail = `(G−1)·q` steps (q = 3 → 27 steps ≈ 38°); slots repeat every `G·q`,
+  slots step down to dark. Tail = `(G−1)·q` steps (q = 3 → 24 steps ≈ 34°); slots repeat every `G·q`,
   so each pixel is **retired before its slot comes round again** and slots never alias.
 - **Rings and ticks are excluded from the pixel lists** at generation time. The sweep never overwrites
   them, so they stay visible under the line and need no restore.
@@ -38,15 +38,17 @@ flowchart LR
 - `scope_map`: the 26×26 tilemap (disc tiles → 568 unique indices; outside the disc → blank tile)
 - `sweep_idx[257]` (word offsets) + `sweep_px[]`: per step `nseg`, then per tile segment
   `tile, n_even, n_odd, even byte offsets, odd byte offsets` (offset = tile*32 + px/2 into the RAM copy),
-  excluding ring pixels. Drawing ORs nibbles known to be 0; retiring ANDs them; tiles with trail dots take
-  a slow path (`trail_cnt`). Measured ~45 scanlines per frame.
+  excluding ring pixels. Drawing ORs nibbles known to be 0; retiring ANDs them; tiles with fixed pixels (trail
+  dots, map lines) take a slow path (`trail_cnt`) that skips those pixels. Measured ~45 scanlines per frame.
 The ROM copies `scope_tiles` to RAM once and DMAs it to VRAM. After that it only changes nibbles in RAM and
 CPU-copies dirty tiles to VRAM at the start of V-Blank (≤ 48 per frame).
 
 ## Invariants
 - Frame cost is bounded by the largest step (172 px drawn + 172 retired, ≤ 40 tiles), never by aircraft count.
-- Trail dots **are** plane-B pixels (2×2, colour `C_TRAIL`), tracked in a 1-bit-per-pixel map plus
-  `trail_cnt[tile]`. Retiring restores `C_TRAIL` where a dot is, so the sweep never erases trails. Tags are on plane A.
+- Trail dots and video-map lines **are** plane-B pixels (dots 2×2 `C_TRAIL`, lines `C_MAP`), tracked as *fixed
+  pixels* in a 1-bit-per-pixel map plus `trail_cnt[tile]`. The sweep skips fixed pixels on draw and retire, so it
+  never erases them (they stay visible under the line, like rings). A map pixel's colour marks it as the map's: a
+  dot never draws over or erases it ([video-maps.md](video-maps.md)). Tags are on plane A.
 - The STARS theme sets `sweep = false`: no drawing, and plane B shows only rings.
 - RAM: 18 KB of the ~47 KB the heap has free after SGDK (measured `.data+.bss` = 5.4 KB, stack 2.5 KB).
 

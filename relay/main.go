@@ -227,6 +227,7 @@ func main() {
 	recordWxOut := flag.String("record-wx", "", "save the weather picture for -lat/-lon/-range to this PNG and exit")
 	packWxOut := flag.String("pack-wx", "", "pack the weather picture given as argument (recorded at -lat/-lon/-range) into the emulator's weather file and exit")
 	wxPackID := flag.Uint("wx-id", 1, "weather id for -pack-wx")
+	packMapOut := flag.String("pack-map", "", "pack the video maps for -lat/-lon at every cart range into the emulator's map file and exit")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
@@ -261,6 +262,12 @@ func main() {
 		}
 		return
 	}
+	if *packMapOut != "" {
+		if err := packMaps(*packMapOut, *lat, *lon); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if *packDetail != "" {
 		if err := packDetails(*packDetail, flag.Args()); err != nil {
 			log.Fatal(err)
@@ -286,6 +293,7 @@ func main() {
 	wx := newWx(*wxURL)
 	mux.Handle("GET "+framePath, frameHandler(src, ns, wx))
 	mux.Handle("GET "+wxPath, wxHandler(wx))
+	mux.Handle("GET "+mapPath, mapHandler())
 	mux.Handle("GET "+noticePath, noticeHTTP(ns))
 	mux.Handle("GET "+detailPath, detailHandler(src))
 	mux.Handle("GET "+terrainPath, terrainHandler(src, el))

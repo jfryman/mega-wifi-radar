@@ -66,5 +66,8 @@ Ordering, units, `GND` and stale flags match the relay's output.
   (`feed_wx_waiting()`). `feed_wx(&w)`: `/v1/wx?lat&lon&range&v` into a 198-byte buffer, exactly `AR_WX_SIZE`, magic
   `AW`; sets `wx_held` to its id and clears the flag. The fake feed picks the `res/fake/wx.bin` record for the current
   range and never flags.
+- **Video maps** ([../ui/video-maps.md](../ui/video-maps.md)): `feed_map(buf, size)`: `/v1/map?lat&lon&range&v` straight
+  into the renderer's buffer (`radar_map_begin`), checked: magic `AM`, `ver`, count ≤ `AR_MAP_MAX`, length = header +
+  4·count. The fake feed copies the `res/fake/maps.bin` body for the current range.
 
 Related: [net-layer.md](net-layer.md), [../relay/relay.md](../relay/relay.md).

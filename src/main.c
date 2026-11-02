@@ -20,6 +20,7 @@
 #include "theme.h"
 #include "tlist.h"
 #include "traffic.h"
+#include "vmap.h"
 #include "wx.h"
 
 #define HOLD_FRAMES     40      /* C held this long cycles the sort order */
@@ -308,6 +309,7 @@ static void poll(void)
         notice_check();                     /* a flyover notice waiting? (lode/ui/notices.md) */
         alert_check();                      /* an emergency squawk: the box + a tone (alert.c) */
         wx_check();                         /* new weather, or a zoom wiped it (lode/ui/weather.md) */
+        vmap_check();                       /* runways at this range (lode/ui/video-maps.md) */
         panel_credit(h->source);
         if (settings_save_due()) settings_save();   /* zoom, tags, theme or sort changed here */
     } else {
@@ -349,6 +351,7 @@ static void radar_up(void)
 {
     radar_init();
     wx_reset();
+    vmap_reset();
     panel_static();
     radar_panel(ROW_NET, have_snap ? "NET OK" : "WAIT DATA");
     radar_start();

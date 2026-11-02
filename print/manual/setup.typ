@@ -5,11 +5,11 @@
 Press *Start* on the radar to open Setup, or hold *Start* while you turn the power on. Setup
 also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 
-#shot("setup", callouts: ((1, 18, 59), (2, 18, 123), (3, 18, 147), (4, 92, 155), (5, 18, 171), (6, 130, 178), (7, 18, 187)))
+#shot("setup", callouts: ((1, 18, 43), (2, 18, 99), (3, 18, 123), (4, 92, 131), (5, 18, 171), (6, 130, 178), (7, 18, 187)))
 #v(1mm)
 #grid(columns: (1fr, 1fr), column-gutter: 4mm, row-gutter: 1.6mm,
-  key(1)[THEME ... AMBIENT][#sym.arrow.l #sym.arrow.r on the D-Button changes them. *WEATHER*: see
-    _Reading the Scope_. *AMBIENT*: see _Controls_.],
+  key(1)[THEME ... AMBIENT][#sym.arrow.l #sym.arrow.r on the D-Button changes them. *WEATHER*, *MAP*:
+    see _Reading the Scope_. *AMBIENT*: see _Controls_.],
   key(2)[AIRPORT][#sym.arrow.l #sym.arrow.r steps through airports, *C* jumps to the next letter,
     *A* lets you type the four-letter ICAO code (KBNA, KORD, EGLL...).],
   key(3)[WI-FI][*A* scans for networks: pick yours, type its password.],
@@ -29,7 +29,7 @@ also opens by itself if the cartridge can't join Wi-Fi or can't find the relay.
 
 == Remembering your settings
 
-*SAVE & EXIT* (or *Start* on any row) writes your theme, range, tags, weather, sound, airport and relay into the
+*SAVE & EXIT* (or *Start* on any row) writes your theme, range, tags, weather, map, sound, airport and relay into the
 cartridge's own memory. Zoom, tags, theme and the list's sort order changed on the radar are kept
 too. Your Wi-Fi network is kept separately. Both stay when the power is off, and even when the
 cartridge's program is updated.

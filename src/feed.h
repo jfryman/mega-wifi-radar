@@ -53,6 +53,10 @@ enum feed_err feed_notice(const struct ar_notice **n);
 bool feed_wx_waiting(void);
 enum feed_err feed_wx(const struct ar_wx **w);
 
+/* Video maps (lode/ui/video-maps.md): the map for the home point at the current range into buf (size bytes, word
+ * aligned): struct ar_map, then its segments (blocking, one small GET). */
+enum feed_err feed_map(u8 *buf, u16 size);
+
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
  * (none found) or FEED_ERR_VERSION (found one at another contract version). */

@@ -12,8 +12,8 @@ _Static_assert(sizeof(scope_tiles_rom) == NTILES * 32, "scope tiles != NTILES (r
 
 /* In the mode overlay (overlay.h): the radar's while it runs, refilled by scope_init. */
 #define tiles       ((u32 *)(overlay_ram + OV_SCOPE_TILES))  /* RAM copy of the disc tiles (18 KB) */
-#define trail_bits  (overlay_ram + OV_TRAIL_BITS)           /* 1 bit per pixel: trail dot here */
-static u8 trail_cnt[NTILES];                /* trail pixels per tile (fast path when 0) */
+#define trail_bits  (overlay_ram + OV_TRAIL_BITS)           /* 1 bit per pixel: a fixed pixel, the sweep skips it */
+static u8 trail_cnt[NTILES];                /* fixed pixels per tile (fast path when 0) */
 static const u8 bitmask[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 static u8 dirty_flag[NTILES];
 static u16 dirty_q[NTILES];
@@ -70,7 +70,7 @@ void scope_set_theme(const struct theme *t)
         if (p != PAL0) PAL_setColors(p * 16, t->pal[p], 16, CPU);
     /* PAL0 except the glow slots, which follow the sweep */
     PAL_setColors(PAL0 * 16, t->pal[PAL0], C_GLOW0, CPU);
-    PAL_setColors(PAL0 * 16 + C_TRAIL, &t->pal[PAL0][C_TRAIL], 16 - C_TRAIL, CPU);
+    PAL_setColors(PAL0 * 16 + C_GLOW0 + GLOW_SLOTS, &t->pal[PAL0][C_GLOW0 + GLOW_SLOTS], 16 - C_GLOW0 - GLOW_SLOTS, CPU);
     set_glow_palette();
     if (was && !t->sweep)
         for (u16 a = 0; a < SCOPE_STEPS; a++) paint(a, C_BG, TRUE);   /* drop the tail */
@@ -157,7 +157,8 @@ static inline const s16 *nib_and(const s16 *d, u8 *base, u16 n, u8 m)
  * segment: tile, n_even, n_odd, even byte offsets, odd byte offsets, all into
  * the RAM tile copy. Drawing ORs the glow slot into nibbles that are known to
  * be 0 (retired a full turn ago); retiring ANDs them back to 0. Tiles holding
- * trail dots take the slow path so dots survive. ~300 px per frame. */
+ * fixed pixels (trail dots, map lines) take the slow path, which leaves those
+ * pixels alone, as the step lists leave out the rings. ~300 px per frame. */
 static void paint(u8 step, u8 v, bool retire)
 {
     const s16 *d = (const s16 *)sweep_px_rom + ((const u16 *)sweep_idx_rom)[step];
@@ -181,9 +182,8 @@ static void paint(u8 step, u8 v, bool retire)
         for (u16 k = 0; k < ne + no; k++) {
             s16 off = *d++;
             u16 bit = off * 2 + (k >= ne);
-            u8 n = v;
-            if (retire) n = (trail_bits[bit >> 3] & bitmask[bit & 7]) ? C_TRAIL : C_BG;
-            base[off] = (k >= ne) ? ((base[off] & 0xF0) | n) : ((base[off] & 0x0F) | (n << 4));
+            if (trail_bits[bit >> 3] & bitmask[bit & 7]) continue;
+            base[off] = (k >= ne) ? ((base[off] & 0xF0) | v) : ((base[off] & 0x0F) | (v << 4));
         }
     }
 }
@@ -214,11 +214,42 @@ void scope_dot(s16 px, s16 py, bool on)
             u8 base = px_get(scope_tiles_rom + t * 32, p);
             if (base) continue;                     /* never draw over rings */
             u8 m = bitmask[bit & 7], had = trail_bits[bit >> 3] & m;
+            if (had && px_get((const u8 *)tiles + t * 32, p) == C_MAP) continue;   /* the map's pixel */
             if (on && !had) { trail_bits[bit >> 3] |= m; trail_cnt[t]++; }
             if (!on && had) { trail_bits[bit >> 3] &= ~m; trail_cnt[t]--; }
             px_set(t, p, on ? C_TRAIL : C_BG);
             mark(t);
         }
+}
+
+/* One map pixel (block coordinates): fixed, in C_MAP; it takes over a trail dot's pixel, never a ring's. */
+static void map_px(s16 x, s16 y)
+{
+    u16 ct = cell_tile[(y >> 3) * CELLS + (x >> 3)];
+    if (!ct) return;
+    u16 t = ct - 1, p = (y & 7) * 8 + (x & 7), bit = t * 64 + p;
+    if (px_get(scope_tiles_rom + t * 32, p)) return;
+    u8 m = bitmask[bit & 7];
+    if (!(trail_bits[bit >> 3] & m)) { trail_bits[bit >> 3] |= m; trail_cnt[t]++; }
+    px_set(t, p, C_MAP);
+    mark(t);
+}
+
+u16 scope_map_line(s16 x0, s16 y0, s16 x1, s16 y1)
+{
+    s16 dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x0 < x1 ? 1 : -1;
+    s16 dy = y1 > y0 ? y0 - y1 : y1 - y0, sy = y0 < y1 ? 1 : -1;
+    s16 err = dx + dy;
+    u16 n = 0;
+
+    for (;;) {                                      /* Bresenham, all octants */
+        if (x0 >= 0 && y0 >= 0 && x0 < CELLS * 8 && y0 < CELLS * 8) map_px(x0, y0);
+        n++;
+        if (x0 == x1 && y0 == y1) return n;
+        s16 e2 = err * 2;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
 }
 
 void scope_clear_dots(void)

@@ -15,6 +15,7 @@
 #define POPUP_PER_FRAME  3       /* 28-cell rows: the pop-up fills in ~10 frames before it shows */
 #define C_OPAQUE         14      /* the scope's background in every palette of every theme: the pop-up's fill */
 #define WX_PER_FRAME     3       /* weather rows redrawn per frame */
+#define MAP_PX_PER_FRAME 96      /* video map pixels drawn per frame (whole lines: one may overrun) */
 #define GAP              0x10    /* grid: a tag's gap column (empty on screen); the low nibble counts drawn cells */
 
 /* Blip tiles: 4 brightness levels (colour index 1..4) + stale; then the
@@ -76,6 +77,12 @@ static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
  * Cells as struct ar_wx sends them; wx_dirty: rows (bit r = scope row r + 1) to redraw. */
 static u8 wx_cells[AR_WX_N * AR_WX_ROW];
 static volatile u32 wx_dirty;
+/* Video map (lode/ui/video-maps.md): segments in block pixels at the current range, drawn into the scope's fixed
+ * pixels a few a frame (map_next up to map_n); a zoom or MAP off wipes them with the trail dots. */
+static u16 map_buf[(AR_MAP_HDR + AR_MAP_MAX * sizeof(struct ar_seg)) / 2];   /* the /v1/map body, fetched in place */
+#define map_segs    ((const struct ar_seg *)((const u8 *)map_buf + AR_MAP_HDR))
+static volatile u16 map_n, map_next;
+static volatile u8 req_mapclear;
 static volatile s16 selected = -1;
 static volatile u8 req_rescale, req_theme, req_retag;
 static volatile u16 rotations;
@@ -703,14 +710,22 @@ static void radar_vint(void)
         scope_clear_dots();
         clear_labels();
         memset(grid, 0, sizeof(grid));
-        memset(wx_cells, 0, sizeof(wx_cells));  /* sampled at the old range: wx.c fetches the new one */
-        wx_dirty = (1UL << AR_WX_N) - 1;
+        wx_dirty = (1UL << AR_WX_N) - 1;        /* radar_rescale wiped the cells (old range) */
+        map_next = 0;                           /* scope_clear_dots took the map: draw what's installed now */
         draw_labels();
         if (box_cur) {                          /* the labels went over the notice box: draw it again */
             box_occupy(1);
             box_from = box_cur;
             box_rows(0, BOX_ROWS);
             if (box_cur == BOX_STEPS) box_text_dirty = 0x0F;
+        }
+    }
+    if (req_mapclear) {                         /* MAP off: the fixed pixels go, the trail dots come back */
+        req_mapclear = 0;
+        scope_clear_dots();
+        for (u16 i = 0; i < TR_MAX; i++) {
+            for (u16 k = 0; k < TRAIL_N; k++) tracks[i].dot_x[k] = NO_DOT;
+            if (tracks[i].dirty < 2) tracks[i].dirty = 2;
         }
     }
     if (req_retag) {
@@ -778,6 +793,10 @@ static void radar_vint(void)
     popup_rows();
     box_tick();
     wx_rows();
+    for (u16 px = 0; px < MAP_PX_PER_FRAME && map_next < map_n; map_next++) {
+        const struct ar_seg *s = &map_segs[map_next];
+        px += scope_map_line(s->x1, s->y1, s->x2, s->y2);
+    }
     PROF(7);
 
     /* scanlines spent in this handler: V-Int fires at line 224; the V counter
@@ -846,6 +865,8 @@ void radar_init(void)
     memset(label_cells, 0, sizeof(label_cells));
     memset(wx_cells, 0, sizeof(wx_cells));
     wx_dirty = 0;
+    map_n = map_next = 0;
+    req_mapclear = 0;
     memset(panel_text, 0, sizeof(panel_text));
     memset(panel_pal, 0, sizeof(panel_pal));
     panel_dirty = 0;
@@ -913,7 +934,17 @@ void radar_popup(bool on)
     popup_want = on;
 }
 
-void radar_rescale(void) { req_rescale = 1; }
+/* Main loop: the weather and the map were sampled at the old range; they go now (not in the V-Int), so a
+ * fetch right after the zoom can't be wiped by a rescale still pending. */
+void radar_rescale(void)
+{
+    SYS_disableInts();
+    req_rescale = 1;
+    memset(wx_cells, 0, sizeof(wx_cells));
+    wx_dirty = (1UL << AR_WX_N) - 1;
+    map_n = map_next = 0;
+    SYS_enableInts();
+}
 void radar_retheme(void) { req_theme = 1; req_retag = 1; }
 void radar_retag(void) { req_retag = 1; }
 
@@ -951,6 +982,28 @@ void radar_box_close(bool now)
 }
 
 bool radar_box_up(void) { return box_cur || box_target; }
+
+u8 *radar_map_begin(u16 *size)
+{
+    SYS_disableInts();
+    if (map_next) req_mapclear = 1;         /* lines of the old map are drawn: they go */
+    map_n = map_next = 0;                   /* the V-Int leaves the buffer alone until radar_map_end */
+    SYS_enableInts();
+    *size = sizeof(map_buf);
+    return (u8 *)map_buf;
+}
+
+void radar_map_end(bool ok)
+{
+    const struct ar_map *m = (const struct ar_map *)map_buf;
+    u16 n = ok ? m->count : 0;
+
+    if (n > AR_MAP_MAX) n = AR_MAP_MAX;
+    SYS_disableInts();
+    map_next = 0;
+    map_n = n;
+    SYS_enableInts();
+}
 
 void radar_wx(const u8 *cells)
 {

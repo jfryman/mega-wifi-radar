@@ -7,7 +7,7 @@
   text(..cond, weight: "bold")[CARTRIDGE], [MegaWiFi by doragasu, Rev.C board by James Fryman],
   text(..cond, weight: "bold")[DEVELOPMENT KIT], [SGDK by Stephane Dallongeville],
   text(..cond, weight: "bold")[TRAFFIC DATA], [adsb.fi open data, from volunteer ADS-B receivers],
-  text(..cond, weight: "bold")[AIRPORTS], [OurAirports (public domain)],
+  text(..cond, weight: "bold")[AIRPORTS], [OurAirports (public domain), also the runways on the scope],
   text(..cond, weight: "bold")[ELEVATION], [AWS Terrain Tiles (Mapzen / Tilezen), from the sources below],
   text(..cond, weight: "bold")[WEATHER], [NOAA NEXRAD radar, composited by the Iowa Environmental Mesonet],
   text(..cond, weight: "bold")[CITY LIGHTS], [NASA Earth Observatory / NOAA NGDC (VIIRS City Lights 2012), via NASA GIBS],
