@@ -31,15 +31,27 @@ Users reach their arrays through constant addresses, so the code is the same as 
 ```
 `overlay.c` sizes the block to the larger mode. A new mode borrows it instead of adding static RAM.
 
-## Largest static users (cart build)
+## Largest static users (cart build, 0.5.0: 54,636 B static, 8,340 B heap)
 | Symbol | Bytes | What |
 |---|---|---|
-| `overlay_ram` | 36,736 | radar: scope tiles 18,176 (568 tiles, for the sweep), trail bitmaps 4,544, `tracks` 14,016 (96 × 146 B); or cockpit: `struct vox_ram` |
-| `frame_buf` | 2,322 | one compact frame (cart only) |
-| `cmd_buf` | 1,500 | MegaWiFi command buffer (cart only) |
-| `cell_tile`, `dirty_q` | 1,352, 1,136 | scope tile bookkeeping |
-| `popup_text`, `grid`, `label_cells` | 784 each | pop-up rows, tag placement grids |
+| `overlay_ram` | 36,736 | radar: scope tiles 18,176 (568 tiles, for the sweep), trail bitmaps 4,544, `tracks` 14,016 (96 × 146 B); or cockpit: `struct vox_ram` (34,624: **2,112 B spare** in cockpit mode) |
+| `frame_buf` | 2,320 | one compact frame (cart only); the logbook borrows it after ingest |
+| `cmd_buf` | 1,500 | MegaWiFi command buffer (SGDK, cart only) |
+| `cell_tile` | 1,352 | scope cell → tile, a RAM copy of ROM `scope_map_rom` |
+| `dirty_q`, `dirty_flag` | 1,136, 568 | scope dirty-tile queue + flags |
+| `popup_text`, `grid`, `label_cells` | 785, 784, 784 | pop-up rows, tag placement grid, label cells (0/1 per cell) |
+| `vdpSpriteCache` | 768 | SGDK's sprite cache (setup/splash; the radar has its own `spr`) |
+| `map_buf`, `spr` | 650, 640 | video map segments; the radar's sprite table |
+| `aps` (setup), `rowcmd` (voxel), `lines` + `pal_now` (splash), `hdr` (cockpit) | 491, 448, 104 + 128, 106 | used only in one non-radar mode |
 
+## Where to free RAM next (measured 2026-11-02, not done yet)
+| Change | Saves | Risk |
+|---|---|---|
+| `cell_tile` → read `scope_map_rom` in place (same values; ROM reads cost the same) | 1,352 | low |
+| Mode-only statics into the overlay: setup's `aps`, splash's `lines`/`pal_now`, cockpit's `rowcmd`/`hdr` (the radar isn't running then; cockpit's part has 2,112 B spare) | ~1,280 | low-medium: each mode re-initialises its part on entry |
+| `label_cells` as 1 bit per cell | ~686 | low |
+| `dirty_flag` + `dirty_q` → a 568-bit dirty bitmap scanned at flush | ~1,630 | medium: V-Int flush timing, re-measure |
+| Measure the real start-up heap peak (DMA queue 640 + buffer 2,048 + font unpack) and set `RAM_MIN_HEAP` from it | ? | owner's call: the floor is a rule, lowered only on a measurement |
 List them with: `python3` over `out/release/symbol.txt` (sort the `b`/`B`/`d`/`D` symbols by address, diff
 neighbours). Lesson (2026-10-29): the 0.2.0 pop-up added ~1.2 KiB of static RAM; with the stock 8 KiB DMA buffer the
 font unpack no longer fitted and the cart booted to black, while `make sim` looked fine. `make sim` also deletes
