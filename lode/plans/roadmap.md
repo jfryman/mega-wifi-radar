@@ -31,9 +31,9 @@ flowchart TD
   (solid runways, dashed centrelines), setup MAP + GUIDE, a Video Map manual section (24 pages), contract v6; seen on
   the cart). **v0.5.0** (2026-11-02: panel tabs + the control
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
-  cart). 0.6.0 is open in `CHANGELOG.md`: the STARS type line and the RAM trim, **contract v8**
-  (MAME-tested; flashed with the matching dev relay 2026-11-02).
-- **The cart** runs 0.6.0 in progress (the STARS type line + the RAM trim, contract v8, built at `45b0b1a`, CRC32 `1EF9FDCF`, flashed 2026-11-02)
+  cart). **v0.6.0** (2026-11-02: the STARS type line,
+  ~2.7 KB of RAM freed, contract v8; seen on the cart). 0.6.1 is open in `CHANGELOG.md`.
+- **The cart** runs the 0.6.0 code (contract v8, built at `45b0b1a`, CRC32 `1EF9FDCF`, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
