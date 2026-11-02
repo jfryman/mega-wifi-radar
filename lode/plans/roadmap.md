@@ -31,12 +31,13 @@ flowchart TD
   (solid runways, dashed centrelines), setup MAP + GUIDE, a Video Map manual section (24 pages), contract v6; seen on
   the cart). **v0.5.0** (2026-11-02: panel tabs + the control
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
-  cart). 0.6.0 is open in `CHANGELOG.md`: the STARS type line, **contract v8** (MAME-tested).
-- **The cart** runs the 0.5.0 code (contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02; the tag adds only the changelog date and lode)
+  cart). 0.6.0 is open in `CHANGELOG.md`: the STARS type line and the RAM trim, **contract v8**
+  (MAME-tested; flashed with the matching dev relay 2026-11-02).
+- **The cart** runs 0.6.0 in progress (the STARS type line + the RAM trim, contract v8, built at `45b0b1a`, CRC32 `1EF9FDCF`, flashed 2026-11-02)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's built from the 0.5.0 checkout, **contract v7**, with its logbook on the `mwradar-data` volume, and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's built from the 0.6.0 checkout, **contract v8**, with its logbook on the `mwradar-data` volume, and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash
