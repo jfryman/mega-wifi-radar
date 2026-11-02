@@ -127,9 +127,11 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 - Position 16.16 cells, height 16.16 levels; velocity per frame from the fix. Each frame: `pos += v`, plus
   `err / 90` for 90 frames (1.5 s) after a fix (`err` = fix + v · age − pos); only errors > 60 cells (or 64
   levels) snap: a 24-cell jump after a gap in positions near the ground used to lurch the view.
-- **On the ground** (`AR_K_GROUND`): a fix's extrapolation stops at 3 s (`GROUND_AGE`), a stale fix (> 3 s)
-  never speeds the camera back up, and between fixes the speed decays (`v -= v >> 9` a frame, ~8 s) down to
-  8 m/s (`TAXI_MS`): fixes freeze for 20-70 s on the rollout and it used to roll on at landing speed, then snap back.
+- **On the ground** (`AR_K_GROUND`): between fixes the speed decays (`v -= v >> 9` a frame, ~8.5 s) down to
+  8 m/s (`TAXI_MS`); a stale fix (> 4 s, `GROUND_AGE`) never speeds the camera back up and is extrapolated as the
+  camera decelerates: the full 4 s, then a third of each further second, +8 s at most. Fixes freeze for 20-70 s on
+  the rollout: at landing speed it rolled on, then snapped back; with a flat 3 s cap the target lagged the
+  camera and every repeated stale fix tugged it back (a stop-start rollout, seen in the relay log 2026-11-02).
 - The relay counts a fix's age from now, not from its cached snapshot (up to 1.5 s older): it came up short,
   pulling the camera back every few fixes.
 - **Ground:** every frame `z16` ≥ the level of the cell under the camera + `eye_lv` (a third of a cell: 20 m at

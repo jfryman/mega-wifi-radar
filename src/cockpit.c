@@ -21,7 +21,8 @@
 #define SNAP            (60L << 16)         /* corrections bigger than this (16.16 cells) jump; smaller ones glide:
                                              * a 24-cell jump after a gap in positions near the ground was a lurch */
 #define SNAP_Z          (64L << 16)         /* ... in height levels */
-#define GROUND_AGE      3                   /* on the ground, a stale fix is extrapolated this far at most (s) */
+#define GROUND_AGE      4                   /* on the ground, a fix older than this (s) is stale: extrapolated as
+                                             * the camera decelerates, 1/3 s for each further s, 8 more at most */
 #define TAXI_MS         8                   /* on the ground the camera eases down to this speed between fixes */
 #define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
@@ -323,7 +324,12 @@ static bool get_fix(bool snap)
         hd_rate = (s16)(t.heading - trk.heading) / (s16)frames;
     else hd_rate = 0;
     bool ground = (t.kflags & AR_K_GROUND) != 0;
-    u16 age = ground && t.age > GROUND_AGE ? GROUND_AGE : t.age;
+    /* thirds of a second to extrapolate: the full age, but past GROUND_AGE on the ground a third (to +8 s), which
+     * is about how far the decelerating camera rolls (~8.5 s time constant); a 3 s cap made the target lag the
+     * camera and every repeated stale fix tugged it back (a stop-start rollout) */
+    u16 age3 = t.age * 3;
+    if (ground && t.age > GROUND_AGE) age3 = GROUND_AGE * 3 + (t.age - GROUND_AGE > 8 ? 8 : t.age - GROUND_AGE);
+    u16 age = age3 / 3;
     s32 nvx = (s32)t.vx * 256 / 60, nvy = (s32)t.vy * 256 / 60;
     /* a stale fix on the ground carries its touchdown speed: keep the slower, decelerated camera */
     if (!(ground && t.age > GROUND_AGE && !snap && abs(vx) + abs(vy) < abs(nvx) + abs(nvy))) { vx = nvx; vy = nvy; }
@@ -333,8 +339,8 @@ static bool get_fix(bool snap)
     hd_target = t.heading + (u16)(hd_rate * 60 * age);
     taxi16 = hdr.cell_m ? (s32)TAXI_MS * 65536 / ((s32)hdr.cell_m * 60) : 0;
 
-    /* where it is now: the fix plus the time since upstream heard it (on the ground, at most GROUND_AGE) */
-    s32 tx = (t.x << 8) + (s32)t.vx * 256 * age, ty = (t.y << 8) + (s32)t.vy * 256 * age,
+    /* where it is now: the fix plus the time since upstream heard it (on the ground, as decelerating) */
+    s32 tx = (t.x << 8) + (s32)t.vx * 256 * age3 / 3, ty = (t.y << 8) + (s32)t.vy * 256 * age3 / 3,
         tz = (t.z << 8) + vz * 60 * age;
     s32 dx = tx - cam.x, dy = ty - cam.y, dz = tz - z16;
     if (snap || abs(dx) > SNAP || abs(dy) > SNAP || abs(dz) > SNAP_Z) {
