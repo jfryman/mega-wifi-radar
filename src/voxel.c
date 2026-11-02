@@ -21,6 +21,9 @@
 #define SKY_DEEP    0x11                    /* palette 1-3, both nibbles */
 #define SKY_MID     0x22
 #define SKY_PALE    0x33
+#define SKY_EDGE_DEEP   30                  /* band edges, rows above the horizon (at its column: it banks) */
+#define SKY_EDGE_MID    15
+#define SKY_DITHER      4                   /* rows either side of an edge that blend the two bands */
 
 void vox_step(u32 px, u32 py, s32 dx, s32 dy, struct vox_col *cols, const s16 *ytab, u16 n,
               const u8 *h, const u8 *c);
@@ -49,14 +52,36 @@ static const s16 sin_q14[256] = {
 static u16 nz, steps, back, k_q8;
 static u8 hmax;
 static u32 rowcmd[VOX_ROWS];                /* row y's offset (y * 4) in command form: y << 18 */
+static s16 sky_slope[2], sky_hor[2];        /* per VRAM copy: the roll slope and horizon its sky was painted for */
 
 static inline s16 sinq(u16 a) { return sin_q14[a >> 8]; }
 static inline s16 cosq(u16 a) { return sin_q14[(u8)((a >> 8) + 64)]; }
 
-/* Fixed bands, not following the horizon: the sky delta leaves rows it doesn't uncover as they were. */
-static u8 sky(u16 y)
+/* Row y of the blend across an edge from band a (above) to b (below), d rows below the edge: a byte puts its two
+ * nibbles side by side (pixels a b a b), a 50 % checker; rows alternating it with a plain row make 25 / 75 %. */
+static inline u8 sky_mix(u8 a, u8 b, s16 d, s16 y)
 {
-    return y < VOX_HORIZON / 3 ? SKY_DEEP : y < (2 * VOX_HORIZON) / 3 ? SKY_MID : SKY_PALE;
+    if (d < -SKY_DITHER) return a;
+    if (d >= SKY_DITHER) return b;
+    const u8 mix = (y & 1) ? (a & 0xF0) | (b & 0x0F) : (b & 0xF0) | (a & 0x0F);
+    if (d < -SKY_DITHER / 2) return (y & 1) ? a : mix;
+    if (d >= SKY_DITHER / 2) return (y & 1) ? b : mix;
+    return mix;
+}
+
+/* Paint column c's rows [a, b) of sky (clipped to the screen) for a horizon at row base in that column: three
+ * bands whose edges are SKY_EDGE_* rows above it, blended over SKY_DITHER rows, so the sky banks and pitches
+ * with the terrain. */
+static void sky_span(const struct vox_col *c, s16 a, s16 b, s16 base)
+{
+    const s16 e1 = base - SKY_EDGE_DEEP, e2 = base - SKY_EDGE_MID;
+    if (a < 0) a = 0;
+    if (b > VOX_ROWS) b = VOX_ROWS;
+    if (a >= b) return;
+    *(vu32 *)VDP_CTRL_PORT = c->cmd + rowcmd[a];
+    for (s16 y = a; y < b; y++)
+        *(vu8 *)VDP_DATA_PORT = y < e1 + SKY_DITHER ? sky_mix(SKY_DEEP, SKY_MID, y - e1, y)
+                                                     : sky_mix(SKY_MID, SKY_PALE, y - e2, y);
 }
 
 void voxel_init(void)
@@ -132,7 +157,7 @@ void voxel_render(const struct vox_cam *cam)
     u16 bi = (u16)(s16)(bank * 256 / 360) & 0xFF;
     const s16 slope = (s16)(-(s32)sin_q14[bi] * 1024 / sin_q14[(u8)(bi + 64)]);   /* Q8 rows per column */
     struct vox_col *const cols = VOX->cols[back];
-    s16 acc = -(VOX_COLS / 2) * slope;
+    s32 acc = -(VOX_COLS / 2) * (s32)slope;     /* s32: an s16 wrapped past ~39 degrees of bank */
     for (struct vox_col *c = cols; c < cols + VOX_COLS; c++) {
         c->roll = acc >> 8;
         c->top = VOX_ROWS;
@@ -170,16 +195,29 @@ void voxel_render(const struct vox_cam *cam)
                        VOX->h, VOX->c);
     }
 
-    /* sky only where this copy had terrain last time and doesn't now */
+    /* sky: where this copy had terrain last time and doesn't now, and where a band edge has moved since this
+     * copy was last painted (bank or pitch changed): a few rows a column, none in steady flight */
     s16 *pt = VOX->prev_top[back];
-    for (u16 i = 0; i < VOX_COLS; i++) {
-        const s16 top = cols[i].top;
-        if (pt[i] < top) {
-            *(vu32 *)VDP_CTRL_PORT = cols[i].cmd + rowcmd[pt[i]];
-            for (s16 y = pt[i]; y < top; y++) *(vu8 *)VDP_DATA_PORT = sky(y);
+    s32 an = -(VOX_COLS / 2) * (s32)slope, ao = -(VOX_COLS / 2) * (s32)sky_slope[back];
+    const bool moved = slope != sky_slope[back] || horizon != sky_hor[back];
+    for (u16 i = 0; i < VOX_COLS; i++, an += slope, ao += sky_slope[back]) {
+        const s16 top = cols[i].top, nb = horizon + (s16)(an >> 8);
+        const s16 kept = pt[i] < top ? pt[i] : top;    /* sky then and now */
+        if (moved) {
+            const s16 ob = sky_hor[back] + (s16)(ao >> 8);
+            if (ob != nb) {
+                const s16 lo = ob < nb ? ob : nb, hi = ob < nb ? nb : ob;
+                for (s16 e = SKY_EDGE_MID; e <= SKY_EDGE_DEEP; e += SKY_EDGE_DEEP - SKY_EDGE_MID) {
+                    const s16 end = hi - e + SKY_DITHER;  /* the blend moves with its edge */
+                    sky_span(&cols[i], lo - e - SKY_DITHER, end < kept ? end : kept, nb);
+                }
+            }
         }
+        if (pt[i] < top) sky_span(&cols[i], pt[i], top, nb);
         pt[i] = top;
     }
+    sky_slope[back] = slope;
+    sky_hor[back] = horizon;
     VDP_setAutoInc(2);
 }
 

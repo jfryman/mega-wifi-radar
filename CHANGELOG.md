@@ -16,6 +16,9 @@ IMPROVEMENTS:
   * **cockpit:** the city-light cells are plain ground by day at close range (they buried the runways in grey).
   * **cockpit:** smoother rides: corrections from late or jumpy positions glide in over a second and a half instead
     of jumping, and after touchdown the view slows down with the aircraft instead of rolling on and snapping back.
+  * **cockpit:** the sky banks and pitches with the ground (it stayed level while the terrain tilted), and its
+    three blues blend into each other.
+  * **cockpit:** after touchdown the view never rolls backwards: when the aircraft's position lags, it brakes.
   * **cockpit:** sharper in the distance (every column of the view is sampled all the way out), height bands blend
     into each other, and at night runways are dark between rows of edge lights, with approach lights in front.
 
@@ -27,6 +30,8 @@ BUG FIXES:
     the relay now takes the geoid (EGM96) off it; barometric altitude uses the crew's altimeter setting when sent.
   * **relay:** a cockpit fix's age now counts the time since the relay fetched it, so the view no longer lurches
     back a little every few seconds.
+  * **cockpit:** in banks steeper than about 39 degrees the terrain's tilt wrapped round (an overflow); it now
+    tilts all the way.
   * **cockpit:** the camera can no longer end up inside the ground (the whole view one colour) when a reported
     altitude is low or the cartridge flies on between fixes.
 

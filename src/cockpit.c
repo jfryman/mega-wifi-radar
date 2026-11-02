@@ -24,6 +24,7 @@
 #define GROUND_AGE      4                   /* on the ground, a fix older than this (s) is stale: extrapolated as
                                              * the camera decelerates, 1/3 s for each further s, 8 more at most */
 #define TAXI_MS         8                   /* on the ground the camera eases down to this speed between fixes */
+#define BRAKE_BACK_M    150                 /* on the ground a fix behind the camera brakes it, unless this far */
 #define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
@@ -51,6 +52,8 @@ static s32 vx, vy, vz;                      /* per frame, 16.16 */
 static s32 taxi16;                          /* TAXI_MS per frame, 16.16 cells (|vx| + |vy|) */
 static s32 ex, ey, ez;                      /* correction per frame while blending */
 static u16 blend;
+static bool brake;                          /* on the ground and ahead of the fix: stopping, not reversing */
+static s32 fwdx, fwdy;                      /* the last way the camera moved (stopped, it still has a front) */
 static u16 hd_target;
 static s16 hd_rate;                         /* heading change per frame between fixes */
 static s16 horizon_target;
@@ -343,7 +346,14 @@ static bool get_fix(bool snap)
     s32 tx = (t.x << 8) + (s32)t.vx * 256 * age3 / 3, ty = (t.y << 8) + (s32)t.vy * 256 * age3 / 3,
         tz = (t.z << 8) + vz * 60 * age;
     s32 dx = tx - cam.x, dy = ty - cam.y, dz = tz - z16;
-    if (snap || abs(dx) > SNAP || abs(dy) > SNAP || abs(dz) > SNAP_Z) {
+    /* nothing on a rollout goes backwards: a fix behind the camera (it rolled on through a freeze) stops it
+     * instead (simulated on SCX3003: no reversing, 18 m off at the end; gliding back crept backward for 18 s) */
+    s32 back = hdr.cell_m ? (s32)BRAKE_BACK_M * 65536 / hdr.cell_m : 0;
+    if (abs(vx) + abs(vy) > taxi16 / 4) { fwdx = vx; fwdy = vy; }
+    brake = !snap && ground && abs(dx) < back && abs(dy) < back && (dx >> 12) * fwdx + (dy >> 12) * fwdy < 0;
+    if (brake) {
+        blend = 0;
+    } else if (snap || abs(dx) > SNAP || abs(dy) > SNAP || abs(dz) > SNAP_Z) {
         cam.x = tx; cam.y = ty; z16 = tz;
         cam.heading = hd_target;
         blend = 0;
@@ -412,7 +422,10 @@ static void advance(u16 frames)
         cam.y += vy;
         z16 += vz;
         if (blend) { cam.x += ex; cam.y += ey; z16 += ez; blend--; }
-        if ((trk.kflags & AR_K_GROUND) && abs(vx) + abs(vy) > taxi16) {     /* rolling out: ~8 s time constant */
+        if (brake) {                        /* stopping: ~0.5 s */
+            vx -= vx >> 5;
+            vy -= vy >> 5;
+        } else if ((trk.kflags & AR_K_GROUND) && abs(vx) + abs(vy) > taxi16) {   /* rolling out: ~8.5 s */
             vx -= vx >> 9;
             vy -= vy >> 9;
         }

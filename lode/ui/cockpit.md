@@ -118,8 +118,13 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
   comparing with an exact Python port of `voxel_render` (87.5 % pixel agreement with the overflow modelled, 50 %
   without). Check fixed-point ranges against the inputs' full range.
 - Bank: each column's roll = `tan(bank) · 4` rows per column from the centre (right bank lifts the right); the
-  asm clips rows above the screen. Pitch moves the horizon: `160 · vrate / (gs · 101)` rows, ±30.
-- Sky: fixed bands (palette 1-3); only rows a copy's terrain uncovered since its last frame are repainted.
+  asm clips rows above the screen. The roll accumulator is s32: as an s16 (−40 × slope) it wrapped past ~39°. Pitch moves the horizon: `160 · vrate / (gs · 101)` rows, ±30.
+- Sky (`sky_span`): three bands (palette 1-3) whose edges sit 30 and 15 rows above **each column's horizon**
+  (`horizon` + its roll), so the sky banks and pitches with the terrain; each edge blends over ±4 rows (a byte's two
+  nibbles side by side make a 50 % checker, rows alternating it with plain rows 25 / 75 %). Per VRAM copy the
+  slope and horizon it was painted for are kept (`sky_slope`, `sky_hor`): a frame repaints the rows terrain
+  uncovered, plus, when bank or pitch changed, only the rows an edge (and its blend) moved through. Before
+  0.6.1 the bands were fixed rows: the ground banked under a level sky (owner, on the cart).
 - `vox.s` per column: sample (index, height, row) ~84 cycles, test ~30, span ~95 + 8 per row (jump into 112
   unrolled writes). Measured in the spike: [../plans/cockpit-mode.md](../plans/cockpit-mode.md).
 
@@ -132,6 +137,10 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
   camera decelerates: the full 4 s, then a third of each further second, +8 s at most. Fixes freeze for 20-70 s on
   the rollout: at landing speed it rolled on, then snapped back; with a flat 3 s cap the target lagged the
   camera and every repeated stale fix tugged it back (a stop-start rollout, seen in the relay log 2026-11-02).
+  **Nothing on the ground goes backwards:** a fix behind the camera (against `fwdx/fwdy`, the last way it moved,
+  so a stopped camera still has a front) within 150 m (`BRAKE_BACK_M`) brakes it (`v -= v >> 5`, ~0.5 s) instead
+  of blending it back. Simulated on SCX3003's rollout against the fixes the relay served: no reversing, 18 m off
+  at the end (gliding back crept backward in 36 half-seconds; never correcting ended 231 m ahead).
 - The relay counts a fix's age from now, not from its cached snapshot (up to 1.5 s older): it came up short,
   pulling the camera back every few fixes.
 - **Ground:** every frame `z16` ≥ the level of the cell under the camera + `eye_lv` (a third of a cell: 20 m at
