@@ -52,12 +52,11 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 
 ## Open decisions / ideas
 - [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
+- [ ] Feature goals backlog (ambient mode, real sky, emergency alert, MWR3, weather, video maps, STARS data blocks, logbook): [ideas/summary.md](ideas/summary.md).
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
 - [ ] Persist the host mDNS advertisement across reboots (launchd / systemd unit); today it's `scripts/relay advertise`.
-- [ ] STARS polish: data blocks with leader lines.
 - [ ] Y / Z on 6-button pads (reserved).
-- [ ] Persist the sort order (RAM only today; a new `struct settings` field means `MWR3` + a migration, as `MWR2` did).
 - [ ] Production flyover feed: run the relay in the cluster next to atc-mqtt (env only: `MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`;
   the cart then needs a typed RELAY URL, see `docs/flyover.md`).
 - [ ] More sound (engine noise on the splash; `chime.c` has FM patch + note code to reuse), non-KBNA fake feeds for emulator demos.

@@ -42,4 +42,14 @@
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
+  - ideas/ - goals backlog, not scheduled
+    - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints
+    - [ambient-mode.md](plans/ideas/ambient-mode.md) - idle cart tours flights (details → cockpit → radar)
+    - [real-sky.md](plans/ideas/real-sky.md) - cockpit sky follows the real sun (relay-only palette tint)
+    - [emergency-alert.md](plans/ideas/emergency-alert.md) - sound + box on 7500/7600/7700
+    - [persist-sort-order.md](plans/ideas/persist-sort-order.md) - settings MWR3: sort order + spare bytes
+    - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
+    - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
+    - [stars-data-blocks.md](plans/ideas/stars-data-blocks.md) - leader lines, 8-direction tags in STARS/ERAM
+    - [spotters-logbook.md](plans/ideas/spotters-logbook.md) - daily stats + rare types, relay persistence, /v1/log
 - tmp/ - git-ignored scratch
