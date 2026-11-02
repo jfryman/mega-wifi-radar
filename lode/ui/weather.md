@@ -80,8 +80,10 @@ static u16 wx_word(s16 x, s16 y)
 ```
 
 ## Theme colours (PAL0 13, dim: below every text colour)
-Classic `0x420`, STARS `0x622`, AMBER `0x222`, NIGHT `0x202`, MARINE `0x420`, ICE `0x240`, POCKET `0x086` (darker
-than the pea-green background), SUNSET `0x624`, ERAM `0x420` (0x0BGR). Checked in MAME shots; tune on a TV.
+Classic `0x840`, STARS `0xA42`, AMBER `0x444`, NIGHT `0x404`, MARINE `0x842`, ICE `0x480`, POCKET `0x064` (darker
+than the pea-green background), SUNSET `0xA46`, ERAM `0x840` (0x0BGR). The first set (about half as bright: `0x420`
+...) made a lone light cell nearly invisible on the owner's TV (2026-11-02); the brighter set still sits under the
+tags in MAME. Tune further on a TV.
 
 ## Emulator + tests
 - `res/fake/wx.bin` (`make fake-feed`): `relay -pack-wx` samples `relay/testdata/wx/kmco-100nm.png` (a moderate/heavy
