@@ -1,4 +1,6 @@
-## 0.5.0 (Unreleased)
+## 0.5.1 (Unreleased)
+
+## 0.5.0 (November 2, 2026)
 
 BACKWARDS INCOMPATIBILITIES:
 

@@ -29,9 +29,10 @@ flowchart TD
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
   weather seen on the cart). **v0.4.5** (2026-11-02: video maps
   (solid runways, dashed centrelines), setup MAP + GUIDE, a Video Map manual section (24 pages), contract v6; seen on
-  the cart). 0.5.0 is open in `CHANGELOG.md`: panel tabs + the
-  control remap, the relay's SQLite logbook and rare notices, **contract v7** (MAME-tested; flashed with the matching dev relay 2026-11-02, cart checks below).
-- **The cart** runs 0.5.0 in progress (tabs + logbook, contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02)
+  the cart). **v0.5.0** (2026-11-02: panel tabs + the control
+  remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
+  cart). 0.5.1 is open in `CHANGELOG.md`.
+- **The cart** runs the 0.5.0 code ( contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
@@ -61,8 +62,9 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 ## Open decisions / ideas
 - [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
 - [ ] Feature goals backlog (STARS type line): [ideas/summary.md](ideas/summary.md).
-- [ ] 0.5.0 on the cart: ◀▶ zoom, A/B tabs, the LOGBOOK tab + page against the dev relay's real log, a rare notice;
-  the relay's DB surviving `make relay-stop relay-start`; a day rolling over at Nashville midnight.
+- [ ] 0.5.0 still unchecked on the cart: a rare-aircraft notice, a day rolling over at Nashville midnight, the relay's DB
+  surviving `make relay-stop relay-start` with a full day in it (owner couldn't check these 2026-11-02; the tabs,
+  ◀▶ zoom and the LOGBOOK tab + page are checked).
 - [ ] Video maps (0.4.5, [../ui/video-maps.md](../ui/video-maps.md)) on the cart: KBNA's runways and centrelines at 5/10/25
   nm, arrivals riding them; colours on a TV; MAP OFF clears it and trail dots come back.
 - [ ] Weather overlay (0.4.4, [../ui/weather.md](../ui/weather.md)): seen on the cart's TV (light cells, after the brighter
