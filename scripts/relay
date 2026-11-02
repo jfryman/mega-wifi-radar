@@ -72,6 +72,8 @@ config_args() {
         printf '%s\n' -e MQTT_BROKER_HOST=mwradar-mqtt
         echo "relay: using the dev MQTT broker (mwradar-mqtt)" >&2
     fi
+    # The logbook's SQLite file on a named volume, so it survives restarts and rebuilds (lode/relay/logbook.md).
+    if [ -z "${RELAY_DB:-}" ]; then printf '%s\n' -v mwradar-data:/data -e RELAY_DB=/data/relay.db; fi
     # Names only (-e VAR), so values such as MQTT_PASSWORD never show in ps. RELAY_PORT/IMAGE/MDNS are this script's.
     env | grep -E '^(RELAY|MQTT)_[A-Z_]*=' | cut -d= -f1 | grep -v -x -e RELAY_PORT -e RELAY_IMAGE -e RELAY_MDNS \
         | while read -r v; do printf '%s\n' -e "$v"; done

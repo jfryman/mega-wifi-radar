@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	frameVer     = 6 // AR_VER: the relay and the cart only talk at the same version
+	frameVer     = 7 // AR_VER: the relay and the cart only talk at the same version
 	hdrSize      = 16
 	recSize      = 24
 	maxRecs      = 96
@@ -64,6 +64,7 @@ type upstreamAC struct {
 	Emergency string   `json:"emergency"`
 	Category  string   `json:"category"`
 	SeenPos   *float64 `json:"seen_pos"`
+	DBFlags   int      `json:"dbFlags"` // 1 military, 2 interesting, 4 PIA, 8 LADD (logbook.go)
 	Seen      *float64 `json:"seen"`
 
 	// Detail only (detail.go).

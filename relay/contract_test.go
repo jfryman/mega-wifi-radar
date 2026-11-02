@@ -113,6 +113,8 @@ var relayInts = map[string]int64{
 	"AR_K_ALT_UNK": kAltUnk, "AR_STRIP_CELLS": stripCells, "AR_K_NOTICE": kNotice,
 	"AR_NOTICE_SIZE": noticeSize, "AR_NOTICE_COLS": noticeCols, "AR_N_ICAO": nICAO, "AR_N_EMERG": nEmerg,
 	"AR_MAP_MAX": mapMax, "AR_MAP_HDR": mapHdr, "AR_M_NONE": mNone,
+	"AR_LOG_HDR": logHdr, "AR_LOG_RECS": logRecs, "AR_LOG_RARE": logRare, "AR_L_NEW": lNew,
+	"AR_R_MIL": rMil, "AR_R_FLAGGED": rFlagged, "AR_R_TYPE": rType,
 	"AR_H_WX": hWx, "AR_WX_N": wxN, "AR_WX_ROW": wxRow, "AR_WX_SIZE": wxSize, "AR_W_NONE": wNone, "AR_W_OLD": wOld,
 }
 
@@ -137,6 +139,9 @@ var checkedElsewhere = map[string]string{
 	"AR_WX_PATH":       "TestContractHTTP",
 	"AR_WX_QUERY":      "TestContractHTTP",
 	"AR_MAP_PATH":      "TestContractHTTP",
+	"AR_LOG_PATH":      "TestContractHTTP",
+	"AR_LOG_QUERY":     "TestContractHTTP",
+	"AR_LOG_SIZE":      "TestContractConstants (derived)",
 	"AR_MAP_QUERY":     "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
@@ -173,6 +178,9 @@ func TestContractConstants(t *testing.T) {
 	if got := h.ints["AR_HDR_SIZE"] + h.ints["AR_MAX_RECS"]*h.ints["AR_REC_SIZE_V1"]; h.exprs["AR_FRAME_MAX"] == "" ||
 		got != hdrSize+maxRecs*recSize {
 		t.Errorf("AR_FRAME_MAX: want hdr + max*rec = %d", hdrSize+maxRecs*recSize)
+	}
+	if h.exprs["AR_LOG_SIZE"] != "(AR_LOG_HDR + 16 * (AR_LOG_RECS + AR_LOG_RARE))" || logSize != logHdr+logEntry*(logRecs+logRare) {
+		t.Errorf("AR_LOG_SIZE: want (AR_LOG_HDR + 16 * (AR_LOG_RECS + AR_LOG_RARE)) = %d, got %q", logSize, h.exprs["AR_LOG_SIZE"])
 	}
 	if h.exprs["AR_TERRAIN_SIZE"] != "(AR_TERRAIN_HDR + 2 * AR_TN * AR_TN)" || terrainSize != terrainHdr+2*tn*tn {
 		t.Errorf("AR_TERRAIN_SIZE: want (AR_TERRAIN_HDR + 2 * AR_TN * AR_TN) = %d, got %q", terrainSize,
@@ -221,6 +229,10 @@ func TestContractLayout(t *testing.T) {
 	encW := wg.encode()
 	vm := vmap{flags: 0x81, rangeNM: 0x0019, segs: []seg{{0x11, 0x22, 0x33, 0x44}}, n: [3]int{1, 0, 0}}
 	encM := vm.encode()
+	ls := logSummary{flags: 0x81, month: 11, mday: 2, aircraft: 0x0123, types: 0x45, peakHour: 17, peakN: 0x2A, since: 0x0102,
+		recs:  [logRecs]logEntryRec{{cs: "DAL768", typ: "A321", value: 0x0224}},
+		rares: []logEntryRec{{cs: "RCH4521", typ: "C17", minute: 0x0359, rare: 0x05}}}
+	encL := ls.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
 	want := map[string]map[string]func(size int) []byte{
@@ -328,6 +340,33 @@ func TestContractLayout(t *testing.T) {
 			"ticks":    func(n int) []byte { return be(0, n) },
 			"rsv":      func(n int) []byte { return be(0, n) },
 		},
+		"ar_log": {
+			"magic":     func(int) []byte { return []byte("AL") },
+			"ver":       func(n int) []byte { return be(frameVer, n) },
+			"lflags":    func(n int) []byte { return be(0x81, n) },
+			"month":     func(n int) []byte { return be(11, n) },
+			"mday":      func(n int) []byte { return be(2, n) },
+			"aircraft":  func(n int) []byte { return be(0x0123, n) },
+			"types":     func(n int) []byte { return be(0x45, n) },
+			"peak_hour": func(n int) []byte { return be(17, n) },
+			"peak_n":    func(n int) []byte { return be(0x2A, n) },
+			"nrare":     func(n int) []byte { return be(1, n) },
+			"rsv":       func(n int) []byte { return be(0, n) },
+			"since":     func(n int) []byte { return be(0x0102, n) },
+		},
+		"ar_log_rec": { // the first record (fastest)
+			"cs":    func(int) []byte { return []byte("DAL768  ") },
+			"type":  func(int) []byte { return []byte("A321") },
+			"value": func(n int) []byte { return be(0x0224, n) },
+			"rsv":   func(n int) []byte { return be(0, n) },
+		},
+		"ar_log_rare": { // the first rare sighting
+			"cs":     func(int) []byte { return []byte("RCH4521 ") },
+			"type":   func(int) []byte { return []byte("C17 ") },
+			"minute": func(n int) []byte { return be(0x0359, n) },
+			"rflags": func(n int) []byte { return be(0x05, n) },
+			"rsv":    func(n int) []byte { return be(0, n) },
+		},
 		"ar_seg": {
 			"x1": func(n int) []byte { return be(0x11, n) },
 			"y1": func(n int) []byte { return be(0x22, n) },
@@ -354,13 +393,15 @@ func TestContractLayout(t *testing.T) {
 	}
 	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD, "ar_terrain": encT, "ar_track": encK,
 		"ar_notice": encN, "ar_wx": encW,
-		"ar_map": encM, "ar_seg": encM}
+		"ar_map": encM, "ar_seg": encM, "ar_log": encL, "ar_log_rec": encL, "ar_log_rare": encL}
 	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0, "ar_wx": 0, "ar_map": 0,
-		"ar_seg": int(h.ints["AR_MAP_HDR"])}
+		"ar_seg": int(h.ints["AR_MAP_HDR"]), "ar_log": 0, "ar_log_rec": int(h.ints["AR_LOG_HDR"]),
+		"ar_log_rare": int(h.ints["AR_LOG_HDR"] + 16*h.ints["AR_LOG_RECS"])}
 	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
 		"ar_detail": int(h.ints["AR_DETAIL_SIZE"]), "ar_terrain": int(h.ints["AR_TERRAIN_HDR"]),
 		"ar_track": int(h.ints["AR_TRACK_SIZE"]), "ar_notice": int(h.ints["AR_NOTICE_SIZE"]),
-		"ar_wx": int(h.ints["AR_WX_SIZE"]), "ar_map": int(h.ints["AR_MAP_HDR"]), "ar_seg": 4}
+		"ar_wx": int(h.ints["AR_WX_SIZE"]), "ar_map": int(h.ints["AR_MAP_HDR"]), "ar_seg": 4,
+		"ar_log": int(h.ints["AR_LOG_HDR"]), "ar_log_rec": 16, "ar_log_rare": 16}
 	// The maps follow the terrain header: heights, then colours.
 	if len(encT) != terrainSize || encT[terrainHdr] != p.height[0] || encT[terrainHdr+tn*tn] != p.colour[0] {
 		t.Errorf("terrain body: %d bytes, height[0] %#x, colour[0] %#x", len(encT), encT[terrainHdr], encT[terrainHdr+tn*tn])
@@ -526,7 +567,7 @@ func TestContractHTTP(t *testing.T) {
 	for _, seen := range []uint16{0, nt.id - 1, nt.id} {
 		want := seen != nt.id
 		rec = httptest.NewRecorder()
-		frameHandler(src, ns, nil).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
+		frameHandler(src, ns, nil, nil).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
 			"36.2", "-86.7", 5, 5, seen, 0, ver), nil))
 		if b := rec.Body.Bytes(); rec.Code != 200 || len(b) < hdrSize || (b[15]&byte(h.ints["AR_H_NOTICE"]) != 0) != want {
 			t.Errorf("frame with n=%d: status %d, hflags %#x, want notice %v", seen, rec.Code, b[15], want)
@@ -573,7 +614,7 @@ func TestContractHTTP(t *testing.T) {
 	}
 	for _, held := range []uint16{0, binary.BigEndian.Uint16(wb[4:])} {
 		rec = httptest.NewRecorder()
-		frameHandler(src, nil, wx).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
+		frameHandler(src, nil, wx, nil).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
 			"36.2", "-86.7", 5, 5, 0, held, ver), nil))
 		if b := rec.Body.Bytes(); rec.Code != 200 || (b[15]&byte(h.ints["AR_H_WX"]) != 0) != (held == 0) {
 			t.Errorf("frame with w=%d: status %d, hflags %#x", held, rec.Code, b[15])
@@ -594,6 +635,21 @@ func TestContractHTTP(t *testing.T) {
 	if n := int(mb[6]) + int(mb[7]) + int(mb[8]); rec.Code != 200 || string(mb[:2]) != "AM" || n == 0 ||
 		n > int(h.ints["AR_MAP_MAX"]) || len(mb) != int(h.ints["AR_MAP_HDR"])+4*n {
 		t.Errorf("map for the cart's query: status %d, %d bytes, % x", rec.Code, len(mb), mb[:8])
+	}
+
+	// Logbook: the cart's log query returns AR_LOG_SIZE bytes for its home.
+	if h.strs["AR_LOG_PATH"] != logPath {
+		t.Errorf("AR_LOG_PATH %q, relay serves %q", h.strs["AR_LOG_PATH"], logPath)
+	}
+	lq := h.strs["AR_LOG_QUERY"]
+	if strings.Count(lq, "%") != 3 {
+		t.Fatalf("AR_LOG_QUERY %q: expected lat, lon, version", lq)
+	}
+	lbk := testLogbook(t, nil)
+	rec = httptest.NewRecorder()
+	logHandler(lbk).ServeHTTP(rec, httptest.NewRequest("GET", logPath+fmt.Sprintf(cFormat(lq), "36.1245", "-86.6782", ver), nil))
+	if lb := rec.Body.Bytes(); rec.Code != 200 || len(lb) != logSize || string(lb[:2]) != "AL" {
+		t.Errorf("log for the cart's query: status %d, %d bytes", rec.Code, len(lb))
 	}
 
 	// The patch is centred on the aircraft (projected terrainLeadS ahead): it sits near the middle cell.

@@ -167,7 +167,7 @@ func writeBinary(w http.ResponseWriter, body []byte) {
 	w.Write(body)
 }
 
-func frameHandler(src *source, ns *notices, wx *wxSource) http.HandlerFunc {
+func frameHandler(src *source, ns *notices, wx *wxSource, lb *logbook) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		if !versionOK(w, r) {
@@ -178,6 +178,7 @@ func frameHandler(src *source, ns *notices, wx *wxSource) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		lb.seen(q.lat, q.lon) // the logbook logs this home from now on
 		f, err := src.frame(r.Context(), q)
 		if err != nil {
 			log.Printf("%s %s: %v", r.RemoteAddr, r.URL.RequestURI(), err)
@@ -227,6 +228,7 @@ func main() {
 	recordWxOut := flag.String("record-wx", "", "save the weather picture for -lat/-lon/-range to this PNG and exit")
 	packWxOut := flag.String("pack-wx", "", "pack the weather picture given as argument (recorded at -lat/-lon/-range) into the emulator's weather file and exit")
 	wxPackID := flag.Uint("wx-id", 1, "weather id for -pack-wx")
+	dbPath := flag.String("db", "", "SQLite file for the logbook (empty: in memory, lost on restart)")
 	packMapOut := flag.String("pack-map", "", "pack the video maps for -lat/-lon at every cart range into the emulator's map file and exit")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
@@ -291,7 +293,13 @@ func main() {
 	src := newSource(*upstream, *interval)
 	ns := newNotices(src, *noticeTTL)
 	wx := newWx(*wxURL)
-	mux.Handle("GET "+framePath, frameHandler(src, ns, wx))
+	lb, err := openLogbook(*dbPath, src, ns)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go lb.run(context.Background())
+	mux.Handle("GET "+framePath, frameHandler(src, ns, wx, lb))
+	mux.Handle("GET "+logPath, logHandler(lb))
 	mux.Handle("GET "+wxPath, wxHandler(wx))
 	mux.Handle("GET "+mapPath, mapHandler())
 	mux.Handle("GET "+noticePath, noticeHTTP(ns))
@@ -339,6 +347,7 @@ var serverEnv = map[string]string{
 	"sky":            "RELAY_SKY",
 	"lights":         "RELAY_LIGHTS",
 	"wx":             "RELAY_WX",
+	"db":             "RELAY_DB",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag

@@ -157,7 +157,7 @@ func TestWxHandler(t *testing.T) {
 		want bool
 	}{{"&w=0", true}, {fmt.Sprintf("&w=%d", id-1), true}, {fmt.Sprintf("&w=%d", id), false}, {"", false}} {
 		rec := httptest.NewRecorder()
-		frameHandler(src, nil, wx).ServeHTTP(rec, httptest.NewRequest("GET",
+		frameHandler(src, nil, wx, nil).ServeHTTP(rec, httptest.NewRequest("GET",
 			fmt.Sprintf("%s?lat=36.2&lon=-86.7&range=5&max=5%s&v=%d", framePath, c.w, frameVer), nil))
 		if b := rec.Body.Bytes(); rec.Code != 200 || (b[15]&hWx != 0) != c.want {
 			t.Errorf("frame with %q: status %d, hflags %#x, want weather %v", c.w, rec.Code, b[15], c.want)

@@ -168,7 +168,20 @@ func (ns *notices) add(f atcFlight) (notice, bool) {
 		}
 		ns.seen[f.UUID] = now
 	}
-	n := composeNotice(f, ac)
+	return ns.pushLocked(composeNotice(f, ac), now), true
+}
+
+// push adds a notice composed elsewhere (the logbook's rare sightings) to the ring.
+func (ns *notices) push(n notice) notice {
+	if ns == nil {
+		return n
+	}
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	return ns.pushLocked(n, ns.now())
+}
+
+func (ns *notices) pushLocked(n notice, now time.Time) notice {
 	ns.next++
 	if ns.next == 0 {
 		ns.next = 1
@@ -178,7 +191,7 @@ func (ns *notices) add(f atcFlight) (notice, bool) {
 	if len(ns.ring) > noticeKeep {
 		ns.ring = ns.ring[len(ns.ring)-noticeKeep:]
 	}
-	return n, true
+	return n
 }
 
 // waiting reports whether a notice newer than the request's n= is live (the AR_H_NOTICE / AR_K_NOTICE flag).

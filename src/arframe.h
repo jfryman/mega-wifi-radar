@@ -4,7 +4,7 @@
 /* The relay <-> cartridge contract (lode/architecture/contract.md): the compact traffic frame
  * (spec: lode/architecture/frame-format.md), the aircraft detail record, cockpit mode's terrain patch
  * and track (lode/ui/cockpit.md), flyover notices (lode/ui/notices.md), weather (lode/ui/weather.md), video maps
- * (lode/ui/video-maps.md), the HTTP requests,
+ * (lode/ui/video-maps.md), the logbook (lode/ui/logbook.md), the HTTP requests,
  * and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
  * item here, so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Any change here must bump AR_VER (relay/contract.lock enforces it; `make contract-lock` after).
@@ -13,7 +13,7 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          6
+#define AR_VER          7
 #define AR_REC_SIZE_V1  24
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
@@ -138,6 +138,25 @@
 
 /* struct ar_map.mflags */
 #define AR_M_NONE        0x01   /* no known airport with runways in view: no segments */
+
+/* Spotter's logbook (lode/ui/logbook.md): today's traffic around home (since local midnight at the home airport), as the
+ * relay logs it all the time it runs. GET <relay> AR_LOG_PATH AR_LOG_QUERY (lat, lon as degrees; AR_VER): struct
+ * ar_log, then AR_LOG_RECS struct ar_log_rec (fastest: value kt; highest: value 100 ft; longest in range: value
+ * minutes), then AR_LOG_RARE struct ar_log_rare (newest first; the first nrare are used): AR_LOG_SIZE bytes. */
+#define AR_LOG_PATH      "/v1/log"
+#define AR_LOG_QUERY     "?lat=%s&lon=%s&v=%u"
+#define AR_LOG_HDR       16
+#define AR_LOG_RECS      3
+#define AR_LOG_RARE      8
+#define AR_LOG_SIZE      (AR_LOG_HDR + 16 * (AR_LOG_RECS + AR_LOG_RARE))   /* 192 */
+
+/* struct ar_log.lflags */
+#define AR_L_NEW         0x01   /* nothing logged yet today */
+
+/* struct ar_log_rare.rflags: why it's rare */
+#define AR_R_MIL         0x01   /* military */
+#define AR_R_FLAGGED     0x02   /* adsb.fi's "interesting" list */
+#define AR_R_TYPE        0x04   /* a rare type at a regional airport */
 
 /* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
 #define AR_MDNS_SERVICE  "_mwradar._tcp.local"
@@ -268,6 +287,39 @@ struct ar_seg {
     u8 y2;
 };
 
+/* The logbook's day. */
+struct ar_log {
+    char magic[2];      /* "AL" */
+    u8 ver;             /* AR_VER */
+    u8 lflags;          /* AR_L_* */
+    u8 month;           /* the local date: 1-12 */
+    u8 mday;            /* 1-31 */
+    u16 aircraft;       /* seen today within 25 nm */
+    u16 types;          /* different aircraft types among them */
+    u8 peak_hour;       /* local hour with the most aircraft arriving in range */
+    u8 peak_n;          /* how many */
+    u8 nrare;           /* rare sightings that follow (<= AR_LOG_RARE) */
+    u8 rsv;
+    u16 since;          /* minute of the day logging began, 0: since midnight */
+};
+
+/* A record: fastest, highest, longest. */
+struct ar_log_rec {
+    char cs[8];         /* space padded */
+    char type[4];
+    u16 value;
+    u16 rsv;
+};
+
+/* A rare sighting. */
+struct ar_log_rare {
+    char cs[8];
+    char type[4];
+    u16 minute;         /* minute of the local day first seen */
+    u8 rflags;          /* AR_R_* */
+    u8 rsv;
+};
+
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
@@ -282,6 +334,8 @@ _Static_assert(sizeof(((struct ar_wx *)0)->cells) == AR_WX_N * AR_WX_ROW, "ar_wx
 _Static_assert(AR_WX_ROW * 4 >= AR_WX_N, "a weather row holds AR_WX_N cells");
 _Static_assert(sizeof(struct ar_map) == AR_MAP_HDR, "ar_map must be 10 bytes");
 _Static_assert(sizeof(struct ar_seg) == 4, "ar_seg must be 4 bytes");
+_Static_assert(sizeof(struct ar_log) == AR_LOG_HDR, "ar_log must be 16 bytes");
+_Static_assert(sizeof(struct ar_log_rec) == 16 && sizeof(struct ar_log_rare) == 16, "log entries are 16 bytes");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
@@ -307,6 +361,12 @@ AR_AT(ar_wx, magic, 0); AR_AT(ar_wx, ver, 2); AR_AT(ar_wx, wflags, 3); AR_AT(ar_
 AR_AT(ar_wx, cells, 8);
 AR_AT(ar_map, magic, 0); AR_AT(ar_map, ver, 2); AR_AT(ar_map, mflags, 3); AR_AT(ar_map, range_nm, 4);
 AR_AT(ar_map, runways, 6); AR_AT(ar_map, centres, 7); AR_AT(ar_map, ticks, 8); AR_AT(ar_map, rsv, 9);
+AR_AT(ar_log, magic, 0); AR_AT(ar_log, ver, 2); AR_AT(ar_log, lflags, 3); AR_AT(ar_log, month, 4); AR_AT(ar_log, mday, 5);
+AR_AT(ar_log, aircraft, 6); AR_AT(ar_log, types, 8); AR_AT(ar_log, peak_hour, 10); AR_AT(ar_log, peak_n, 11);
+AR_AT(ar_log, nrare, 12); AR_AT(ar_log, rsv, 13); AR_AT(ar_log, since, 14);
+AR_AT(ar_log_rec, cs, 0); AR_AT(ar_log_rec, type, 8); AR_AT(ar_log_rec, value, 12); AR_AT(ar_log_rec, rsv, 14);
+AR_AT(ar_log_rare, cs, 0); AR_AT(ar_log_rare, type, 8); AR_AT(ar_log_rare, minute, 12); AR_AT(ar_log_rare, rflags, 14);
+AR_AT(ar_log_rare, rsv, 15);
 AR_AT(ar_seg, x1, 0); AR_AT(ar_seg, y1, 1); AR_AT(ar_seg, x2, 2); AR_AT(ar_seg, y2, 3);
 #undef AR_AT
 
