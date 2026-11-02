@@ -8,7 +8,7 @@ ARG VERSION=dev
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
-COPY *.go *.csv ./
+COPY *.go *.csv *.bin ./
 COPY testdata ./testdata
 RUN go vet ./... && go test ./... \
  && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /relay . \

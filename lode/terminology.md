@@ -79,3 +79,8 @@
 - Rare (aircraft) - military, adsb.fi "interesting", or a type on `rareTypes`; announced once a day as a notice.
 - dbFlags - adsb.fi's per-aircraft flags: 1 military, 2 interesting, 4 PIA, 8 LADD (PIA/LADD never logged).
 - City lights - cockpit cells under night lights (NASA GIBS VIIRS City Lights 2012), palette 14: grey specks by day, warm points at night (`lights.go`).
+- Approach scale - cockpit terrain at 60 m cells below 500 m above the ground (and on it); the cart keeps that patch to the runway (`approachCellM`, `APPROACH_CELL_M`).
+- Eye height (`eye_lv`) - the cockpit camera's lowest height over the cell under it: a third of a cell (20 m at approach scale).
+- Runway cells - cockpit cells under a `runways.csv` centreline (cells ≤ 150 m): palette 15 at approach scale, 14 above.
+- Geoid / EGM96 - sea level's height above the WGS84 ellipsoid (−30 m at BNA); GPS altitude minus it = height above sea level (`geoid.go`).
+- Recording - a gzipped JSON-lines capture of upstream answers (`relay -record`); `-cut` trims one, `-replay` serves one as live.

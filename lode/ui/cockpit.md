@@ -27,10 +27,15 @@ sequenceDiagram
 ## Data (contract v4, `src/arframe.h`; [../architecture/contract.md](../architecture/contract.md))
 - **`/v1/terrain?icao=&v=`** → `struct ar_terrain` (104 B) + 128×128 height levels (0..63) + 128×128 palette
   indices (4..15), rows from the south edge, west to east. 404 if the aircraft isn't in the feed.
-  - `cell_m` = height above ground / 5 (30..3000 m): the camera sits ~5 cells up at any altitude.
+  - `cell_m` = height above ground / 5 (100..3000 m): the camera sits ~5 cells up at any altitude. **Approach
+    scale:** below 500 m above the ground, and on it, always 60 m (`approachCellM`; patch 7.7 km, view 3.8 km), so
+    the cart keeps one patch to the runway ([../plans/cockpit-low-altitude.md](../plans/cockpit-low-altitude.md)).
   - `level_cm` = cell / 16 (true vertical scale), or more if the relief won't fit 64 levels.
   - `base_m` = 1st percentile of the ground (one bad pixel can't sink it); `hmax` = highest level.
-  - `pal[16]` = PAL0: 1-3 sky, 4-5 water, 6-8 low ground, 9-11 mid, 12-13 high, 14 urban (unused), 15 snow.
+  - `pal[16]` = PAL0: 1-3 sky, 4-5 water, 6-8 low ground, 9-11 mid, 12-13 high, 14 urban, 15 snow; at approach
+    scale 15 is the **runway** (`cRunway`, `patchPalette`: `0x666` by day, `0x68A` twilight, `0x46A` night; snow
+    cells take 13 there) and by day 14 is plain ground (`cLow+1`): the lights pattern around an airport at 60 m
+    cells is a grey mosaic that buried the runways.
     **Real sky** (`relay/sky.go`): the relay picks a phase from the sun's elevation at the patch centre, now (NOAA
     low-precision formulas, tested at KBNA's solar noons): day > 6°, golden 0..6°, twilight -6..0°, night below.
     Each phase sets the three sky entries and scales the ground (1, 0.85, 0.55, 0.3; night lifts blue to 2 so it
@@ -48,12 +53,19 @@ sequenceDiagram
     tops the colour bands): the cart passes it back verbatim; the relay is stateless.
   - The patch is centred where the aircraft will be 3 s on (`terrainLeadS`: the cart's download time).
   - `AR_T_FLAT`: no elevation data (offline): flat ground, the mode still works.
+  - **Colours** (`geom.code`): bands of base..max(hi, base + 100 m) (`minReliefM`: flat ground stays in the low
+    band), NW-slope shade; at cells ≤ 120 m flat cells get `fieldShade` (2×2-cell fields, a hash of the grid
+    position: some dark, some light), a motion cue low down. **Runways** (`onRunway`, cells ≤ 150 m): cells within
+    max(23 m, ½ cell) of a `runways.csv` centreline, 1 cell at approach scale (2-3 cells, ~3× real width: past
+    6 cells the renderer samples every other column and a one-cell strip flickers away), `cUrban` above it.
+    All by grid position or geometry, so a strip colours exactly as its patch did.
 - **`/v1/strip?p=<key>&x=&y=&w=&h=&v=`** → `w·h` height levels then `w·h` palette indices of the patch's grid from
   cell (x, y); the grid goes on past the patch (any x, y), same scale and colouring. `w, h ≤ 128`,
   `w·h ≤ AR_STRIP_CELLS` (1,024). A strip inside the patch equals the patch cell for cell (relay tests, and live).
   The patch and strips share one encoder (`sampleCells` with each cell's north-west neighbour, `geom.code`).
   No elevation data → 502 (the cart keeps what it has).
-- **`/v1/track?icao=&p=<key>&n=&v=`** → `struct ar_track` (40 B), `AR_K_NOTICE` when a flyover notice newer than `n=` waits: `x, y` (1/256 cell from the SW corner), `z` (1/256
+- **`/v1/track?icao=&p=<key>&n=&v=`** → `struct ar_track` (40 B; altitude: GPS minus the EGM96 geoid, else baro +
+  `nav_qnh`, never under DEM ground + 3 m, [../relay/relay.md](../relay/relay.md)), `AR_K_NOTICE` when a flyover notice newer than `n=` waits: `x, y` (1/256 cell from the SW corner), `z` (1/256
   level), `vx, vy, vz` per second, `heading`, `bank` (deg), `age` (s since the position), plus `alt`, `gs`,
   `vrate`, `cs` for the HUD. No `AR_K_FOUND`: the relay doesn't know it.
 
@@ -94,6 +106,11 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 - Depth: 0.75..64 cells (beyond, the map wraps); steps × (1 + 1/8), × (1 + 1/4) past 16 cells; one sample per
   two columns past 6 cells (`vox_pairs`); steps start at `z_min`, where the tallest terrain reaches the bottom row.
 - Projection: rows per level at 1 cell `k = 160 · level / cell` (160 px focal length, a 90° view), Q8, ≤ 64.
+- Column step: right × 32 / 40 (Q14, `rxs`/`rys`, s16 ≤ 13,107) then `>> 11` / `>> 4`. **Lesson (2026-11-02):**
+  it was × 128 / 40 in an s16, which overflows for every heading: the view was mirrored and stretched sideways
+  from 0.3.0 on (terrain smeared and slid; no runway ever showed). Found by dumping the cart's RAM in MAME and
+  comparing with an exact Python port of `voxel_render` (87.5 % pixel agreement with the overflow modelled, 50 %
+  without). Check fixed-point ranges against the inputs' full range.
 - Bank: each column's roll = `tan(bank) · 4` rows per column from the centre (right bank lifts the right); the
   asm clips rows above the screen. Pitch moves the horizon: `160 · vrate / (gs · 101)` rows, ±30.
 - Sky: fixed bands (palette 1-3); only rows a copy's terrain uncovered since its last frame are repainted.
@@ -103,6 +120,9 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
 ## Camera (`cockpit.c`)
 - Position 16.16 cells, height 16.16 levels; velocity per frame from the fix. Each frame: `pos += v`, plus
   `err / 32` for 32 frames after a fix (`err` = fix + v · age − pos); errors > 6 cells (or 32 levels) snap.
+- **Ground:** every frame `z16` ≥ the level of the cell under the camera + `eye_lv` (a third of a cell: 20 m at
+  approach scale; set per patch). Below that the nearest cell fills the screen's bottom in one colour; inside the
+  ground, all of it. The flare and the rollout ride that high.
 - Heading eases 1/8 per frame toward the fix's heading, which advances at the rate seen between fixes. Bank and
   horizon step 1 per frame toward their targets.
 - **Streaming** (`stream()`): the buffer holds grid cells `[wx, wx+128) × [wy, wy+128)`. At most once a second,
@@ -111,7 +131,8 @@ column's rows are 4 bytes apart: with the VDP auto-increment at 4, a vertical sp
   Capacity 8 cells/s; cells are height-above-ground / 5, so even low and fast stays well inside it.
 - **Whole new patch** only when the height has halved or doubled (the cell size no longer suits it) or streaming
   has fallen 40+ cells behind (failed strips); a failed reload isn't retried for 10 s. Positions then snap to the
-  new grid.
+  new grid. An approach-scale patch (`cell_m` ≤ `APPROACH_CELL_M` 60) is kept until the camera climbs past
+  800 m (`APPROACH_TOP_M`): one reload going into approach scale, none from there to the rollout.
 - All requests block: a strip ~0.2 s, a track less, a patch ~2.5 s on the cart; the camera then catches up by
   elapsed time. No good fix for 20 s: `SIGNAL LOST`, back to the radar.
 
@@ -140,6 +161,8 @@ the cockpit loop also runs `chime_tick()`.
 ## Emulator
 `relay -pack-cockpit` (`make fake-feed`) writes `res/fake/kbna_cockpit.bin`: a 750 m-cell patch around KBNA from
 real elevation (needs the network) and every recorded aircraft's track in it. The fake `feed_track` plays the
-recording in real time, looping; the fake `feed_strip` repeats the one patch (its grid wraps every 128 cells). `SIM_PRESS="10:P1 Down,11:P1 C,13:P1 A"` enters it in `make sim-run`.
+recording in real time, looping; the fake `feed_strip` repeats the one patch (its grid wraps every 128 cells). `SIM_PRESS="21:P1 Down,22:P1 C,24:P1 A"` enters it in `make sim-run` (the splash takes ~20 s). An arrival at approach scale:
+[../relay/recordings.md](../relay/recordings.md). Measured in MAME (2026-11-02, fixed renderer): 40 fps at FL340 on
+750 m cells, 17 fps at 3 nm / 1,300 ft, ~10 fps on short final and the rollout (every depth step, tall spans).
 
 Related: [detail-popup.md](detail-popup.md), [screen-layout.md](screen-layout.md), [../net/feed.md](../net/feed.md).

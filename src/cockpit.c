@@ -22,6 +22,8 @@
 #define STREAM_FRAMES   60                  /* a strip at most every second, between track fetches */
 #define LAG_RELOAD      40                  /* cells streaming may fall behind before a whole new patch */
 #define RELOAD_RETRY    600                 /* frames before trying a failed whole patch again */
+#define APPROACH_CELL_M 60                  /* the relay's cells below 500 m above ground (relay/terrain.go) */
+#define APPROACH_TOP_M  800                 /* an approach-scale patch is kept until the camera climbs past this */
 #define HUD_COL         1
 #define HUD_W           38                  /* HUD text columns (1..38) */
 #define ROW_BACK        24                  /* "B  BACK TO RADAR" + fps */
@@ -36,6 +38,7 @@ static struct ar_terrain hdr;
 static struct ar_track trk;                 /* last good fix */
 static u32 fix_at, req_at, strip_at, reload_at;    /* vtimer of the last good fix / requests */
 static s32 load_z;                          /* height when the patch was loaded */
+static s32 eye_lv;                          /* lowest camera height over the ground, levels (a third of a cell) */
 static s16 wx, wy;                          /* the buffer holds grid cells [wx, wx + 128) x [wy, wy + 128) */
 static struct vox_cam cam;
 static s32 z16;                             /* camera height, 16.16 levels */
@@ -283,6 +286,8 @@ static bool load_terrain(void)
     }
     PAL_setColors(PAL0 * 16, hdr.pal, 16, CPU);
     voxel_patch(&hdr);
+    eye_lv = hdr.level_cm ? (s32)hdr.cell_m * 100 / (3 * hdr.level_cm) : 5;
+    if (eye_lv < 1) eye_lv = 1;
     return ok;
 }
 
@@ -343,10 +348,16 @@ static s16 lag_x(void) { return (s16)(cam.x >> 16) - AR_TN / 2 - wx; }
 static s16 lag_y(void) { return (s16)(cam.y >> 16) - AR_TN / 2 - wy; }
 
 /* A whole new patch: when the aircraft's height no longer suits the cell size (it has halved or doubled),
- * or streaming has fallen too far behind (failed strips). Streaming handles ordinary movement. */
+ * or streaming has fallen too far behind (failed strips). Streaming handles ordinary movement. Near the
+ * ground the relay sends one fixed approach scale, kept down to the runway and through the rollout (each
+ * reload is a ~2.5 s pause): only climbing well clear of it asks for a new one. */
 static bool need_patch(void)
 {
-    bool scale = z16 > load_z * 2 + (16L << 16) || z16 < load_z / 2 - (16L << 16);
+    bool scale;
+    if (hdr.cell_m <= APPROACH_CELL_M)
+        scale = (z16 >> 16) * (s32)hdr.level_cm > APPROACH_TOP_M * 100L;
+    else
+        scale = z16 > load_z * 2 + (16L << 16) || z16 < load_z / 2 - (16L << 16);
     return scale || abs(lag_x()) > LAG_RELOAD || abs(lag_y()) > LAG_RELOAD;
 }
 
@@ -392,6 +403,12 @@ static void advance(u16 frames)
         if (cam.horizon < horizon_target) cam.horizon++;
         else if (cam.horizon > horizon_target) cam.horizon--;
     }
+    /* never inside or too close to the ground: below about a third of a cell up (20 m at approach scale) the
+     * nearest cell fills the bottom of the screen in one colour; inside, the whole screen. The camera rides
+     * the flare and the rollout that high, like a view from above the tail. It extrapolates between fixes, so
+     * this runs every frame against the cell under it (VOX->h: even levels). */
+    s32 ground = (s32)VOX->h[(((cam.y >> 16) & (AR_TN - 1)) << 7) | ((cam.x >> 16) & (AR_TN - 1))] + eye_lv;
+    if (z16 < ground << 16) z16 = ground << 16;
     s32 h = z16 >> 16;
     cam.h = h > 2000 ? 2000 : h < -2000 ? -2000 : h;
 }

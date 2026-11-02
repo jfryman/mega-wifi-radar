@@ -14,8 +14,7 @@ controller, *Y* goes straight there for the selected aircraft. *B* takes you bac
 #key(4)[From home][Bearing and distance from your home airport.]
 #key(5)[Credit][Where the ground comes from (see _Credits_).]
 
-The relay sends the ground and the aircraft's position every two seconds; your Genesis flies smoothly
-in between. Getting in takes a few seconds.
+The relay sends the aircraft's position every two seconds; your Genesis flies smoothly in between.
 
-#note[What you're seeing][Hills are true to scale. Colours come from height, not photographs; towns show
-as lights, and the sky follows the time of day.]
+#note[What you're seeing][Hills are true to scale; colours come from height. Towns show as lights,
+runways as grey strips, and the sky follows the time of day.]

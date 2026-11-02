@@ -18,6 +18,7 @@
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
   - [logbook.md](relay/logbook.md) - relay logbook: SQLite, homes from carts, 10 s poll, local-midnight days, rare notices, privacy
+  - [recordings.md](relay/recordings.md) - relay -record / -cut / -replay, the arrival fixtures, what real arrivals taught (gaps, geoid)
   - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles, sky, city lights), /v1/notice, /v1/wx, /v1/map, version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
@@ -28,7 +29,7 @@
   - [traffic-list.md](ui/traffic-list.md) - side-panel tabs (A/B): four list orders + LOGBOOK, selection, rebuild per sweep
   - [logbook.md](ui/logbook.md) - LOGBOOK tab + page: /v1/log into frame_buf, text only, controls while the page is up
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
-  - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, real sky, Voxel Space into VRAM, overlay RAM, camera, HUD
+  - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, approach scale + runways, real sky, Voxel Space into VRAM (column-step lesson), overlay RAM, camera + ground clamp, HUD
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR3, spare bytes, migration, saves from the radar), airports
   - [notices.md](ui/notices.md) - flyover notices + the emergency alert: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
   - [ambient.md](ui/ambient.md) - ambient mode: idle tours (details → cockpit ride → radar), picking, swallowed exit press, AMBIENT setting
@@ -46,6 +47,7 @@
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
+  - [cockpit-low-altitude.md](plans/cockpit-low-altitude.md) - 0.6.1: near the ground: causes, what was built, cart check, follow-ups
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
     - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; STARS type line

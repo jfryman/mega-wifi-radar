@@ -4,6 +4,8 @@
 #   scripts/relay run          # run in the foreground on port ${RELAY_PORT:-8080}
 #   scripts/relay start|stop|logs   # detached container named mwradar-relay
 #   scripts/relay advertise    # (re-)register the mDNS advertisement only, e.g. after a reboot
+#   scripts/relay replay FILE [relay args]   # serve a recording (relay -record) as live, looping, in the
+#                              # foreground; stops the detached relay first (make relay-start brings it back)
 # Extra args after run/start go to the relay, e.g. scripts/relay run -min-interval 2s
 #
 # Dev relays are built from the checkout and tagged with its version, so the relay you run is the
@@ -106,8 +108,22 @@ case "$cmd" in
            unset IFS
            advertise
            echo "relay: $IMAGE" ;;
+    replay) [ $# -ge 1 ] && [ -f "$1" ] || { echo "usage: scripts/relay replay FILE.jsonl.gz [relay args]" >&2; exit 2; }
+           rec=$(cd "$(dirname "$1")" && pwd)/$(basename "$1"); shift
+           need_image
+           if "$CTR" container inspect "$NAME" >/dev/null 2>&1; then
+               echo "relay: stopping $NAME for the replay (make relay-start brings it back)"
+               "$CTR" rm -f "$NAME" >/dev/null
+           fi
+           advertise
+           trap unadvertise EXIT INT TERM
+           IFS='
+'
+           # shellcheck disable=SC2046 # one arg per line, none with spaces
+           "$CTR" run --rm -it --init -p "$PORT:8080" $(config_args) -v "$rec:/rec.jsonl.gz:ro" "$IMAGE" \
+               -listen :8080 -mdns=false -replay /rec.jsonl.gz "$@" ;;
     stop)  unadvertise; "$CTR" rm -f "$NAME" ;;
     advertise) advertise ;;
     logs)  exec "$CTR" logs -f "$NAME" ;;
-    *)     echo "usage: scripts/relay build|run|start|stop|advertise|logs [relay args]" >&2; exit 2 ;;
+    *)     echo "usage: scripts/relay build|run|start|stop|advertise|logs|replay [relay args]" >&2; exit 2 ;;
 esac

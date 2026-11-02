@@ -1,5 +1,29 @@
 ## 0.6.1 (Unreleased)
 
+FEATURES:
+
+  * **cockpit:** runways. Below 500 m (1,600 ft) above the ground, the view keeps one close-up scale all the way
+    to the runway and through the rollout, and draws every runway of the big airports nearby: concrete grey by
+    day, lit after dusk. On final it comes up out of the horizon about a mile and a half out.
+  * **relay:** `-record` saves the live feed around a point, `-cut` trims a recording, and `-replay` (or
+    `scripts/relay replay FILE`) serves one as if it were live, so the cartridge can fly a recorded arrival on
+    demand. Two real KBNA arrivals ship in `relay/testdata/arrivals/`.
+
+IMPROVEMENTS:
+
+  * **cockpit:** near the ground the camera rides at least a third of a cell (20 m) up, and flat ground is
+    textured in fields, so the view keeps moving instead of turning into single-colour slabs.
+  * **cockpit:** the city-light cells are plain ground by day at close range (they buried the runways in grey).
+
+BUG FIXES:
+
+  * **cockpit:** the view was mirrored and stretched sideways at every heading (an overflow in the renderer's
+    column step), which made the terrain smear and slide; it now matches the ground, and turns look right.
+  * **cockpit:** aircraft flew 100 ft low around Nashville: GPS altitude is height above the WGS84 ellipsoid, and
+    the relay now takes the geoid (EGM96) off it; barometric altitude uses the crew's altimeter setting when sent.
+  * **cockpit:** the camera can no longer end up inside the ground (the whole view one colour) when a reported
+    altitude is low or the cartridge flies on between fixes.
+
 ## 0.6.0 (November 2, 2026)
 
 BACKWARDS INCOMPATIBILITIES:

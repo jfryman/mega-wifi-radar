@@ -73,6 +73,10 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 | `-convert FILE -o OUT -lat -lon -range` |  | | Convert a saved upstream JSON file into one frame, then exit |
 | `-pack OUT FILES...` |  | | Pack several JSON snapshots into a fake-feed file for the emulator build |
 | `-pack-detail OUT FILES...` |  | | Pack the details of every aircraft in the snapshots for the emulator build's pop-up |
+| `-record OUT.jsonl.gz -lat -lon -range -for` |  | | Record the upstream's answers around a point (one a `-min-interval`, gzipped JSON lines) for `-for` (0: until stopped), then exit |
+| `-cut OUT -replay-from -for -hex FILE` |  | | Cut a recording to a window (and optionally some aircraft, by hex), then exit |
+| `-replay FILE` | `RELAY_REPLAY` | (off) | Serve a recording as the upstream, looping, as if live (the logbook stays in memory); `scripts/relay replay FILE` runs it for a cart |
+| `-replay-from` | `RELAY_REPLAY_FROM` | `0s` | Start the replay this far in |
 | `-mqtt-host` | `MQTT_BROKER_HOST` | (off) | MQTT broker for flyover notices; empty turns them off |
 | `-mqtt-port` | `MQTT_BROKER_PORT` | `1883` | |
 | `-mqtt-user` | `MQTT_USERNAME` | | Password: `MQTT_PASSWORD` only (never a flag, so it can't show in `ps`) |
@@ -115,7 +119,8 @@ scripts/mqtt sub     # watch atc/#
   (`/api/v2/hex/<icao>`, inside the same rate limit). An unknown aircraft gets a record without the FOUND flag.
 - `GET /v1/terrain?icao=<6 hex>&v=8` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
   and a patch key), then 128×128 height levels and 128×128 colour indices, centred on the aircraft with cells of
-  its height above ground / 5. Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
+  its height above ground / 5, or 60 m below 500 m above the ground (and on it), where runways are drawn too.
+  Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
   so the relay needs HTTPS out to `s3.amazonaws.com`; without it the patch is flat ground. `404` if the
   aircraft isn't in the feed.
 - `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=8` returns 40 bytes: the aircraft placed in that patch (position,
@@ -217,6 +222,9 @@ this attribution ([details](https://github.com/tilezen/joerd/blob/master/docs/at
 > Kartverket; United Kingdom terrain data © Environment Agency copyright and/or database right 2015. All rights
 > reserved; United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S.
 > Geological Survey.
+
+Cockpit heights from GPS altitude use the EGM96 geoid (NGA, public domain), on a 1° grid built into the relay
+from [GeographicLib](https://geographiclib.sourceforge.io/)'s `egm96-5` (`cd tools && go run ./geoidgen -o ../relay/geoid.bin`).
 
 The logbook's time zones come from [GeoNames](https://www.geonames.org/) (CC BY 4.0): each airport takes the zone of
 the nearest city of 15,000+ people (`relay/airport_tz.csv`, `cd tools && go run ./tzgen -o ../relay/airport_tz.csv`).

@@ -32,7 +32,9 @@ flowchart TD
   the cart). **v0.5.0** (2026-11-02: panel tabs + the control
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
   cart). **v0.6.0** (2026-11-02: the STARS type line,
-  ~2.7 KB of RAM freed, contract v8; seen on the cart). 0.6.1 is open in `CHANGELOG.md`.
+  ~2.7 KB of RAM freed, contract v8; seen on the cart). **0.6.1** is open in `CHANGELOG.md` (contract unchanged, v8):
+  cockpit mode near the ground, runways, the renderer's column-step fix, relay recordings
+  ([cockpit-low-altitude.md](cockpit-low-altitude.md)); built and MAME-checked, not yet on the cart.
 - **The cart** runs the v0.6.0 tag (contract v8, built at `4fcd820`, CRC32 `65D7E71A`, flashed 2026-11-02)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
@@ -50,6 +52,9 @@ flowchart TD
   the remembered sort order, the night sky in cockpit mode.
 
 ## Not yet checked on hardware
+- Cockpit mode near the ground and the renderer fix (0.6.1, [cockpit-low-altitude.md](cockpit-low-altitude.md)):
+  `scripts/relay replay relay/testdata/arrivals/kbna-20r-scx3003-b738.jsonl.gz`, ride SCX3003 down to 20R; also a
+  cruise ride (turns should now look right) and the HUD's fps low down.
 - Reconnect after the relay host sleeps mid-session (0.3.0, [../net/reconnect.md](../net/reconnect.md)): run the radar,
   close the Mac's lid ~2 min, open it; expect `STALE` → `RECONNECT` → `NET OK` within ≤ 60 s. Also confirm the
   patched `mw_http_cleanup` doesn't upset normal polling.

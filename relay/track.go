@@ -126,6 +126,10 @@ func buildTrack(ctx context.Context, a *upstreamAC, g geom, el elevator, tr *tur
 		altM = math.Max(e, 0) + eyeM
 	} else {
 		t.alt = clampS16(math.Round(altM / 0.3048 / 25))
+		// never under the ground: altitude errors near it put the camera inside the terrain (one colour)
+		if e, err := el.elevation(ctx, demZoom(g.lat, float64(g.cellM)), *a.Lat, *a.Lon); err == nil {
+			altM = math.Max(altM, math.Max(e, 0)+eyeM)
+		}
 	}
 	if ground {
 		t.alt = 0

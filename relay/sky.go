@@ -35,18 +35,19 @@ func parseSky(s string) (skyPhase, error) {
 }
 
 // Per phase: the three sky entries (deep, mid, pale at the horizon), how bright the ground is, a blue lift for
-// the ground (night reads blue-grey, not brown), and the colour of cells under city lights (0: shaded like the
-// ground, grey by day).
+// the ground (night reads blue-grey, not brown), the colour of cells under city lights (0: shaded like the
+// ground, grey by day), and the runways' at approach scale (asphalt by day, lit after dusk).
 var skies = [...]struct {
 	sky    [3]uint16
 	ground float64
 	blue   uint16
 	urban  uint16
+	runway uint16
 }{
-	skyDay:      {[3]uint16{0xA42, 0xC86, 0xECA}, 1, 0, 0},
-	skyGolden:   {[3]uint16{0xA64, 0xA8A, 0x6CE}, 0.85, 0, 0},
-	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0, 0x26A},
-	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2, 0x2AE},
+	skyDay:      {[3]uint16{0xA42, 0xC86, 0xECA}, 1, 0, 0, 0x666},
+	skyGolden:   {[3]uint16{0xA64, 0xA8A, 0x6CE}, 0.85, 0, 0, 0x666},
+	skyTwilight: {[3]uint16{0x622, 0x846, 0x48E}, 0.55, 0, 0x26A, 0x68A},
+	skyNight:    {[3]uint16{0x200, 0x400, 0x622}, 0.3, 2, 0x2AE, 0x46A},
 }
 
 // sunElevation is the sun's elevation in degrees at lat, lon (degrees) and t: the NOAA low-precision formulas,
@@ -106,4 +107,18 @@ func shade(c uint16, f float64) uint16 {
 		out |= uint16(math.Round(v*f/2)*2) << s
 	}
 	return out
+}
+
+// patchPalette is a patch's palette: the phase's, and at approach scale the runway entry (terrain.go cRunway)
+// in place of snow. Low down by day, city-light cells are ground: at 60 m cells the lights pattern around an
+// airport is a grey mosaic that buries the runways (they light up again after dusk).
+func patchPalette(p skyPhase, cellM int) [16]uint16 {
+	pal := skyPalette(p)
+	if cellM <= approachCellM {
+		pal[cRunway] = skies[p].runway
+		if skies[p].urban == 0 {
+			pal[cUrban] = pal[cLow+1]
+		}
+	}
+	return pal
 }

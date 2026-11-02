@@ -48,7 +48,9 @@ flowchart LR
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
   The patch's palette follows the sun at the patch, now (`sky.go`: day / golden / twilight / night, details in
   [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase. Cells under city lights get the urban colour
-  (`lights.go`, NASA GIBS tiles); `-lights ""` turns that off.
+  (`lights.go`, NASA GIBS tiles); `-lights ""` turns that off. Runways (`runways.csv`) are painted at cells
+  ≤ 150 m. Heights: GPS altitude minus the EGM96 geoid (`geoid.go`, embedded 1° `geoid.bin` from `tools/geoidgen`),
+  never under DEM ground + 3 m.
 - Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
   `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=8` → one
   82 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
@@ -69,6 +71,8 @@ flowchart LR
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
 - `-pack-cockpit OUT -lat -lon -cell M FILES...` writes the emulator's cockpit pack (`"FC"`, a terrain patch, then
   every recorded aircraft's track in it per file; `make fake-feed`, needs the network for elevation).
+  The `-pack*` modes take JSON snapshots or `.jsonl.gz` recordings.
+- Recordings: `-record`, `-cut`, `-replay` ([recordings.md](recordings.md)).
 - See "Running it" below. The console URL is
   found over mDNS (AUTO) or typed as `http://<relay-host-fqdn>:8080` (see "Discovery" below).
 
@@ -88,6 +92,7 @@ empty variables count as unset. For containers and the planned cluster deploymen
 | `-notice-ttl` (30 s) | `RELAY_NOTICE_TTL` | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
 | `-sky` (`real`) | `RELAY_SKY` | `-lights` (NASA GIBS) | `RELAY_LIGHTS` |
 | `-wx` (IEM, empty = off) | `RELAY_WX` | `-db` (SQLite, empty = memory) | `RELAY_DB` |
+| `-replay` (a recording) | `RELAY_REPLAY` | `-replay-from` (0 s) | `RELAY_REPLAY_FROM` |
 
 - The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
 - `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
@@ -153,7 +158,9 @@ Dev images are **local and versioned**: `scripts/relay` tags `mwradar-relay:<git
 checkout and its log names the real version. `RELAY_IMAGE=<published image>` runs a release instead (pulled, never built).
 A fixed `:latest` tag is avoided: it kept serving an image from an older commit.
 
-`relay/Dockerfile` is multi-stage and copies `*.go`, `runways.csv` (embedded) and `testdata/`: a new embedded file must be added there too. `golang:1.26-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
+`relay/Dockerfile` is multi-stage and copies `*.go`, `*.csv`, `*.bin` (embedded: `runways.csv`, `geoid.bin`) and
+`testdata/`: a new embedded file must be added there too, and `relay/.dockerignore` drops `*.bin` (stray frame
+outputs) except `!geoid.bin`. `golang:1.26-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
 cross-compiles a static binary (CGO off, `GOOS/GOARCH` from `TARGETOS/TARGETARCH`). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
 the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker
 (override with `CTR=`), publishes `${RELAY_PORT:-8080}`, and names the detached container `mwradar-relay`

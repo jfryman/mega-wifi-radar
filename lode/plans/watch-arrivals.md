@@ -39,9 +39,9 @@ Departing is the mirror (close, low, climbing, heading away). Ground traffic is 
 
 ## Contract (v9, when built)
 - Record flag bit 7 (reserved today, [../architecture/frame-format.md](../architecture/frame-format.md)) becomes
-  `AR_F_ARRIVING`; the record stays **24 bytes**, no RAM cost. Departures would need a second bit: grow the record
-  to 26 (`u8 route` + pad, ~576 B static RAM: 96 × 2 recs × 2 B + 192 B `frame_buf`) only if DEPARTURES is wanted.
-- Bump `AR_VER` to 5, relay + `contract_test.go` + `make contract-lock` ([../architecture/contract.md](../architecture/contract.md)).
+  `AR_F_ARRIVING`; the record stays **28 bytes**, no RAM cost. Departures would need a second bit: grow the record
+  to 30 (`u8 route` + pad, ~576 B static RAM: 96 × 2 recs × 2 B + 192 B `frame_buf`) only if DEPARTURES is wanted.
+- Bump `AR_VER` to 9, relay + `contract_test.go` + `make contract-lock` ([../architecture/contract.md](../architecture/contract.md)).
 
 ## Cart
 - New hold-C orders after HIGH ALT: `- ARRIVALS -` (filter: arriving only, nearest to home first), optionally
@@ -53,14 +53,13 @@ enum sort_mode { SORT_NEAREST, SORT_AZ, SORT_ZA, SORT_ALT_LOW, SORT_ALT_HIGH, SO
 - Open: dim non-arrival blips on the scope in that order (touches the V-Int renderer; probably not).
 
 ## Things to explore
-1. **Cockpit through touchdown** (biggest risk). A whole new terrain patch loads whenever height above ground halves
-   ([../ui/cockpit.md](../ui/cockpit.md)): ~4 reloads between 3,000 ft and the runway, during the best part.
-   Also: `cell_m` floors at 30 m; behaviour once `AR_K_GROUND` / ground altitude arrives; a rollout at 30 kt.
-   Ideas: hold the patch below some height instead of reloading; never reload after the ground flag.
-2. **Recordings.** Capture several BNA arrivals as upstream JSON sequences (1 s apart) into `relay/testdata/`,
-   from adsb.fi now and from the Pi's receiver later. Reuse `-pack` / `-pack-cockpit` so `make sim` plays them.
-3. **Playback upstream.** A relay mode (or a tiny test server) that serves a recording as if it were live, so the real
-   cart can fly an arrival on demand, not only when one happens.
+1. **Cockpit through touchdown:** built ([cockpit-low-altitude.md](cockpit-low-altitude.md)): one 60 m approach scale
+   below 500 m AGL (no reloads to the runway), runway cells, the camera kept a third of a cell over the ground.
+   Left: deceleration on the ground through position gaps; the frame rate low down.
+2. **Recordings:** built ([../relay/recordings.md](../relay/recordings.md)): `-record`, `-cut`, two BNA arrivals in
+   `relay/testdata/arrivals/`; `-pack*` read them for `make sim`. Still to record: arrivals from the Pi's receiver.
+3. **Playback upstream:** built: `relay -replay FILE` / `scripts/relay replay FILE` serves a recording as live,
+   looping, so the real cart flies an arrival on demand.
 4. **Local receiver as upstream.** Find which JSON fr24feed exposes on the Pi and where (fr24feed's built-in decoder vs
    dump1090/readsb's `aircraft.json`; ports and paths to verify). Known difference: readsb's `now` is in seconds,
    the relay expects adsb.fi's milliseconds (`relay/frame.go`). Fixed receiver means positions only within its range;

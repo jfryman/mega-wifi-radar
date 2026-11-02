@@ -74,9 +74,35 @@ func TestBuildPatch(t *testing.T) {
 	if p.g.levelCm != int(math.Ceil(float64(p.g.cellM)/16*100)) || p.g.baseM != 150 || p.hmax != 0 || p.flags != 0 {
 		t.Errorf("flat patch: level %d cm, base %d, hmax %d, flags %#x", p.g.levelCm, p.g.baseM, p.hmax, p.flags)
 	}
-	// On the ground: the smallest cells.
-	if p := buildPatch(ctx, flatDEM(150), 36.1, -86.7, math.NaN(), 0); p.g.cellM != minCellM {
+	// On the ground and below 500 m above it: one approach scale, whatever the height.
+	if p := buildPatch(ctx, flatDEM(150), 36.1, -86.7, math.NaN(), 0); p.g.cellM != approachCellM {
 		t.Errorf("ground cell %d m", p.g.cellM)
+	}
+	for _, agl := range []float64{10, 100, 499} {
+		if c := cellFor(agl); c != approachCellM {
+			t.Errorf("%.0f m above ground: %d m cells, want %d", agl, c, approachCellM)
+		}
+	}
+	if c := cellFor(approachAGLM); c != approachAGLM/cellsAbove {
+		t.Errorf("at %d m: %d m cells", approachAGLM, c)
+	}
+	// Flat ground at approach scale is textured: all three low shades, in 2 x 2 fields (away from airports).
+	p = buildPatch(ctx, flatDEM(150), 35.5, -86.0, 300, 0)
+	seen := map[uint8]int{}
+	for i, c := range p.colour {
+		seen[c]++
+		if r, k := i/tn, i%tn; c != p.colour[(r&^1)*tn+k&^1] {
+			t.Fatalf("cell %d,%d isn't its field's colour", k, r)
+		}
+	}
+	if len(seen) != 3 || seen[cLow] == 0 || seen[cLow+1] == 0 || seen[cLow+2] == 0 {
+		t.Errorf("flat approach ground: colours %v, want the three low shades", seen)
+	}
+	p = buildPatch(ctx, flatDEM(150), 35.5, -86.0, 3000, 0)
+	for _, c := range p.colour {
+		if c != cLow+1 {
+			t.Fatalf("flat ground at %d m cells: colour %d, want plain %d", p.g.cellM, c, cLow+1)
+		}
 	}
 	// A ramp: heights rise eastwards and fill the levels; west of it all land.
 	p = buildPatch(ctx, rampDEM{}, 0.5, 0.2, 5000, 0)
@@ -135,6 +161,33 @@ func TestBuildTrack(t *testing.T) {
 	}
 }
 
+// Near the ground: GPS altitude loses the geoid (-30 m at KBNA), barometric altitude takes the crew's altimeter
+// setting, and a reported altitude under the terrain is lifted to eye height over it.
+func TestTrackAltitude(t *testing.T) {
+	ctx := context.Background()
+	g := geom{lat: 36.1245, lon: -86.6782, cellM: 60, levelCm: 375, baseM: 150}
+	la, lo := g.latLon(64, 64)
+	z := func(a upstreamAC) float64 {
+		a.Lat, a.Lon = &la, &lo
+		return float64(buildTrack(ctx, &a, g, flatDEM(180), newTurns(), "abcdef", time.Unix(1000, 0)).z)/256*3.75 + 150
+	}
+	geomFt := 1000.0
+	if got, want := z(upstreamAC{AltGeom: &geomFt, AltBaro: 900.0}), 1000*0.3048+30; math.Abs(got-want) > 2 {
+		t.Errorf("GPS altitude: %.1f m above sea level, want %.1f", got, want)
+	}
+	qnh := 1023.25
+	if got, want := z(upstreamAC{AltBaro: 1000.0, NavQNH: &qnh}), (1000+300)*0.3048; math.Abs(got-want) > 1 {
+		t.Errorf("baro altitude at QNH 1023: %.1f m, want %.1f", got, want)
+	}
+	if got, want := z(upstreamAC{AltBaro: 1000.0}), 1000*0.3048; math.Abs(got-want) > 1 {
+		t.Errorf("baro altitude without QNH: %.1f m, want %.1f", got, want)
+	}
+	low := 300.0 // 91 m: under the 180 m ground
+	if got, want := z(upstreamAC{AltGeom: &low}), 180+eyeM; math.Abs(got-want) > 0.5 {
+		t.Errorf("under the ground: %.1f m, want %.1f (eye height over it)", got, want)
+	}
+}
+
 // A strip from inside the patch is the patch, cell for cell; past its edge the grid goes on. The strip's
 // geometry comes from the key, as the cart sends it (an off-grid centre: the key rounds it).
 func TestStripMatchesPatch(t *testing.T) {
@@ -166,5 +219,71 @@ func TestStripMatchesPatch(t *testing.T) {
 	p.g.fill(&c, false, height[:8], colour[:8])
 	if height[7] < p.height[64*tn+127] {
 		t.Errorf("past the east edge: %d, edge %d", height[7], p.height[64*tn+127])
+	}
+}
+
+// Runways are cells under their centrelines, in their own colour at approach scale (city lights' above it):
+// every KBNA runway's midpoint, at least a cell wide, and nothing far from them.
+func TestRunwayCells(t *testing.T) {
+	ctx := context.Background()
+	p := buildPatch(ctx, flatDEM(180), 36.1245, -86.6782, math.NaN(), 0) // on the ground: approach scale
+	n := 0
+	for _, r := range runways {
+		if r.airport != "KBNA" {
+			continue
+		}
+		n++
+		x, y := p.g.cellXY((r.lat1+r.lat2)/2, (r.lon1+r.lon2)/2)
+		if c := p.colour[int(y)*tn+int(x)]; c != cRunway {
+			t.Errorf("runway %s/%s midpoint cell %d,%d: colour %d, want %d", r.le, r.he, int(x), int(y), c, cRunway)
+		}
+	}
+	if n < 3 {
+		t.Fatalf("%d KBNA runways in runways.csv", n)
+	}
+	urban := 0
+	for _, c := range p.colour {
+		if c == cRunway {
+			urban++
+		}
+	}
+	if pal := patchPalette(skyNight, p.g.cellM); pal[cRunway] != skies[skyNight].runway {
+		t.Errorf("approach palette: entry %d is %#x, want the night runway", cRunway, pal[cRunway])
+	}
+	if pal := patchPalette(skyDay, p.g.cellM); pal[cUrban] != pal[cLow+1] {
+		t.Errorf("approach palette by day: city lights %#x, want the ground's %#x", pal[cUrban], pal[cLow+1])
+	}
+	if pal := patchPalette(skyDay, 200); pal[cSnow] != terrainPal[cSnow] || pal[cUrban] != terrainPal[cUrban] {
+		t.Errorf("200 m cells: entry %d is %#x, want snow", cSnow, pal[cSnow])
+	}
+	// Above approach scale, runways are city-light cells; past runwayMaxCellM, not drawn.
+	if q := buildPatch(ctx, flatDEM(180), 36.1245, -86.6782, 180+3000, 0); q.g.cellM <= runwayMaxCellM ||
+		q.colour[64*tn+64] == cUrban {
+		t.Errorf("%d m cells: runway drawn (centre cell %d)", q.g.cellM, q.colour[64*tn+64])
+	}
+	q := buildPatch(ctx, flatDEM(180), 36.1245, -86.6782, 180+600, 0)
+	if r := runways[0]; q.g.cellM <= approachCellM || r.airport == "" {
+		t.Fatalf("1,500 m above: %d m cells", q.g.cellM)
+	}
+	for _, r := range runways {
+		if r.airport == "KBNA" {
+			x, y := q.g.cellXY((r.lat1+r.lat2)/2, (r.lon1+r.lon2)/2)
+			found := false // half a cell either side: a slanted centreline may miss its own cell's centre
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					found = found || q.colour[(int(y)+dy)*tn+int(x)+dx] == cUrban
+				}
+			}
+			if !found {
+				t.Errorf("120 m cells: no runway cell around %s's midpoint", r.le)
+			}
+		}
+	}
+	// four runways, ~11,000 ft at most, 60 m cells, 2-3 cells wide: several hundred cells, not a slab
+	if urban < 300 || urban > 1500 {
+		t.Errorf("%d runway cells", urban)
+	}
+	if c := p.colour[5*tn+5]; c == cUrban {
+		t.Errorf("a corner cell, km from the runways, is runway")
 	}
 }

@@ -208,7 +208,7 @@ func main() {
 	out := flag.String("o", "frame.bin", "output file for -convert")
 	lat := flag.Float64("lat", 36.1245, "home latitude for -convert")
 	lon := flag.Float64("lon", -86.6782, "home longitude for -convert")
-	rng := flag.Int("range", 25, "range in nm for -convert")
+	rng := flag.Int("range", 25, "range in nm for -convert and -record")
 	mdns := flag.Bool("mdns", true, "advertise the relay over mDNS as _mwradar._tcp (lode/net/discovery.md)")
 	demURL := flag.String("dem", "https://s3.amazonaws.com/elevation-tiles-prod/terrarium",
 		"Terrarium elevation tiles base URL, for cockpit mode's terrain")
@@ -231,6 +231,12 @@ func main() {
 	dbPath := flag.String("db", "", "SQLite file for the logbook (empty: in memory, lost on restart)")
 	packLogOut := flag.String("pack-log", "", "replay the upstream JSON files given as arguments into a logbook for -lat/-lon and write the emulator's log file")
 	packMapOut := flag.String("pack-map", "", "pack the video maps for -lat/-lon at every cart range into the emulator's map file and exit")
+	recordOut := flag.String("record", "", "record the upstream's JSON around -lat/-lon within -range nm into this gzip file (one snapshot per -min-interval) and exit after -for")
+	recordFor := flag.Duration("for", 0, "how long -record runs, or how much -cut keeps (0: until interrupted, or to the end)")
+	replayIn := flag.String("replay", "", "serve this -record file as the upstream, looping (overrides -upstream; the logbook stays in memory)")
+	replayFrom := flag.Duration("replay-from", 0, "start -replay this far into the recording")
+	cutOut := flag.String("cut", "", "write the part of the recording given as argument from -replay-from for -for (0: to the end) to this file, and exit")
+	cutHex := flag.String("hex", "", "with -cut: keep only these aircraft (comma-separated hex)")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
@@ -296,6 +302,32 @@ func main() {
 		return
 	}
 
+	if *recordOut != "" {
+		if err := recordUpstream(context.Background(), *recordOut, *upstream, *lat, *lon, *rng, *interval, *recordFor); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *cutOut != "" {
+		if flag.NArg() != 1 {
+			log.Fatal("-cut needs one recording")
+		}
+		var hexes []string
+		if *cutHex != "" {
+			hexes = strings.Split(*cutHex, ",")
+		}
+		if err := cutRecording(*cutOut, flag.Arg(0), *replayFrom, *recordFor, hexes); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *replayIn != "" {
+		if *upstream, err = serveReplay(*replayIn, *replayFrom); err != nil {
+			log.Fatal(err)
+		}
+		*dbPath = "" // a replay mustn't write recorded aircraft into the real logbook
+	}
+
 	mux := http.NewServeMux()
 	src := newSource(*upstream, *interval)
 	ns := newNotices(src, *noticeTTL)
@@ -355,6 +387,8 @@ var serverEnv = map[string]string{
 	"lights":         "RELAY_LIGHTS",
 	"wx":             "RELAY_WX",
 	"db":             "RELAY_DB",
+	"replay":         "RELAY_REPLAY",
+	"replay-from":    "RELAY_REPLAY_FROM",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag
@@ -395,26 +429,28 @@ func convertFile(in, out string, lat, lon float64, rangeNM int) error {
 // "FK", u16 count, count x u32 offsets from the start of the file, then the frames
 // (each padded to an even length so every frame stays word-aligned).
 func packFiles(out string, ins []string, lat, lon float64, rangeNM int) error {
-	if len(ins) == 0 {
-		return fmt.Errorf("-pack needs input JSON files")
+	ups, names, err := readUpstreams(ins)
+	if err != nil {
+		return err
 	}
-	hdr := 4 + 4*len(ins)
+	if len(ups) == 0 {
+		return fmt.Errorf("-pack needs input JSON files or recordings")
+	}
+	hdr := 4 + 4*len(ups)
 	buf := make([]byte, hdr)
 	copy(buf, "FK")
-	binary.BigEndian.PutUint16(buf[2:], uint16(len(ins)))
-	for i, in := range ins {
-		body, n, err := loadFrame(in, lat, lon, rangeNM, uint16(i+1))
-		if err != nil {
-			return err
-		}
+	binary.BigEndian.PutUint16(buf[2:], uint16(len(ups)))
+	for i := range ups {
+		f := buildFrame(&ups[i], lat, lon, rangeNM, maxRecs, uint16(i+1))
+		body := f.encode()
 		binary.BigEndian.PutUint32(buf[4+4*i:], uint32(len(buf)))
 		buf = append(buf, body...)
 		if len(buf)%2 == 1 {
 			buf = append(buf, 0)
 		}
-		log.Printf("%s: %d aircraft, %d bytes", in, n, len(body))
+		log.Printf("%s: %d aircraft, %d bytes", names[i], len(f.recs), len(body))
 	}
-	log.Printf("%s: %d frames, %d bytes", out, len(ins), len(buf))
+	log.Printf("%s: %d frames, %d bytes", out, len(ups), len(buf))
 	return os.WriteFile(out, buf, 0o644)
 }
 
@@ -423,15 +459,11 @@ func packFiles(out string, ins []string, lat, lon float64, rangeNM int) error {
 func packDetails(out string, ins []string) error {
 	byHex := map[string]upstreamAC{}
 	var order []string
-	for _, in := range ins {
-		data, err := os.ReadFile(in)
-		if err != nil {
-			return err
-		}
-		var up upstreamResp
-		if err := json.Unmarshal(data, &up); err != nil {
-			return fmt.Errorf("%s: %w", in, err)
-		}
+	ups, _, err := readUpstreams(ins)
+	if err != nil {
+		return err
+	}
+	for _, up := range ups {
 		for _, a := range up.AC {
 			hex := strings.ToLower(strings.TrimPrefix(a.Hex, "~"))
 			if _, ok := byHex[hex]; !ok {
@@ -460,29 +492,27 @@ func packDetails(out string, ins []string) error {
 // body for a patch centred on lat, lon (AR_TERRAIN_SIZE bytes), then per upstream file: u16 count,
 // u16 deciseconds since the first file, count x { u8 icao[3], u8 0, struct ar_track } placed in that patch.
 func packCockpitFile(out string, ins []string, el elevator, lat, lon float64, cellM int) error {
-	if len(ins) == 0 {
-		return fmt.Errorf("-pack-cockpit needs input JSON files")
+	ups, _, err := readUpstreams(ins)
+	if err != nil {
+		return err
+	}
+	if len(ups) == 0 {
+		return fmt.Errorf("-pack-cockpit needs input JSON files or recordings")
 	}
 	ctx := context.Background()
 	p := buildPatch(ctx, el, lat, lon, 0, cellM)
+	phase := skyDay
 	if skyOverride >= 0 { // -sky: the emulator's patch at another time of day
-		pal := skyPalette(skyOverride)
-		p.pal = &pal
+		phase = skyOverride
 	}
+	pal := patchPalette(phase, p.g.cellM)
+	p.pal = &pal
 	buf := []byte{'F', 'C', 0, 0, 0, 0}
-	binary.BigEndian.PutUint16(buf[2:], uint16(len(ins)))
+	binary.BigEndian.PutUint16(buf[2:], uint16(len(ups)))
 	buf = append(buf, p.encode()...)
 	tr := newTurns()
 	var t0 float64
-	for i, in := range ins {
-		data, err := os.ReadFile(in)
-		if err != nil {
-			return err
-		}
-		var up upstreamResp
-		if err := json.Unmarshal(data, &up); err != nil {
-			return fmt.Errorf("%s: %w", in, err)
-		}
+	for i, up := range ups {
 		if i == 0 {
 			t0 = up.Now
 		}
@@ -511,6 +541,6 @@ func packCockpitFile(out string, ins []string, el elevator, lat, lon float64, ce
 		buf = append(buf, recs...)
 	}
 	log.Printf("%s: %d m cells, %d cm levels, base %d m, hmax %d, flags %#x; %d frames, %d bytes", out,
-		p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, len(ins), len(buf))
+		p.g.cellM, p.g.levelCm, p.g.baseM, p.hmax, p.flags, len(ups), len(buf))
 	return os.WriteFile(out, buf, 0o644)
 }

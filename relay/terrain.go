@@ -33,8 +33,11 @@ const (
 	tFlat         = 0x01
 	seaBelowM     = -5 // elevation below this is sea (bathymetry), not a lake artefact
 	cellsAbove    = 5  // camera height in cells: the cell size is the aircraft's height above ground / this
-	minCellM      = 30 // on the ground / very low
 	maxCellM      = 3000
+	approachAGLM  = 500 // below this height above ground (and on it), one fixed scale: approachCellM
+	approachCellM = 60  // the cart keeps such a patch to the runway (src/cockpit.c APPROACH_CELL_M)
+	textureCellM  = 120 // flat ground at this cell size or less is textured (fields), a motion cue low down
+	minReliefM    = 100 // colour bands span at least this, so flat ground keeps the low colours
 	metresPerDegN = 111320.0
 )
 
@@ -50,9 +53,14 @@ const (
 	_
 	cHigh // 12, 13
 	_
-	cUrban // 14: under city lights (lights.go)
+	cUrban // 14: under city lights (lights.go); runways at larger scales
 	cSnow  // 15
 )
+
+// cRunway: at approach scale (cell ≤ approachCellM) entry 15 is the runways' (sky.go patchPalette), not snow:
+// grey city-light cells crowd an airport, so runways need a colour of their own where they matter. The rule
+// goes by the grid's cell size, so a patch and its strips agree.
+const cRunway = cSnow
 
 // 0x0BGR, 3 bits per channel.
 var terrainPal = [16]uint16{
@@ -133,7 +141,10 @@ type patch struct {
 
 // cellFor picks the cell size for an aircraft aglM metres above the ground.
 func cellFor(aglM float64) int {
-	return int(math.Round(math.Min(math.Max(aglM/cellsAbove, minCellM), maxCellM)))
+	if aglM < approachAGLM {
+		return approachCellM
+	}
+	return int(math.Round(math.Min(aglM/cellsAbove, maxCellM)))
 }
 
 // cells is elevation for a w x h rectangle of a patch's grid from (x0, y0), plus each cell's north-west
@@ -141,7 +152,8 @@ func cellFor(aglM float64) int {
 type cells struct {
 	x0, y0, w, h int
 	elev         []float64
-	lit          []bool // w x h, under city lights (lights.go); nil: none
+	lit          []bool    // w x h, under city lights (lights.go); nil: none
+	rws          []rwCells // runways crossing the rectangle, in the grid's cells
 }
 
 func (c *cells) at(col, row int) float64 { return c.elev[(row-c.y0)*(c.w+1)+col-c.x0+1] }
@@ -160,7 +172,57 @@ func sampleCells(ctx context.Context, el elevator, g geom, x0, y0, w, h int) (ce
 		}
 	}
 	sampleLights(ctx, &c, g)
+	if g.cellM <= runwayMaxCellM {
+		c.rws = runwaysIn(g, x0, y0, w, h)
+	}
 	return c, nil
+}
+
+// rwCells is a runway's centreline in a grid's cells (x east, y north of its south-west corner).
+type rwCells struct{ x1, y1, x2, y2 float64 }
+
+const (
+	runwayHalfM    = 23  // half a 150 ft runway (runways.csv has no widths)
+	runwayMaxCellM = 150 // above this a runway is under a third of a cell wide: not drawn (a cell would be a slab)
+)
+
+// runwaysIn is every runway (runways.csv: the home airports) whose centreline comes within a cell of the
+// rectangle, in g's cells.
+func runwaysIn(g geom, x0, y0, w, h int) []rwCells {
+	var out []rwCells
+	for _, r := range runways {
+		x1, y1 := g.cellXY(r.lat1, r.lon1)
+		x2, y2 := g.cellXY(r.lat2, r.lon2)
+		if math.Max(x1, x2) < float64(x0-1) || math.Min(x1, x2) > float64(x0+w+1) ||
+			math.Max(y1, y2) < float64(y0-1) || math.Min(y1, y2) > float64(y0+h+1) {
+			continue
+		}
+		out = append(out, rwCells{x1, y1, x2, y2})
+	}
+	return out
+}
+
+// onRunway: cell (col, row)'s centre is within half the runway's width of a centreline, or half a cell, so a
+// runway is at least one cell wide at any scale. At approach scale, within a cell: 2-3 cells wide (120-180 m,
+// some three times a real runway), because the renderer samples every other column past 6 cells and a
+// one-cell strip flickers away into the horizon.
+func (c *cells) onRunway(g geom, col, row int) bool {
+	lim := math.Max(runwayHalfM, float64(g.cellM)/2) / float64(g.cellM)
+	if g.cellM <= approachCellM {
+		lim = 1
+	}
+	px, py := float64(col)+0.5, float64(row)+0.5
+	for _, r := range c.rws {
+		dx, dy := r.x2-r.x1, r.y2-r.y1
+		t := 0.0
+		if l2 := dx*dx + dy*dy; l2 > 0 {
+			t = math.Max(0, math.Min(1, ((px-r.x1)*dx+(py-r.y1)*dy)/l2))
+		}
+		if math.Hypot(px-r.x1-t*dx, py-r.y1-t*dy) <= lim {
+			return true
+		}
+	}
+	return false
 }
 
 // sampleLights marks the cells under city lights. Lights are decoration: a failed tile leaves the rest unlit.
@@ -206,10 +268,12 @@ func (g geom) code(e, nw float64, col, row int, flat bool) (uint8, uint8) {
 		shade = 2
 	} else if slope < -0.03 {
 		shade = 0
+	} else if g.cellM <= textureCellM {
+		shade = fieldShade(col, row)
 	}
-	t := (e - lo) / math.Max(hi-lo, 1)
+	t := (e - lo) / math.Max(hi-lo, minReliefM)
 	switch {
-	case e > 2800:
+	case e > 2800 && g.cellM > approachCellM:
 		return h, cSnow
 	case t < 0.4:
 		return h, uint8(cLow + shade)
@@ -217,6 +281,23 @@ func (g geom) code(e, nw float64, col, row int, flat bool) (uint8, uint8) {
 		return h, uint8(cMid + shade)
 	}
 	return h, uint8(cHigh + min(shade, 1))
+}
+
+// fieldShade textures flat ground low down: 2 x 2-cell fields, some darker, some lighter, by a hash of the
+// grid position (so a strip shades exactly as its patch did). Without it, graded ground around an airport is
+// one colour with nothing moving in it.
+func fieldShade(col, row int) int {
+	h := uint32(col>>1)*0x9E3779B1 ^ uint32(row>>1)*0x85EBCA77
+	h ^= h >> 15
+	h *= 0x2C1B3C6D
+	h ^= h >> 12
+	switch h & 7 {
+	case 0, 1, 2:
+		return 0
+	case 3, 4:
+		return 2
+	}
+	return 1
 }
 
 // fill writes the rectangle's heights and colours, row by row from the south, each row west to east.
@@ -227,6 +308,12 @@ func (g geom) fill(c *cells, flat bool, height, colour []uint8) {
 			height[r*c.w+k], colour[r*c.w+k] = g.code(c.at(col, row), c.at(col-1, row+1), col, row, flat)
 			if c.lit != nil && c.lit[r*c.w+k] && colour[r*c.w+k] != cWater && colour[r*c.w+k] != cWater+1 {
 				colour[r*c.w+k] = cUrban
+			}
+			if len(c.rws) > 0 && c.onRunway(g, col, row) { // asphalt by day, lit after dusk (sky.go)
+				colour[r*c.w+k] = cUrban
+				if g.cellM <= approachCellM {
+					colour[r*c.w+k] = cRunway
+				}
 			}
 		}
 	}
@@ -240,7 +327,7 @@ func buildPatch(ctx context.Context, el elevator, lat, lon, altM float64, cellM 
 		ground, err := el.elevation(ctx, 10, lat, lon)
 		switch {
 		case math.IsNaN(altM):
-			cellM = minCellM
+			cellM = approachCellM
 		case err != nil:
 			cellM = cellFor(altM)
 		default:
@@ -310,15 +397,24 @@ func (p *patch) encode() []byte {
 	return b
 }
 
-// altMetres is the aircraft's altitude above sea level (GPS, else barometric), NaN on the ground or unknown.
+// altMetres is the aircraft's altitude above sea level, NaN on the ground or unknown. GPS altitude is above the
+// WGS84 ellipsoid, so the geoid comes off it (geoid.go); barometric altitude is pressure altitude, corrected to
+// the altimeter setting the crew selected (nav_qnh, ~30 ft per hPa) when it's reported.
 func altMetres(a *upstreamAC) (float64, bool) {
 	if s, ok := a.AltBaro.(string); ok && s == "ground" {
 		return math.NaN(), true
 	}
 	if a.AltGeom != nil {
-		return *a.AltGeom * 0.3048, false
+		n := 0.0
+		if a.Lat != nil && a.Lon != nil {
+			n = geoidM(*a.Lat, *a.Lon)
+		}
+		return *a.AltGeom*0.3048 - n, false
 	}
 	if f, ok := a.AltBaro.(float64); ok {
+		if a.NavQNH != nil && *a.NavQNH > 900 && *a.NavQNH < 1100 {
+			f += (*a.NavQNH - 1013.25) * 30
+		}
 		return f * 0.3048, false
 	}
 	return math.NaN(), false
@@ -354,7 +450,7 @@ func terrainHandler(src *source, el elevator) http.HandlerFunc {
 		}
 		p := buildPatch(r.Context(), el, lat, lon, alt, 0)
 		phase := phaseAt(lat, lon, time.Now())
-		pal := skyPalette(phase)
+		pal := patchPalette(phase, p.g.cellM)
 		p.pal = &pal
 		body := p.encode()
 		writeBinary(w, body)
