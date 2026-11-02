@@ -73,7 +73,7 @@ V-Int average 157-164 of 262 lines with the map, 161-174 without (the notice box
 noise); 0 late frames. The slow path over map tiles is not a problem at this density.
 
 ## Budget
-Cart start-up heap **8,463 B** (min 8,192): `map_buf` 650 B. The next RAM user must free some first (candidates:
+Cart start-up heap **8,459 B** (min 8,192): `map_buf` 650 B. The next RAM user must free some first (candidates:
 `popup_text`/`grid`/`label_cells`, 784 B each; the overlay has no spare: the radar is its larger user).
 
 Related: [weather.md](weather.md), [sweep.md](sweep.md), [radar-renderer.md](radar-renderer.md),
