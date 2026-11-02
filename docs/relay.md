@@ -24,11 +24,14 @@ sequenceDiagram
 
 | How | Command |
 |---|---|
-| Published image (Linux) | `docker run -d --name mwradar-relay --restart unless-stopped --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
+| Published image (Linux) | `docker run -d --name mwradar-relay --restart unless-stopped --network host -v mwradar-data:/data -e RELAY_DB=/data/relay.db ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
 | From this repo, container | `make relay-start` (detached; also registers the mDNS advertisement on the host), `make relay-run` (foreground), `make relay-stop`, `scripts/relay logs` |
 
 From the repo, the container is built from your checkout and tagged with its version (`mwradar-relay:v0.2.0-3-gabc1234`; a dirty tree adds a hash of `relay/`), so it's rebuilt whenever the code changes. To run a published release that way instead: `RELAY_IMAGE=ghcr.io/jfryman/mega-wifi-radar-relay:0.2.0 make relay-start`.
 | From this repo, native Go | `cd relay && go run . -listen :8080` |
+
+The volume keeps the **logbook** (below) across restarts and upgrades; without `RELAY_DB` it lives in memory and a
+restart starts the day afresh. `make relay-start` mounts the `mwradar-data` volume itself.
 
 The image is distroless, runs as non-root, and is about 15 MB, built for linux/amd64 and
 linux/arm64. `scripts/relay` uses podman if it's installed, otherwise docker (override with `CTR=docker`).
@@ -38,7 +41,7 @@ Leave the cart's **RELAY** on **AUTO** and it finds the relay over mDNS. To pin 
 
 ## Discovery (mDNS)
 
-The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=4 path=/v1/frame`: the contract version and frame path) with a small built-in
+The relay advertises **`_mwradar._tcp`** ("MegaWiFi Radar", TXT `v=7 path=/v1/frame`: the contract version and frame path) with a small built-in
 responder. Check it with `dns-sd -B _mwradar._tcp` (macOS) or `avahi-browse -r _mwradar._tcp` (Linux).
 
 | Where the relay runs | Who advertises |
@@ -65,6 +68,7 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 | `-dem` | `RELAY_DEM` | AWS Terrain Tiles | Terrarium elevation tile base URL, for cockpit mode |
 | `-lights` | `RELAY_LIGHTS` | NASA GIBS VIIRS City Lights 2012 | Night-lights tile base (WMTS, `/{z}/{row}/{col}.jpeg`): towns in cockpit mode, lit at night; empty turns it off |
 | `-sky` | `RELAY_SKY` | `real` | Cockpit sky: `real` follows the sun at the aircraft; `day`, `golden`, `twilight` or `night` fixes it (also for `-pack-cockpit`) |
+| `-db` | `RELAY_DB` | (in memory) | The logbook's SQLite file, e.g. `/data/relay.db` on a volume |
 | `-wx` | `RELAY_WX` | `https://mesonet.agron.iastate.edu` | Weather on the scope: the Iowa Environmental Mesonet's NEXRAD composite (US only); empty turns it off |
 | `-convert FILE -o OUT -lat -lon -range` |  | | Convert a saved upstream JSON file into one frame, then exit |
 | `-pack OUT FILES...` |  | | Pack several JSON snapshots into a fake-feed file for the emulator build |
@@ -100,42 +104,52 @@ scripts/mqtt sub     # watch atc/#
 ## HTTP API
 
 - **Versions:** the relay and the cartridge ship together; use the relay from your cartridge's release.
-  Every request carries `v=<contract version>` (`AR_VER`, 4 since 0.4.0). Any other value, or none, gets
+  Every request carries `v=<contract version>` (`AR_VER`, 7 since 0.5.0). Any other value, or none, gets
   `409` with a message naming the relay's release, and the cart reports `RELAY MISMATCH` at boot or
   `RELAY VER?` on the radar. The relay logs its release and contract version at start-up.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&v=4` returns `200` with
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=7` returns `200` with
   `application/octet-stream` and an explicit `Content-Length`. `range` is clamped to 1–250 and `max` to 1–96.
   A missing or bad `lat`/`lon` gives `400`.
-- `GET /v1/detail?icao=<6 hex>&v=4` returns one 96-byte detail record for the pop-up (below), from the newest
+- `GET /v1/detail?icao=<6 hex>&v=7` returns one 96-byte detail record for the pop-up (below), from the newest
   upstream snapshot if it's under 30 s old, otherwise from a single-aircraft upstream request
   (`/api/v2/hex/<icao>`, inside the same rate limit). An unknown aircraft gets a record without the FOUND flag.
-- `GET /v1/terrain?icao=<6 hex>&v=4` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
+- `GET /v1/terrain?icao=<6 hex>&v=7` returns the cockpit view's terrain patch: a 104-byte header (scale, palette,
   and a patch key), then 128×128 height levels and 128×128 colour indices, centred on the aircraft with cells of
   its height above ground / 5. Elevation comes from AWS Terrain Tiles (`-dem` sets another Terrarium tile URL),
   so the relay needs HTTPS out to `s3.amazonaws.com`; without it the patch is flat ground. `404` if the
   aircraft isn't in the feed.
-- `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=4` returns 40 bytes: the aircraft placed in that patch (position,
+- `GET /v1/track?icao=<6 hex>&p=<patch key>&n=<notice id>&v=7` returns 40 bytes: the aircraft placed in that patch (position,
   height, velocity, heading, bank), for the cockpit camera.
-- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=4` returns more of the patch's grid (`w·h` heights,
+- `GET /v1/strip?p=<patch key>&x=<cell>&y=<cell>&w=<n>&h=<n>&v=7` returns more of the patch's grid (`w·h` heights,
   then `w·h` colours; at most 1,024 cells), which the cart streams in ahead of the aircraft.
 - **Flyover notices:** `n=` on `/v1/frame` and `/v1/track` is the id of the last notice the cart has seen (0 for
   none). If a newer one is waiting, the frame's header flags get `NOTICE` (`0x04`) and the track's flags
-  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=4` then returns an 82-byte notice: magic `"AN"`, version,
+  `NOTICE` (`0x10`). `GET /v1/notice?after=<id>&v=7` then returns an 82-byte notice: magic `"AN"`, version,
   flags (matched ICAO, emergency), a 16-bit id (ids wrap; 0 = none waiting any more), the ICAO address, the
   seconds to show it, and three 24-character lines of text composed by the relay.
+- **Weather:** `w=` on `/v1/frame` is the id of the weather the cart holds; when the relay has a newer NEXRAD scan the
+  frame's header flags get `WX` (`0x08`). `GET /v1/wx?lat=<deg>&lon=<deg>&range=<nm>&v=7` returns 190 bytes: magic
+  `"AW"`, version, flags (no coverage, old scan), the scan id, the range, and 26×26 cells of 2 bits (0 none, 1 light,
+  2 moderate, 3 heavy) laid on the scope's 8-pixel cells.
+- **Video map:** `GET /v1/map?lat=<deg>&lon=<deg>&range=<nm>&v=7` returns a 10-byte header (magic `"AM"`, version,
+  flags, range, then how many runway, centreline and tick segments follow) and up to 160 four-byte segments in
+  scope pixels: the runways in view, and the home airport's extended centrelines out to 25 nm range.
+- **Logbook:** `GET /v1/log?lat=<deg>&lon=<deg>&v=7` returns 192 bytes: today's count of aircraft and types within
+  25 nm of that home, the busiest hour, the fastest / highest / longest-in-range aircraft, and up to 8 rare
+  sightings with their times (local to the airport). See *Logbook* below.
 - If adsb.fi fails, the relay serves the last good frame with the `UPSTREAM_ERR` header flag set
   (the cart shows `UPSTRM ERR`). If there's no previous frame, it returns `502`.
 - `GET /healthz` returns `ok`.
 
 Try it:
 ```sh
-curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&n=0&v=4' | xxd | head
-curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=4' | xxd
-curl -s 'http://localhost:8080/v1/notice?after=0&v=4' | xxd
-curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=4' | head -c 104 | xxd
+curl -s 'http://localhost:8080/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=96&n=0&v=7' | xxd | head
+curl -s 'http://localhost:8080/v1/detail?icao=abfcda&v=7' | xxd
+curl -s 'http://localhost:8080/v1/notice?after=0&v=7' | xxd
+curl -s 'http://localhost:8080/v1/terrain?icao=abfcda&v=7' | head -c 104 | xxd
 ```
 
-## Frame format (contract v4)
+## Frame format (contract v7)
 
 Big-endian and word-aligned: a 16-byte header followed by `count` 24-byte records. Positions are
 east/north offsets from the home point in 1/32 nm. The records are sorted nearest first.
@@ -167,6 +181,21 @@ build if the relay drifts from it. The prose spec, with exact offsets, flag bits
 [lode/architecture/frame-format.md](../lode/architecture/frame-format.md). The console-side
 structs (with offset static asserts) are in [src/arframe.h](../src/arframe.h).
 
+## Logbook
+
+The relay remembers every home airport a cartridge asks about (the frame request's `lat`/`lon`) and, from then on,
+fetches the traffic within 25 nm of it every 10 seconds, for as long as it runs, whether a cartridge is on or not.
+Each aircraft is kept once per day with its callsign, type, first and last time seen, highest altitude and
+fastest ground speed, in a SQLite file (`-db` / `RELAY_DB`). A day ends at local midnight at the home airport (time
+zones are built in). Homes no cartridge has asked about for 30 days stop being logged.
+
+**Rare aircraft:** military (adsb.fi's flag), aircraft on adsb.fi's "interesting" list, and unusual types for a
+regional airport (A380, 747-8, C-5, C-17, An-124, B-52, U-2, warbirds and so on). When one enters the area, the
+relay raises a notice the cartridge shows like a flyover (*MILITARY! R08139*), once per aircraft per day.
+
+**Privacy:** aircraft on the FAA's LADD list or with a privacy ICAO address (adsb.fi's PIA / LADD flags) are never
+logged. The log stays on the relay's machine.
+
 ## Data terms
 
 adsb.fi open data is free for **personal, non-commercial** use, and it requires attribution.
@@ -188,6 +217,10 @@ this attribution ([details](https://github.com/tilezen/joerd/blob/master/docs/at
 > Kartverket; United Kingdom terrain data © Environment Agency copyright and/or database right 2015. All rights
 > reserved; United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S.
 > Geological Survey.
+
+The logbook's time zones come from [GeoNames](https://www.geonames.org/) (CC BY 4.0): each airport takes the zone of
+the nearest city of 15,000+ people (`relay/airport_tz.csv`, `cd tools && go run ./tzgen -o ../relay/airport_tz.csv`).
+The logbook keeps adsb.fi data on your own machine for your own use, inside its personal, non-commercial terms.
 
 The video map's runways come from [OurAirports](https://ourairports.com/data/) (public domain), built into the
 relay (`relay/runways.csv`, regenerated with `cd tools && go run ./runwaygen -o ../relay/runways.csv`).

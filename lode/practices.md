@@ -5,7 +5,8 @@
 - Explore and design first, then implement. Record each decision in the lode before writing code.
 - Every script and build step must run on **macOS and Arch Linux (Omarchy)**, never Windows-only.
   Use Podman/Docker for toolchains that aren't packaged natively on both.
-- The relay is Go (stdlib only). It builds natively on both OSes (`go test ./...`, `go run .` in `relay/`) or as its own container (`make relay-run`); it doesn't use the SGDK image.
+- The relay is Go: stdlib plus one dependency, a pure-Go SQLite for the logbook (`modernc.org/sqlite`, owner's call
+  2026-11-02; keep CGO off). Add others only with the owner's say-so. It builds natively on both OSes (`go test ./...`, `go run .` in `relay/`) or as its own container (`make relay-run`); it doesn't use the SGDK image.
 - Develop rendering in emulators against the **fake source**. Test networking only on the real cart.
 - Every user-visible change adds a bullet under `## X.Y.Z (Unreleased)` in `CHANGELOG.md`, in the same commit
   (format: [build/ci-release.md](build/ci-release.md)).

@@ -57,6 +57,11 @@ enum feed_err feed_wx(const struct ar_wx **w);
  * aligned): struct ar_map, then its segments (blocking, one small GET). */
 enum feed_err feed_map(u8 *buf, u16 size);
 
+/* Spotter's logbook (lode/ui/logbook.md): today's log for the home point (blocking, one small GET). It arrives in
+ * the frame buffer: *l (struct ar_log, then its records and rare sightings) is valid until the next feed_fetch(), so
+ * call it after the frame is ingested and render it at once. */
+enum feed_err feed_log(const struct ar_log **l);
+
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
  * (none found) or FEED_ERR_VERSION (found one at another contract version). */

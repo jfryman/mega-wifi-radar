@@ -37,7 +37,7 @@ Use up/down to move between rows; each row lists its controls below.
 |---|---|
 | THEME | left/right: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM |
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
-| TAGS | left/right: ALL / SELECTED / OFF |
+| TAGS | left/right: ALL / SELECTED / OFF (only here: left/right zoom on the radar) |
 | WEATHER | left/right: ON / OFF. Rain and storms from NEXRAD radar behind the traffic, as stippled cells (light, moderate, heavy); US only, refreshed every 5 minutes and after a zoom |
 | MAP | left/right: ON / OFF. Runways of the airports in view, and the home airport's extended centrelines (10 nm, a tick every mile) out to 25 nm range |
 | SOUND | left/right: ON / OFF, the boot sounds and the flyover notice chime; switching it on plays the chime |
@@ -66,12 +66,11 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 
 | Button | Action |
 |---|---|
-| A / B | zoom in / out (5 to 100 nm); B closes a flyover notice instead while one is up |
-| up / down | select the previous / next aircraft in the traffic list (hold to scroll) |
-| C | open the detail pop-up for the selected aircraft (with a flyover notice up: for its aircraft); C or B closes it |
+| left / right | zoom out / in (5 to 100 nm) |
+| A / B | next / previous tab in the panel: NEAREST, LOWEST, HIGHEST, A-Z, LOGBOOK (remembered); B closes a flyover notice instead while one is up |
+| up / down | select the previous / next aircraft in the list (hold to scroll) |
+| C | open the detail pop-up for the selected aircraft (with a flyover notice up: for its aircraft); on the LOGBOOK tab, the day's full log; C or B closes it |
 | A (in the pop-up) | cockpit view from that aircraft; B goes back to the radar |
-| hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude (remembered) |
-| left / right | tags: all, selected only, off |
 | X (6-button pad) | next theme |
 | Y (6-button pad) | cockpit view from the selected aircraft |
 | Z (6-button pad) | weather on / off. X, Y and Z are shortcuts: everything works on a 3-button pad |
@@ -118,9 +117,10 @@ never covers the view: `OVERHEAD!` shows next to the callsign and the notice scr
   (squawk 7500/7600/7700). Aircraft on the ground don't get tags.
 - **Stale targets** (no position for 15 s) are drawn dim. Targets are dropped after 60 s.
 - **Panel** (right): airport, range, UTC time, aircraft count, link state (`NET OK`, `STALE 20s`,
-  `ERR HTTP`, `RELAY VER?`, `UPSTRM ERR`, …), then the **traffic list**: a header with the sort order,
-  15 rows of `CALLSIGN DIST` (nm) with the selection highlighted and emergencies pinned on top in red,
-  and `^3 v10 MORE` when it scrolls. Below that, the theme and tag mode, and the data source credit.
+  `ERR HTTP`, `RELAY VER?`, `UPSTRM ERR`, …), then the **tabs**: a header with the tab and its number (`NEAREST 1/5`),
+  15 rows of `CALLSIGN DIST` (nm) in that tab's order with the selection highlighted and emergencies pinned on top in
+  red, and `^3 v10 MORE` when it scrolls. The LOGBOOK tab shows the day so far instead: the date, aircraft and types,
+  the busiest hour, the fastest / highest / longest-in-range aircraft and the latest rare ones; C opens it full size. Below that, the theme and tag mode, and the data source credit.
 
 ## Themes
 

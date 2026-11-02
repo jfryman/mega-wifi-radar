@@ -1,4 +1,27 @@
-## 0.4.6 (Unreleased)
+## 0.5.0 (Unreleased)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * **radar:** new controls. Left/right zoom (right in, left out); A/B change the panel's tab; tag mode is in setup's
+    TAGS row only; holding C no longer does anything.
+  * **relay:** the contract is now version 7. A 0.5.0 cartridge needs the 0.5.0 relay (and the other way round); a
+    mismatch is reported at boot or as `RELAY VER?`, as before.
+
+FEATURES:
+
+  * **radar:** tabs in the side panel: NEAREST, LOWEST, HIGHEST, A-Z (the old sort orders; Z-A is gone) and LOGBOOK.
+  * **logbook:** the relay keeps a spotter's logbook of everything within 25 nm of your home airport, all day, whether
+    the cartridge is on or not, in a SQLite file (`RELAY_DB`). Days end at the airport's midnight. The LOGBOOK tab
+    shows the day so far (aircraft, types, busiest hour, the fastest, highest and longest-in-range aircraft, rare
+    ones); C opens the full page.
+  * **logbook:** rare aircraft (military, adsb.fi's interesting list, unusual types such as a C-17 or an A380) pop up
+    like a flyover notice, once per aircraft per day. Aircraft on the FAA's LADD list are never logged.
+
+IMPROVEMENTS:
+
+  * **setup:** the CONTROLS and GUIDE pages describe the new controls and tabs.
+  * **manual:** a Logbook section; the controls and scope pages follow the new buttons.
+  * **relay:** built with Go 1.26; its first dependency, a pure-Go SQLite (`modernc.org/sqlite`).
 
 ## 0.4.5 (November 2, 2026)
 

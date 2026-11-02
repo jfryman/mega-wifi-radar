@@ -1,6 +1,7 @@
 #include "popup.h"
 #include "feed.h"
 #include "fmt.h"
+#include "logbook.h"
 #include "radar.h"
 #include "settings.h"
 #include "theme.h"
@@ -182,6 +183,7 @@ void popup_open(void)
 {
     if (radar_selected() < 0) tlist_move(0);
     if (radar_selected() < 0) return;           /* nothing to show */
+    logbook_page(FALSE);                        /* they share the window */
     for (u16 r = 0; r < PANEL_ROWS; r++) radar_popup_row(r, "", PAL0);
     open = TRUE;
     d_state = D_LOADING;

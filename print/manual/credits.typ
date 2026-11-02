@@ -10,6 +10,7 @@
   text(..cond, weight: "bold")[AIRPORTS], [OurAirports (public domain), also the runways on the scope],
   text(..cond, weight: "bold")[ELEVATION], [AWS Terrain Tiles (Mapzen / Tilezen), from the sources below],
   text(..cond, weight: "bold")[WEATHER], [NOAA NEXRAD radar, composited by the Iowa Environmental Mesonet],
+  text(..cond, weight: "bold")[TIME ZONES], [GeoNames (CC BY 4.0), for the logbook's midnight],
   text(..cond, weight: "bold")[CITY LIGHTS], [NASA Earth Observatory / NOAA NGDC (VIIRS City Lights 2012), via NASA GIBS],
   text(..cond, weight: "bold")[TYPE], [Barlow and Press Start 2P (SIL Open Font License)],
 )

@@ -13,13 +13,15 @@ Builds run in a hash-tagged container (m68k-elf gcc 13.2 + SGDK master `9a78a44`
 Rev.C); see [build/container-build.md](build/container-build.md). The ROM boots through a 787 departure splash narrated by the real boot steps in speech bubbles
 ([ui/boot-splash.md](ui/boot-splash.md)), with PSG engine and radio sound ([ui/boot-sound.md](ui/boot-sound.md)), then runs the full radar:
 a V-Int renderer (thin-line sweep, blips, trails, tags, nine colour themes) fed once per sweep from the relay, a side
-panel with a sortable traffic list ([ui/traffic-list.md](ui/traffic-list.md)), a detail pop-up per aircraft fed by the relay's
+panel with tabs (traffic in four orders, the logbook; [ui/traffic-list.md](ui/traffic-list.md)), a detail pop-up per aircraft fed by the relay's
 `/v1/detail` ([ui/detail-popup.md](ui/detail-popup.md)), **cockpit mode**: the view from one aircraft over real terrain,
 Voxel Space drawn by the 68000 straight into VRAM from a relay terrain patch and live track
 ([ui/cockpit.md](ui/cockpit.md)), **flyover notices**: a box popping open over the scope (and an FM chime, with a KBNA easter egg) when a plane passes over the
 owner's house, from the owner's `atc-mqtt` feed via the relay's MQTT subscription ([ui/notices.md](ui/notices.md)), **weather**: NEXRAD rain
 as STARS-style stippled cells under the traffic, sampled by the relay from the Iowa Environmental Mesonet ([ui/weather.md](ui/weather.md)), a **video map** of the
-runways in view and the home airport's extended centrelines ([ui/video-maps.md](ui/video-maps.md)),
+runways in view and the home airport's extended centrelines ([ui/video-maps.md](ui/video-maps.md)), a **spotter's
+logbook** the relay keeps all day in SQLite, shown as the panel's LOGBOOK tab ([ui/logbook.md](ui/logbook.md),
+[relay/logbook.md](relay/logbook.md)),
 and a setup screen (Wi-Fi, home airport, weather, map, sound, relay, controls, reset,
 saved to ESP32 flash). The cart finds the relay itself over mDNS
 (AUTO; [net/discovery.md](net/discovery.md)). The data path is a relay (option A) serving the compact frame

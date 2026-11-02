@@ -4,6 +4,7 @@
 #include "notice.h"
 #include "chime.h"
 #include "feed.h"
+#include "logbook.h"
 #include "popup.h"
 #include "radar.h"
 #include "theme.h"
@@ -86,7 +87,7 @@ void notice_banner_close(bool now)
 void notice_radar_tick(void)
 {
     if (!have) return;
-    if (popup_is_open()) {
+    if (popup_is_open() || logbook_page_open()) {     /* the window covers the scope */
         if (shown) notice_banner_close(TRUE);   /* under the pop-up: gone without a show */
         else if (vtimer - got_at > WAIT_SECS * 60UL) have = FALSE;
         return;

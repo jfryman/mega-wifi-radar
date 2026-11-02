@@ -1,13 +1,15 @@
 #include "tlist.h"
 #include "fmt.h"
+#include "logbook.h"
 #include "radar.h"
 #include "settings.h"
 #include "theme.h"
 #include "traffic.h"
 
-static const char *const sort_names[SORT_MODES] = {
-    "- NEAREST -", "--- A-Z ---", "--- Z-A ---", "- LOW ALT -", "- HIGH ALT",
-};
+/* Tab headers, "NAME n/5" in the panel's 11 columns. */
+static const u8 tabs[] = { SORT_NEAREST, SORT_ALT_LOW, SORT_ALT_HIGH, SORT_AZ, SORT_LOGBOOK };
+#define TABS (sizeof(tabs) / sizeof(tabs[0]))
+static const char *const tab_names[SORT_MODES] = { "NEAREST", "A-Z", "A-Z", "LOWEST", "HIGHEST", "LOGBOOK" };
 
 static u8 order[TR_MAX];                /* track slots in list order */
 static u16 dist[TR_MAX];                /* per slot: distance from home, 1/32 nm */
@@ -34,7 +36,7 @@ static bool before(u8 a, u8 b)
     s16 c = 0;
 
     if (ea != eb) return ea;
-    switch (settings.sort) {
+    switch (settings.sort == SORT_LOGBOOK ? SORT_NEAREST : settings.sort) {   /* the logbook: nearest, unseen */
     case SORT_NEAREST: c = dist[a] < dist[b] ? -1 : dist[a] > dist[b]; break;
     case SORT_AZ: c = memcmp(ra->cs, rb->cs, sizeof(ra->cs)); break;
     case SORT_ZA: c = memcmp(rb->cs, ra->cs, sizeof(ra->cs)); break;
@@ -84,7 +86,15 @@ void tlist_draw(u16 row)
 
     first_row = row;
     drawn = TRUE;
-    radar_panel(row, sort_names[settings.sort]);
+    u16 n = 0;
+    while (n < TABS - 1 && tabs[n] != settings.sort) n++;
+    sprintf(buf, "%-7s %u/%u", tab_names[settings.sort], n + 1, (u16)TABS);
+    radar_panel(row, buf);
+    if (settings.sort == SORT_LOGBOOK) {    /* its rows are logbook.c's */
+        logbook_panel(row + 1);
+        return;
+    }
+    logbook_forget();                       /* the rows are the list's now */
     for (u16 r = 0; r < LIST_ROWS; r++) {
         u16 k = top + r;
         if (k >= count) {
@@ -138,9 +148,13 @@ void tlist_move(s16 d)
     tlist_draw(first_row);
 }
 
-void tlist_sort_next(void)
+void tlist_tab(s16 d)
 {
-    settings.sort = (settings.sort + 1) % SORT_MODES;
+    u16 n = 0;
+    while (n < TABS - 1 && tabs[n] != settings.sort) n++;
+    settings.sort = tabs[(n + TABS + d) % TABS];
     settings_changed();
     tlist_rebuild();
+    if (!drawn) return;
+    if (settings.sort == SORT_LOGBOOK) logbook_fetch();     /* blocking, like a detail */
 }

@@ -7,7 +7,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 |---|---|
 | THEME | L/R: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM ([screen-layout.md](screen-layout.md)) |
 | RANGE | L/R: 5 / 10 / 25 / 50 / 100 nm |
-| TAGS | L/R: ALL / SELECTED / OFF |
+| TAGS | L/R: ALL / SELECTED / OFF (the only place since 0.5.0: ◀▶ zoom on the radar) |
 | WEATHER | L/R: ON / OFF, the weather overlay ([weather.md](weather.md)); Z on the radar too |
 | MAP | L/R: ON / OFF, the video map ([video-maps.md](video-maps.md)) |
 | SOUND | L/R: ON / OFF, the boot sound ([boot-sound.md](boot-sound.md)) and the flyover notice chime ([notices.md](notices.md)); switching to ON plays the chime (`ui_pad` ticks it) |
@@ -39,7 +39,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
   The next small setting takes one (0 = its default) without a new magic; older builds keep them as they found
   them. A field whose 0 can't be the
   default, or more than 7 bytes, still needs `MWR4` and a migration.
-- **Saving from the radar:** zoom (A/B), tags (◀▶), theme (X), weather (Z) and the sort order (hold C) call
+- **Saving from the radar:** zoom (◀▶), the tab (A/B, in `sort`), theme (X) and weather (Z) call
   `settings_changed()`; the radar's `poll()` writes the record when `settings_save_due()` (dirty, and 30 s since
   the last radar save), right after the frame and notice requests: a blocking flash write in the poll's blocking
   slot, never from the input handler. A failed write isn't retried until the next change.

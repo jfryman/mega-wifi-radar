@@ -113,13 +113,13 @@ static void controls_page(void)
 {
     static const char *const rows[][2] = {
         { "RADAR", NULL },
-        { "A / B", "ZOOM IN / OUT" },
+        { "LEFT/RIGHT", "ZOOM OUT / IN" },
+        { "A / B", "NEXT / PREVIOUS TAB" },
         { "UP / DOWN", "SELECT IN THE LIST" },
         { "C", "DETAILS (C OR B CLOSES)" },
         { "C THEN A", "COCKPIT VIEW" },
+        { "C, LOGBOOK", "THE DAY'S FULL LOG" },
         { "B", "CLOSE A FLYOVER BANNER" },
-        { "HOLD C", "CHANGE THE SORT ORDER" },
-        { "LEFT/RIGHT", "TAGS: ALL / SEL / OFF" },
         { "X", "NEXT THEME (6-BUTTON)" },
         { "Y", "COCKPIT VIEW (6-BUTTON)" },
         { "Z", "WEATHER ON/OFF (6-BUTTON)" },
@@ -220,9 +220,11 @@ static const struct grow g_panel[] = {
     { PAL0, "UPSTRM ERR", "THE RELAY'S FEED FAILED" },
     { PAL0, "RELAY VER?", "RELAY: ANOTHER RELEASE" },
     { PAL0, NULL, NULL },
-    { PAL0, "- NEAREST -", "LIST ORDER: HOLD C" },
+    { PAL0, "NEAREST 1/5", "TAB: A NEXT, B PREVIOUS" },
+    { PAL0, "", "NEAREST LOWEST HIGHEST" },
+    { PAL0, "", "A-Z, LOGBOOK (C: PAGE)" },
     { PAL0, "v13 MORE", "MORE BELOW: PRESS DOWN" },
-    { PAL0, "CLASSIC ALL", "THEME; TAGS (LEFT/RIGHT)" },
+    { PAL0, "CLASSIC ALL", "THEME; TAGS (SETUP)" },
     { PAL0, "adsb.fi IEM", "DATA: TRAFFIC, WEATHER" },
 };
 static const struct { const char *title; const struct grow *rows; u16 n; } g_pages[] = {

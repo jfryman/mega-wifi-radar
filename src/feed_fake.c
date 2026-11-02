@@ -215,6 +215,13 @@ enum feed_err feed_map(u8 *buf, u16 size)
     return FEED_ERR_HTTP;
 }
 
+/* res/fake/log.bin (`relay -pack-log`): the recorded KBNA snapshots replayed into a logbook. */
+enum feed_err feed_log(const struct ar_log **l)
+{
+    *l = (const struct ar_log *)fake_log_rom;
+    return FEED_OK;
+}
+
 enum feed_err feed_find_relay(void) { return FEED_OK; }
 bool feed_reconnect_due(void) { return FALSE; }
 enum feed_err feed_reconnect(void) { return FEED_OK; }

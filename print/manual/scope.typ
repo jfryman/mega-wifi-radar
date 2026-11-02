@@ -17,11 +17,11 @@
 
 #key(5)[Status][Your airport, the range (*RNG*), the time in UTC (*Z*), the number of aircraft, and
   the link: *NET OK*, or *STALE* with the seconds since the last good update.]
-#key(6)[Traffic list][Every aircraft on the scope: callsign and distance in nautical miles. The
-  top line shows the order (*NEAREST*, *A-Z*, *Z-A*, *LOW ALT*, *HIGH ALT*; hold *C* to change it).
-  The selected aircraft is highlighted and boxed on the scope. Emergencies are always at the top,
-  in red. *v13 MORE* means there are more below: keep pressing *down*.]
-#key(7)[Theme, tags and data][The theme, the tag setting (*ALL*, *SEL*, *OFF*), and where the
+#key(6)[Tabs][Every aircraft on the scope: callsign and distance in nautical miles, in the tab's
+  order: *NEAREST*, *LOWEST*, *HIGHEST* or *A-Z* (*A* and *B* change tab; the fifth, *LOGBOOK*, is the
+  day so far: see _The Logbook_). The selected aircraft is highlighted and boxed on the scope.
+  Emergencies are always at the top, in red. *v13 MORE*: more below, keep pressing *down*.]
+#key(7)[Theme, tags and data][The theme, the tag setting (*ALL*, *SEL*, *OFF*: *TAGS* in Setup), and where the
   traffic comes from (*IEM* too while weather is shown).]
 
 == Weather

@@ -17,6 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
+  - [logbook.md](relay/logbook.md) - relay logbook: SQLite, homes from carts, 10 s poll, local-midnight days, rare notices, privacy
   - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles, sky, city lights), /v1/notice, /v1/wx, /v1/map, version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
@@ -24,7 +25,8 @@
   - [radar-renderer.md](ui/radar-renderer.md) - V-Int renderer, shared state, measured costs, perf lessons
   - [boot-splash.md](ui/boot-splash.md) - 787 departure splash driven by boot steps: phases, speech bubbles + reading time, layers, art pipeline, motion
   - [boot-sound.md](ui/boot-sound.md) - boot sound on the PSG: engine whine/roar from rpm, radio squelch + voice blips, SOUND setting
-  - [traffic-list.md](ui/traffic-list.md) - side-panel traffic list: sort orders, selection, rebuild per sweep
+  - [traffic-list.md](ui/traffic-list.md) - side-panel tabs (A/B): four list orders + LOGBOOK, selection, rebuild per sweep
+  - [logbook.md](ui/logbook.md) - LOGBOOK tab + page: /v1/log into frame_buf, text only, controls while the page is up
   - [detail-popup.md](ui/detail-popup.md) - tap-C detail pop-up: rows, /v1/detail fetches, window plane + opaque font
   - [cockpit.md](ui/cockpit.md) - cockpit mode: /v1/terrain + /v1/track, real sky, Voxel Space into VRAM, overlay RAM, camera, HUD
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR3, spare bytes, migration, saves from the radar), airports
@@ -40,12 +42,11 @@
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
-  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v6): header, record, flags, transport, versioning
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v7): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
     - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; STARS type line
-    - [spotters-logbook.md](plans/ideas/spotters-logbook.md) - daily stats + rare types, relay persistence, /v1/log
 - tmp/ - git-ignored scratch

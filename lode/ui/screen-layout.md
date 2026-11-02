@@ -30,7 +30,7 @@ row 27  ·· overscan margin ·········│···············
   zoom only relabels them (25 nm → 5/10/15/20/25). Compass N/E/S/W at the rim; ring labels along the NE diagonal.
 - **Side panel:** cols 28–38 (x 224–311), rows 1–26, on the **window** plane. From the top: airport,
   range, UTC time (SNTP), aircraft count, network state (`NET OK` / `STALE 12s` / `ERR HTTP` / `RELAY VER?`),
-  then the [traffic list](traffic-list.md) (header, 15 rows, "more" row), a rule, theme + tag mode, and
+  then the [tabs](traffic-list.md) (header `NEAREST 1/5`, 15 rows, "more" row; LOGBOOK: [logbook.md](logbook.md)), a rule, theme + tag mode, and
   **`Data: adsb.fi`**, which is required and always visible (`adsb.fi IEM` while weather is shown). Each row has its own text palette.
 - **Detail pop-up:** window cols 0–27 over the scope while it's open ([detail-popup.md](detail-popup.md)).
 - **Flyover notice box:** plane A, rows 11–17 × cols 1–26 over the scope's centre, grows open for 15 s when a notice arrives; tags move around it ([notices.md](notices.md)).
@@ -60,17 +60,18 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
 
   | Button | Action |
   |---|---|
-  | A / B | zoom in / out (off while the pop-up is open; B closes it, or a flyover notice) |
-  | ▲ / ▼ | previous / next aircraft in the traffic list (auto-repeat: 16 frames, then every 5) |
-  | ◀ / ▶ | tags: all / selected / off |
-  | C tap | detail pop-up open / close (acts on release); with a flyover notice up, for its aircraft |
+  | ◀ / ▶ | zoom out / in: 5 / 10 / 25 / 50 / 100 nm (off while the pop-up or logbook page is open) |
+  | A / B | next / previous panel tab: NEAREST, LOWEST, HIGHEST, A-Z, LOGBOOK ([traffic-list.md](traffic-list.md)); B closes the pop-up, the logbook page or a flyover notice instead |
+  | ▲ / ▼ | previous / next aircraft in the list (auto-repeat: 16 frames, then every 5) |
+  | C tap | detail pop-up open / close (acts on release); on the LOGBOOK tab the logbook page ([logbook.md](logbook.md)); with a flyover notice up, for its aircraft |
   | A (pop-up open) | cockpit mode for that aircraft ([cockpit.md](cockpit.md)); B there goes back |
-  | C hold (40 frames) | next sort order: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT |
+  | C hold | nothing (0.4.x: sort order) |
   | X (6-button) | next theme; a shortcut only |
   | Y (6-button) | cockpit mode for the selected aircraft (the first in the list if none); a shortcut only |
   | Z (6-button) | weather on / off (setup's WEATHER row); a shortcut only |
   | START | setup |
 
+  Tag mode (ALL / SEL / OFF) is in setup's TAGS row only since 0.5.0 (◀▶ zoom now: owner's remap 2026-11-02).
   A 3-button pad must reach everything: 6-button buttons only duplicate setup options or pop-up actions. There is no pan:
   the scope is fixed on the home airport (it scrolled the planes but helped nobody, so 0.2.0 removed it).
 

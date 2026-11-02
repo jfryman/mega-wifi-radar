@@ -44,7 +44,7 @@
 - Lock-step - relay vX serves only cart vX (same release, same `AR_VER`); a mismatch is a 409 and an on-screen `RELAY MISMATCH` / `RELAY VER?`.
 - Contract lock - `relay/contract.lock`: `AR_VER` + a hash of `arframe.h`, so the header can't change without a bump (`make contract-lock`).
 - Traffic list - the side panel's sortable callsign + distance list; ▲▼ select in it (`tlist.c`).
-- Sort order - the list's order, cycled by holding C: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT (emergencies always first).
+- Sort order - a list tab's order: NEAREST, LOWEST, HIGHEST, A-Z (emergencies always first); hold C cycled them before 0.5.0.
 - Detail pop-up - the full-height panel over the scope (tap C) with everything about the selected aircraft (`popup.c`).
 - Detail record - `struct ar_detail`, 96 bytes from `GET /v1/detail`: registration, type, model, operator, year, GPS/selected altitude, selected heading, QNH, last seen.
 - Opaque font - a copy of the SGDK font with its transparent background made black (index 14), so window-plane text hides the scope.
@@ -74,4 +74,8 @@
 - Weather id / `w=` - a scan's unix minute (u16, never 0); the cart sends the one it holds as `w=` and the frame flags another (`AR_H_WX`).
 - Video map - faint plane-B lines on the scope: runways in view + the home airport's extended centrelines (10 nm, mile ticks) at ≤ 25 nm (`vmap.c`, relay `maps.go`).
 - Fixed pixel - a plane-B pixel in `trail_bits` (trail dot or map line) that the sweep's slow path leaves alone; its colour says whose it is.
+- Tab - one of the side panel's views, A/B to switch: NEAREST, LOWEST, HIGHEST, A-Z (list orders), LOGBOOK (`tlist.c`, `settings.sort`).
+- Logbook - the relay's SQLite log of the traffic within 25 nm of each cart's home, all day; `/v1/log` summary, the LOGBOOK tab and page (`logbook.go`, `logbook.c`).
+- Rare (aircraft) - military, adsb.fi "interesting", or a type on `rareTypes`; announced once a day as a notice.
+- dbFlags - adsb.fi's per-aircraft flags: 1 military, 2 interesting, 4 PIA, 8 LADD (PIA/LADD never logged).
 - City lights - cockpit cells under night lights (NASA GIBS VIIRS City Lights 2012), palette 14: grey specks by day, warm points at night (`lights.go`).

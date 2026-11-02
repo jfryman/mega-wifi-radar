@@ -229,6 +229,7 @@ func main() {
 	packWxOut := flag.String("pack-wx", "", "pack the weather picture given as argument (recorded at -lat/-lon/-range) into the emulator's weather file and exit")
 	wxPackID := flag.Uint("wx-id", 1, "weather id for -pack-wx")
 	dbPath := flag.String("db", "", "SQLite file for the logbook (empty: in memory, lost on restart)")
+	packLogOut := flag.String("pack-log", "", "replay the upstream JSON files given as arguments into a logbook for -lat/-lon and write the emulator's log file")
 	packMapOut := flag.String("pack-map", "", "pack the video maps for -lat/-lon at every cart range into the emulator's map file and exit")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
@@ -260,6 +261,12 @@ func main() {
 			log.Fatal("-pack-wx needs one recorded PNG")
 		}
 		if err := packWx(*packWxOut, flag.Arg(0), *lat, *lon, *rng, uint16(*wxPackID)); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *packLogOut != "" {
+		if err := packLog(*packLogOut, flag.Args(), *lat, *lon); err != nil {
 			log.Fatal(err)
 		}
 		return

@@ -2,7 +2,7 @@
 
 A small HTTP service that polls adsb.fi over HTTPS, turns its JSON into the compact frame
 ([../architecture/frame-format.md](../architecture/frame-format.md)), and serves it over plain HTTP
-to the console, and (optionally) subscribes to the owner's MQTT flight feed for flyover notices. Pure Go stdlib, no dependencies. Builds natively on macOS and Arch (`go` is packaged on both).
+to the console, and (optionally) subscribes to the owner's MQTT flight feed for flyover notices. Go stdlib plus a pure-Go SQLite for the logbook ([logbook.md](logbook.md)). Builds natively on macOS and Arch (`go` is packaged on both).
 
 ```mermaid
 flowchart LR
@@ -27,22 +27,22 @@ flowchart LR
 
 ## Contract
 - **Version:** `version` (the release, `-ldflags -X main.version`; `VERSION` build arg from CI's semver tag or
-  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 6). Every route but `/healthz` needs
-  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v6: use the relay and cartridge
+  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 7). Every route but `/healthz` needs
+  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v7: use the relay and cartridge
   from the same release"*, logged with both versions. The start-up log names both.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=6`. `range` is clamped to 1–250 (the adsb.fi
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=7`. `range` is clamped to 1–250 (the adsb.fi
   limit) and `max` to 1–96. Missing or invalid `lat`/`lon` → `400`.
 - `200`, `application/octet-stream`, **explicit `Content-Length`**. Go's `net/http` would otherwise
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
-- `GET /v1/detail?icao=<6 hex>&v=6` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
+- `GET /v1/detail?icao=<6 hex>&v=7` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
   snapshot, any query) if it's < 30 s old and has the aircraft, else `/api/v2/hex/<icao>` through the same
   1 req/s limiter (`aircraft(ctx, hex, maxAge)`; a hex answer becomes `source.last` when there's no area snapshot). Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
   other bytes become `?` (`padASCII`, shared with callsigns).
-- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=6` → a 32,872 B terrain patch
+- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=7` → a 32,872 B terrain patch
   centred on the aircraft (`terrain.go`, elevation from `dem.go`; flat with `AR_T_FLAT` if the tiles can't be
   fetched; 404 if the aircraft isn't in the feed; centred 3 s ahead of the aircraft), `GET /v1/track?icao=&p=<patch
-  key>&n=&v=6` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=6`
+  key>&n=&v=7` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=7`
   → more cells of that grid (`stripHandler`; 502 without elevation). Terrain and track look the aircraft up with a
   1.5 s snapshot age; strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
@@ -50,18 +50,21 @@ flowchart LR
   [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase. Cells under city lights get the urban colour
   (`lights.go`, NASA GIBS tiles); `-lights ""` turns that off.
 - Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
-  `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=6` → one
+  `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=7` → one
   82 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
   The ring exists even without MQTT (then always empty); the frame cache holds no flag (set per request on a copy).
 - Weather ([../ui/weather.md](../ui/weather.md), `wx.go`): `w=` on frames → `hWx` when it isn't the newest IEM
-  NEXRAD scan's id (checked ≤ 1/min in the background; missing w= never waits). `GET /v1/wx?lat=&lon=&range=&v=6` →
+  NEXRAD scan's id (checked ≤ 1/min in the background; missing w= never waits). `GET /v1/wx?lat=&lon=&range=&v=7` →
   a 190 B `ar_wx`: 26×26 levels sampled from IEM's WMS picture (palette → dBZ, `wxpal.go`), cached per place, range
   and scan; `wNone` outside CONUS, `wOld` when serving a scan > 15 min old after a failed fetch; 502 with nothing.
   `-wx ""` turns it off. `-record-wx OUT -lat -lon -range` saves a picture; `-pack-wx OUT -wx-id N -lat -lon -range
   PNG` writes the emulator's `res/fake/wx.bin`.
-- Video maps ([../ui/video-maps.md](../ui/video-maps.md), `maps.go`): `GET /v1/map?lat=&lon=&range=&v=6` → `ar_map` +
+- Video maps ([../ui/video-maps.md](../ui/video-maps.md), `maps.go`): `GET /v1/map?lat=&lon=&range=&v=7` → `ar_map` +
   ≤ 160 4-byte segments in scope pixels: runways in view (embedded `runways.csv`, OurAirports via `tools/runwaygen`),
   the home airport's extended centrelines + ticks at ranges ≤ 25 nm. `-pack-map OUT -lat -lon` → `res/fake/maps.bin`.
+- Logbook ([logbook.md](logbook.md)): every frame request registers its home (`lb.seen`); a background poller logs
+  25 nm around each home every 10 s into SQLite (`-db` / `RELAY_DB`); `GET /v1/log?lat=&lon=&v=7` → 192 B today's
+  summary; rare aircraft → notices. `-pack-log OUT -lat -lon FILES` writes `res/fake/log.bin`.
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
 - `-pack-cockpit OUT -lat -lon -cell M FILES...` writes the emulator's cockpit pack (`"FC"`, a terrain patch, then
@@ -84,7 +87,7 @@ empty variables count as unset. For containers and the planned cluster deploymen
 | `-dem` | `RELAY_DEM` | `-mqtt-clear` | `MQTT_CLEAR` |
 | `-notice-ttl` (30 s) | `RELAY_NOTICE_TTL` | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
 | `-sky` (`real`) | `RELAY_SKY` | `-lights` (NASA GIBS) | `RELAY_LIGHTS` |
-| `-wx` (IEM, empty = off) | `RELAY_WX` | | |
+| `-wx` (IEM, empty = off) | `RELAY_WX` | `-db` (SQLite, empty = memory) | `RELAY_DB` |
 
 - The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
 - `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
@@ -150,7 +153,7 @@ Dev images are **local and versioned**: `scripts/relay` tags `mwradar-relay:<git
 checkout and its log names the real version. `RELAY_IMAGE=<published image>` runs a release instead (pulled, never built).
 A fixed `:latest` tag is avoided: it kept serving an image from an older commit.
 
-`relay/Dockerfile` is multi-stage and copies `*.go`, `runways.csv` (embedded) and `testdata/`: a new embedded file must be added there too. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
+`relay/Dockerfile` is multi-stage and copies `*.go`, `runways.csv` (embedded) and `testdata/`: a new embedded file must be added there too. `golang:1.26-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
 cross-compiles a static binary (CGO off, `GOOS/GOARCH` from `TARGETOS/TARGETARCH`). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
 the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker
 (override with `CTR=`), publishes `${RELAY_PORT:-8080}`, and names the detached container `mwradar-relay`
@@ -196,7 +199,7 @@ resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `Meg
 
 ```sh
 scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
-dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=6 path=/v1/frame
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=7 path=/v1/frame
 cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ```
 

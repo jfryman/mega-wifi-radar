@@ -10,10 +10,12 @@ import (
 	"database/sql"
 	_ "embed"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -456,4 +458,44 @@ func logHandler(lb *logbook) http.HandlerFunc {
 		writeBinary(w, s.encode())
 		log.Printf("%s %s -> %d aircraft, %d types, %d rare", r.RemoteAddr, r.URL.RequestURI(), s.aircraft, s.types, len(s.rares))
 	}
+}
+
+// packLog writes the emulator's log (src/feed_fake.c: one /v1/log body) from upstream JSON files replayed into an
+// in-memory logbook at their own times. One aircraft is marked rare (a C-17), so the screen has a rare row.
+func packLog(out string, ins []string, lat, lon float64) error {
+	lb, err := openLogbook("file:packlog?mode=memory&cache=shared", newSource("http://upstream.invalid", time.Second), nil)
+	if err != nil {
+		return err
+	}
+	defer lb.db.Close()
+	var at time.Time
+	lb.now = func() time.Time { return at }
+	var h *logHome
+	for i, in := range ins {
+		data, err := os.ReadFile(in)
+		if err != nil {
+			return err
+		}
+		var up upstreamResp
+		if err := json.Unmarshal(data, &up); err != nil {
+			return fmt.Errorf("%s: %w", in, err)
+		}
+		at = time.UnixMilli(int64(up.Now))
+		if i == 0 {
+			h = lb.seen(lat, lon)
+			h.started = time.Time{} // a whole day, as far as the screen is concerned
+		}
+		for j := range up.AC {
+			if up.AC[j].Type == "B38M" && up.AC[j].DBFlags == 0 && up.AC[j].Hex == up.AC[0].Hex {
+				up.AC[j].Type, up.AC[j].Desc = "C17", "BOEING C-17A GLOBEMASTER 3"
+			}
+		}
+		lb.record(h, &up)
+	}
+	s, err := lb.summary(lat, lon)
+	if err != nil {
+		return err
+	}
+	log.Printf("%s: %d aircraft, %d types, %d rare", out, s.aircraft, s.types, len(s.rares))
+	return os.WriteFile(out, s.encode(), 0o644)
 }

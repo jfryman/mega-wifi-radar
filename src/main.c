@@ -8,6 +8,7 @@
 #include "feed.h"
 #include "fmt.h"
 #include "geo.h"
+#include "logbook.h"
 #include "net.h"
 #include "notice.h"
 #include "popup.h"
@@ -194,8 +195,9 @@ static void reselect(const u8 icao[3])
         }
 }
 
-/* Radar controls (lode/ui/screen-layout.md). X and Y are 6-button shortcuts: what X does is also in setup,
- * and Y's cockpit mode is A in the detail pop-up, so a 3-button pad loses nothing. */
+/* Radar controls (lode/ui/screen-layout.md): left/right zoom, A/B change the panel's tab, up/down select, C details
+ * (on the LOGBOOK tab: the full logbook). X, Y and Z are 6-button shortcuts: what X and Z do is also in setup, and
+ * Y's cockpit mode is A in the detail pop-up, so a 3-button pad loses nothing. */
 static void handle_input(void)
 {
     static u16 prev, c_held, dir_held;
@@ -216,14 +218,22 @@ static void handle_input(void)
     if (pressed & BUTTON_Y) ask_cockpit();
     if (popup_is_open() && (pressed & BUTTON_B)) {
         popup_close();
-        pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also zoom out */
+        pressed &= ~BUTTON_B;               /* B closes the pop-up; it doesn't also change the tab */
+    }
+    if (logbook_page_open() && (pressed & (BUTTON_A | BUTTON_B))) {
+        if (pressed & BUTTON_B) logbook_page(FALSE);    /* ... nor does it under the logbook page */
+        pressed &= ~(BUTTON_A | BUTTON_B);
     }
     if (notice_banner_up() && (pressed & BUTTON_B)) {
-        notice_banner_close(FALSE);         /* ... nor the flyover box (lode/ui/notices.md): it shrinks shut */
+        notice_banner_close(FALSE);         /* ... nor under the flyover box (lode/ui/notices.md): it shrinks shut */
         pressed &= ~BUTTON_B;
     }
     if ((pressed & (BUTTON_A | BUTTON_B)) && !popup_is_open()) {
-        s16 r = settings.range_idx + ((pressed & BUTTON_A) ? -1 : 1);
+        tlist_tab((pressed & BUTTON_A) ? 1 : -1);       /* A next tab, B previous */
+        popup_selection_changed();
+    }
+    if ((pressed & (BUTTON_LEFT | BUTTON_RIGHT)) && !popup_is_open() && !logbook_page_open()) {
+        s16 r = settings.range_idx + ((pressed & BUTTON_RIGHT) ? -1 : 1);     /* right: in, left: out */
         if (r >= 0 && r < RANGE_COUNT) {
             char buf[16];
             settings.range_idx = r;
@@ -233,12 +243,15 @@ static void handle_input(void)
             settings_changed();
         }
     }
-    /* C: a tap (released before HOLD_FRAMES) opens / closes the pop-up; a hold changes the sort */
+    /* C: a tap (released before HOLD_FRAMES) opens / closes the pop-up, or the logbook page on its tab; a hold does
+     * nothing (it changed the sort before tabs) */
     if (j & BUTTON_C) {
-        if (++c_held == HOLD_FRAMES) tlist_sort_next();
+        if (c_held < HOLD_FRAMES) c_held++;
     } else {
         if (c_held && c_held < HOLD_FRAMES) {
             if (popup_is_open()) popup_close();
+            else if (logbook_page_open()) logbook_page(FALSE);
+            else if (settings.sort == SORT_LOGBOOK && !notice_banner_up()) logbook_page(TRUE);
             else {
                 notice_select();            /* the notice box's aircraft, if it has one */
                 notice_banner_close(TRUE);  /* the pop-up covers it: gone, no animation */
@@ -254,12 +267,6 @@ static void handle_input(void)
         popup_selection_changed();
     }
     if (!ud) dir_held = 0;
-    if (pressed & (BUTTON_LEFT | BUTTON_RIGHT)) {
-        settings.tag_mode = (settings.tag_mode + ((pressed & BUTTON_RIGHT) ? 1 : TAGS_MODES - 1)) % TAGS_MODES;
-        radar_retag();
-        panel_modes();
-        settings_changed();
-    }
     if (pressed & BUTTON_X) {
         settings.theme = (settings.theme + 1) % THEME_COUNT;
         radar_retheme();
@@ -306,6 +313,7 @@ static void poll(void)
         else radar_panel(ROW_NET, "UPSTRM ERR");
         tlist_rebuild();
         popup_after_poll();
+        logbook_poll();                     /* the LOGBOOK tab, once a minute (the frame buffer is free now) */
         notice_check();                     /* a flyover notice waiting? (lode/ui/notices.md) */
         alert_check();                      /* an emergency squawk: the box + a tone (alert.c) */
         wx_check();                         /* new weather, or a zoom wiped it (lode/ui/weather.md) */
@@ -352,6 +360,7 @@ static void radar_up(void)
     radar_init();
     wx_reset();
     vmap_reset();
+    logbook_forget();
     panel_static();
     radar_panel(ROW_NET, have_snap ? "NET OK" : "WAIT DATA");
     radar_start();
@@ -383,6 +392,7 @@ int main(bool hard)
             if (act == AMB_COCKPIT) memcpy(cockpit_icao, ambient_icao(), 3);
             notice_banner_close(TRUE);
             popup_close();
+            logbook_page(FALSE);
             radar_stop();
             by_user = cockpit_run(cockpit_icao, want_cockpit ? 0 : AMBIENT_RIDE_SECS);
             want_cockpit = FALSE;
@@ -398,6 +408,7 @@ int main(bool hard)
             notice_banner_close(TRUE);
             notice_drop();
             popup_close();
+            logbook_page(FALSE);
             radar_stop();
             setup_run(FALSE);
 #ifndef FAKE_FEED

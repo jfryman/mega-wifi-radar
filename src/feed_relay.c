@@ -1,5 +1,5 @@
 /* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&n&w&v, /v1/detail?icao&v, /v1/notice?after&v,
- * /v1/wx?lat&lon&range&v, /v1/map?lat&lon&range&v, and
+ * /v1/wx?lat&lon&range&v, /v1/map?lat&lon&range&v, /v1/log?lat&lon&v, and
  * cockpit mode's /v1/terrain?icao&v, /v1/track?icao&p&n&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
@@ -334,6 +334,26 @@ enum feed_err feed_map(u8 *buf, u16 size)
     if (m->ver != AR_VER) return counted(FEED_ERR_VERSION);
     u16 n = m->runways + m->centres + m->ticks;
     if (n > AR_MAP_MAX || t.c.len != AR_MAP_HDR + n * sizeof(struct ar_seg)) return counted(FEED_ERR_FORMAT);
+    return counted(FEED_OK);
+}
+
+enum feed_err feed_log(const struct ar_log **l)
+{
+    static char url[RELAY_LEN + 48];
+    struct collect_to t = { { 0, FALSE }, (u8 *)frame_buf, sizeof(frame_buf) };    /* the frame is ingested by now */
+    const struct ar_log *r = (const struct ar_log *)frame_buf;
+    char lat[12], lon[12];
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    fmt_deg_e4(lat, settings.lat_e4);
+    fmt_deg_e4(lon, settings.lon_e4);
+    /* base (<= RELAY_LEN) + "/v1/log?lat=-90.0000&lon=-180.0000&v=7" (<= 39) */
+    sprintf(url, "%s" AR_LOG_PATH AR_LOG_QUERY, relay_url, lat, lon, AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    if (t.c.len != AR_LOG_SIZE || r->magic[0] != 'A' || r->magic[1] != 'L') return counted(FEED_ERR_FORMAT);
+    if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    *l = r;
     return counted(FEED_OK);
 }
 

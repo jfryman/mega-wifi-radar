@@ -175,7 +175,7 @@ notice 23654 (no match): LOOK UP!   SWA1234        |SOUTHWEST   B738          |B
 the notice appears within a sweep. You can also ask the relay directly, as the cartridge does:
 
 ```sh
-curl -s 'http://localhost:8080/v1/notice?after=0&v=4' | xxd
+curl -s 'http://localhost:8080/v1/notice?after=0&v=7' | xxd
 ```
 
 ### When it doesn't work

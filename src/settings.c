@@ -147,6 +147,7 @@ bool settings_load(void)
             s.sound >= SOUND_MODES || s.sort >= SORT_MODES || s.ambient >= AMBIENT_MODES || s.wx >= WX_MODES ||
             s.map >= MAP_MODES)
         return FALSE;
+    if (s.sort == SORT_ZA) s.sort = SORT_AZ;   /* 0.4.x's Z-A order is no tab any more */
     s.icao[4] = 0;
     s.relay[RELAY_LEN] = 0;
     settings = s;
