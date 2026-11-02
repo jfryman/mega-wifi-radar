@@ -41,7 +41,7 @@ A blank C3 still enumerates its USB-Serial/JTAG from ROM, so if no port shows up
 FlashKit failure modes: `No flash chip detected: CFI query returned FF-FF…` means the cart isn't in
 the FlashKit or isn't seated. `Device is not detected: … Value does not fall within the expected range`
 (even for `info`) means the FlashKit's MCU is wedged while its USB-serial chip still enumerates; **unplug and
-replug its USB** (seen 2026-10-28; nothing on the host held the port).
+replug its USB** (seen 2026-10-28 and 2026-11-02, both times after the cart went back and forth to the console; nothing on the host held the port).
 Device nodes: FlashKit = `/dev/cu.usbserial-*` / `/dev/ttyUSB*`; ESP32 = `/dev/cu.usbmodem*` / `/dev/ttyACM*`.
 
 Related: [sgdk-megawifi.md](sgdk-megawifi.md), [firmware.md](firmware.md).

@@ -29,7 +29,7 @@ flowchart TD
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
   weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`: video maps, **contract v6**
   (MAME-tested and measured; flashed with the matching dev relay 2026-11-02, cart checks below).
-- **The cart** runs 0.4.5 in progress (video maps, contract v6, built at `6ee5fce`, CRC32 `3657E534`, flashed 2026-11-02; runways solid, centrelines dashed)
+- **The cart** runs 0.4.5 in progress (video maps, contract v6, built at `7d1fc2a`, CRC32 `A3365486`, flashed 2026-11-02; solid runways, dashed centrelines, lines across rings, setup GUIDE)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
