@@ -235,15 +235,25 @@ static void map_px(s16 x, s16 y)
     mark(t);
 }
 
-u16 scope_map_line(s16 x0, s16 y0, s16 x1, s16 y1)
+static void map_px_in(s16 x, s16 y)
+{
+    if (x >= 0 && y >= 0 && x < CELLS * 8 && y < CELLS * 8) map_px(x, y);
+}
+
+u16 scope_map_line(s16 x0, s16 y0, s16 x1, s16 y1, enum map_style style)
 {
     s16 dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x0 < x1 ? 1 : -1;
     s16 dy = y1 > y0 ? y0 - y1 : y1 - y0, sy = y0 < y1 ? 1 : -1;
     s16 err = dx + dy;
-    u16 n = 0;
+    bool steep = -dy > dx;                          /* thick: the second pixel goes across the line */
+    u16 n = 0, dash = 0;
 
     for (;;) {                                      /* Bresenham, all octants */
-        if (x0 >= 0 && y0 >= 0 && x0 < CELLS * 8 && y0 < CELLS * 8) map_px(x0, y0);
+        if (style != MAP_DASHED || dash < MAP_DASH_ON) {
+            map_px_in(x0, y0);
+            if (style == MAP_THICK) map_px_in(x0 + steep, y0 + !steep);
+        }
+        if (++dash == MAP_DASH_ON + MAP_DASH_OFF) dash = 0;
         n++;
         if (x0 == x1 && y0 == y1) return n;
         s16 e2 = err * 2;

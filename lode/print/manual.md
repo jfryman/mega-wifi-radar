@@ -1,6 +1,6 @@
 # Instruction manual (`print/manual.typ`, `print/manual/*.typ`)
 
-20 pages at 121×171 mm, laid out like a 1989 Sega manual: white pages, a black heading bar with a red
+24 pages at 121×171 mm (20 until the Video Map section, 0.4.5), laid out like a 1989 Sega manual: white pages, a black heading bar with a red
 rule, the page number in a small black box, and red numbered discs for callouts. All the text is our own.
 
 ```mermaid
@@ -19,20 +19,21 @@ flowchart LR
 | 6–7 | controls | pad drawing + 5 keys (A: cockpit from the details), six-button note (X theme, Y cockpit, Z weather); range steps + `zoom` shot (page 7) |
 | 8 | relay | what the relay is, docker command, same-release rule, URL rules, optional flyover feed (→ docs/flyover.md), adsb.fi fair use |
 | 9–10 | setup | `setup` shot + 7 keys (THEME ... AMBIENT incl. WEATHER, MAP, AIRPORT, WI-FI, RELAY, CONTROLS, RESET, SAVE), `keyboard` shot, persistence, airport count |
-| 11–12 | scope | `radar` shot (with the recorded storm) + 7 keys (traffic list, theme/tags/data + IEM), Weather and Runways paragraphs, tag colours table, stale/drop (page 12 has ~3 lines spare) |
-| 13 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
-| 14 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
-| 15 | notices | `notice` shot (75%, the box open, callouts staggered into its empty space) + 4 keys, chime + cockpit line |
-| 16 | themes | Classic + STARS shots |
-| 17 | themes | "More looks": 3-column grid of the other seven (`theme-*` shots), caption each, tag-colour line |
-| 18 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
-| 19 | credits | credits grid (incl. ELEVATION, WEATHER), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
-| 20 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
+| 11–12 | scope | `radar` shot (with the recorded storm) + 7 keys (traffic list, theme/tags/data + IEM), Weather paragraph, a Runways pointer to the Video Map section, tag colours table, stale/drop (page 12 has ~3 lines spare) |
+| 13–14 | map | `map` shot (10 nm, callouts runway / centreline / tick / 10 nm end) + 4 keys; "Reading an approach": 300 ft a mile table, a Typst side-view glidepath diagram, wind, wide ranges (page 14 half empty) |
+| 15 | details | `popup` shot + 5 keys (callsign, aircraft, altitude, movement, position), A → cockpit |
+| 16 | cockpit | `cockpit` shot (70%) + 5 keys (view, aircraft, instruments, from home, credit; callouts 3-4 in the HUD's blank spots), "what you're seeing" note |
+| 17 | notices | `notice` shot (75%, the box open, callouts staggered into its empty space) + 4 keys, chime + cockpit line |
+| 18 | themes | Classic + STARS shots |
+| 19 | themes | "More looks": 3-column grid of the other seven (`theme-*` shots), caption each, tag-colour line |
+| 20 | troubleshooting | boot/panel messages table (incl. RELAY MISMATCH / RELAY VER?, NO TERRAIN / LOST THE AIRCRAFT), Wi-Fi sleep note |
+| 21 | credits | credits grid (incl. ELEVATION, WEATHER), the terrain sources' required attribution in 5.6 pt, version, URL, disclaimer |
+| 22–23 | — | Notes pages (padding to a multiple of 4) |
+| 24 | — | `back-art`: small scope, wordmark, URL + version, disclaimer |
 
 Every page is full: the details, cockpit, notices and troubleshooting pages have no spare lines (an extra line pushed
 each onto a new page, and the manual to 24 pages). Callouts on shots that touch the side panel sit at x 215 (the gap between the scope and the panel), so they
-don't cover panel text. Page 7 (controls) holds the range steps and Ambient mode. There is no Notes page any more:
-one more page of content pushes the manual to 24 pages. **The owner allows that** (2026-11-01): grow to 24 when a
+don't cover panel text. Page 7 (controls) holds the range steps and Ambient mode. Since the Video Map section it is 24 pages with two Notes pages, so two more pages of content fit before 28. **The owner allows that** (2026-11-01): grow to 24 when a
 feature needs the room (a screenshot, a section), rather than cutting useful text; don't grow it for one line.
 
 ## Building blocks (`print/manual/lib.typ`)

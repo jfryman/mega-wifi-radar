@@ -332,8 +332,8 @@ enum feed_err feed_map(u8 *buf, u16 size)
     if ((e = get(url, &t, NULL)) != FEED_OK) return e;
     if (t.c.len < AR_MAP_HDR || m->magic[0] != 'A' || m->magic[1] != 'M') return counted(FEED_ERR_FORMAT);
     if (m->ver != AR_VER) return counted(FEED_ERR_VERSION);
-    if (m->count > AR_MAP_MAX || t.c.len != AR_MAP_HDR + m->count * sizeof(struct ar_seg))
-        return counted(FEED_ERR_FORMAT);
+    u16 n = m->runways + m->centres + m->ticks;
+    if (n > AR_MAP_MAX || t.c.len != AR_MAP_HDR + n * sizeof(struct ar_seg)) return counted(FEED_ERR_FORMAT);
     return counted(FEED_OK);
 }
 

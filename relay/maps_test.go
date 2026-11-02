@@ -35,7 +35,7 @@ func TestMapBuild(t *testing.T) {
 	// 10 nm: 4 runways, 8 centrelines, 8 x 10 ticks less the far ones off the disc (the airport is off-centre).
 	m := buildMap(bnaLat, bnaLon, 10)
 	inDisc(m)
-	if len(m.segs) < 4+8+64 || len(m.segs) > 4+8+80 || m.flags != 0 {
+	if len(m.segs) < 4+8+64 || len(m.segs) > 4+8+80 || m.flags != 0 || m.n != [3]int{4, 8, len(m.segs) - 12} {
 		t.Errorf("10 nm: %d segments (flags %#x), want 76-92", len(m.segs), m.flags)
 	}
 	// A centreline runs 10 nm out: at 10 nm range from the airport near the centre, it nearly reaches the rim.
@@ -86,7 +86,8 @@ func TestMapHandler(t *testing.T) {
 		bnaLat, bnaLon, frameVer), nil))
 	b := rec.Body.Bytes()
 	if rec.Code != 200 || len(b) < mapHdr || string(b[:2]) != "AM" || b[2] != frameVer ||
-		len(b) != mapHdr+4*int(binary.BigEndian.Uint16(b[4:])) || binary.BigEndian.Uint16(b[6:]) != 10 {
+		len(b) != mapHdr+4*(int(b[6])+int(b[7])+int(b[8])) || binary.BigEndian.Uint16(b[4:]) != 10 ||
+		b[6] != 4 || b[7] != 8 {
 		t.Errorf("status %d, % x", rec.Code, b[:min(len(b), 16)])
 	}
 }

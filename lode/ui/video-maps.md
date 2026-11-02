@@ -1,8 +1,8 @@
 # Video maps (`src/vmap.c`, `scope.c`, `radar.c`; relay `maps.go`, `runways.csv`)
 
-Faint lines on the scope like a TRACON's video map: the **runways** of every known airport in view, and, at ranges
-≤ 25 nm, the **home airport's extended centrelines** (10 nm from each threshold, a tick every mile; every 5 nm at
-25 nm). Setup MAP ON/OFF (default ON). Owner's decisions 2026-11-02: runways + centrelines only (rivers, roads,
+Faint lines on the scope like a TRACON's video map: the **runways** of every known airport in view (solid, 2 px), and, at ranges
+≤ 25 nm, the **home airport's extended centrelines** (dashed, 10 nm from each threshold, a tick every mile; every 5 nm
+at 25 nm). Setup MAP ON/OFF (default ON). Owner's decisions 2026-11-02: runways + centrelines only (rivers, roads,
 airspace later), their own colour, centrelines off at 50/100 nm, shipped alone as contract v6.
 
 ```mermaid
@@ -25,8 +25,9 @@ flowchart LR
   ticks are dropped. No segments → `AR_M_NONE`.
 - KBNA: 5 nm 42 segments, 10 nm 82 (4 runways, 8 centrelines, 70 ticks: far ones fall off the disc), 25 nm 28, 50/100
   nm 4 (no other airport from the list within 100 nm).
-- `GET /v1/map?lat=&lon=&range=&v=6` → `ar_map` (8 B: "AM", ver, mflags, u16 count, u16 range_nm) + count × `ar_seg`
-  (4 B). No cache (it's cheap). `-pack-map OUT -lat -lon` writes `res/fake/maps.bin` ("FM", u16 n, per range u16 len +
+- `GET /v1/map?lat=&lon=&range=&v=6` → `ar_map` (10 B: "AM", ver, mflags, u16 range_nm, u8 runways, centres, ticks,
+  rsv) + that many `ar_seg` (4 B) in class order. The classes give the cart its line styles (the first v6 layout had
+  one u16 count; changed before release, so still v6). No cache (it's cheap). `-pack-map OUT -lat -lon` writes `res/fake/maps.bin` ("FM", u16 n, per range u16 len +
   body, padded even).
 
 ## Cart
@@ -39,6 +40,11 @@ flowchart LR
   can't be wiped by a rescale still pending in the V-Int (this fixed the same race for weather). The V-Int's rescale
   then clears fixed pixels (`scope_clear_dots`) and restarts the raster at segment 0.
 - V-Int, after `wx_rows`: whole lines until ≥ `MAP_PX_PER_FRAME` (96) pixels; a full 10 nm map takes ~10-20 frames.
+  Styles by index (`map_runways`, `map_centres` from the header): runways `MAP_THICK` (a second pixel across the line:
+  y + 1 for shallow lines, x + 1 for steep), centrelines `MAP_DASHED` (3 on, 3 off, `MAP_DASH_ON/OFF`), ticks plain.
+- **Why the styles** (owner, 2026-11-02): at 25 nm a runway is 5 px of one long line and read as part of its
+  centreline ("both runways are on the edges of the 10 nm ring"); STARS draws centrelines dashed and runways solid.
+  Everything is true scale: KBNA's runways come out within 15 ft of their published lengths.
   `req_mapclear` (MAP off, a replaced map): `scope_clear_dots()` and every track's dots redrawn (`dirty = 2`).
 
 ## Fixed pixels (`scope.c`, [sweep.md](sweep.md))
@@ -67,7 +73,7 @@ V-Int average 157-164 of 262 lines with the map, 161-174 without (the notice box
 noise); 0 late frames. The slow path over map tiles is not a problem at this density.
 
 ## Budget
-Cart start-up heap **8,467 B** (min 8,192): `map_buf` 648 B. The next RAM user must free some first (candidates:
+Cart start-up heap **8,463 B** (min 8,192): `map_buf` 650 B. The next RAM user must free some first (candidates:
 `popup_text`/`grid`/`label_cells`, 784 B each; the overlay has no spare: the radar is its larger user).
 
 Related: [weather.md](weather.md), [sweep.md](sweep.md), [radar-renderer.md](radar-renderer.md),

@@ -7,12 +7,14 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
-  * **radar:** a video map. The runways of the airports in view are drawn as faint lines, and out to 25 nm your
-    home airport's runways get extended centrelines (10 nm, a tick every mile) that arrivals line up on. The
+  * **radar:** a video map. The runways of the airports in view are drawn as short solid bars, to scale, and out to
+    25 nm your home airport's runways get dashed extended centrelines (10 nm, a tick every mile) that arrivals line
+    up on. The
     sweep passes over them, and over trail dots, without wiping them. MAP in setup turns it off.
   * **setup:** the MAP row; the settings now sit in blocks (scope, sound, airport, network).
   * **radar:** the sweep's afterglow is a step shorter (9 shades instead of 10), freeing a colour for the map.
   * **relay:** serves `/v1/map` from OurAirports runway data built in (`tools/runwaygen`).
+  * **manual:** a Video Map section: what the lines are, and how to read an approach (300 ft a mile).
 
 ## 0.4.4 (November 2, 2026)
 

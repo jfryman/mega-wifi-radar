@@ -129,11 +129,12 @@
 
 /* Video maps (lode/ui/video-maps.md): runways around home and the home airport's extended centrelines, as line
  * segments in scope pixels at the request's range. GET <relay> AR_MAP_PATH AR_MAP_QUERY (lat, lon as degrees;
- * range nm; AR_VER): struct ar_map, then count struct ar_seg (AR_MAP_HDR + 4 * count bytes, count <= AR_MAP_MAX). */
+ * range nm; AR_VER): struct ar_map, then runways + centres + ticks struct ar_seg in that order (AR_MAP_HDR + 4 * their
+ * sum bytes, the sum <= AR_MAP_MAX). The cart draws runways thick, centrelines dashed, ticks plain. */
 #define AR_MAP_PATH      "/v1/map"
 #define AR_MAP_QUERY     "?lat=%s&lon=%s&range=%u&v=%u"
 #define AR_MAP_MAX       160
-#define AR_MAP_HDR       8
+#define AR_MAP_HDR       10
 
 /* struct ar_map.mflags */
 #define AR_M_NONE        0x01   /* no known airport with runways in view: no segments */
@@ -252,8 +253,11 @@ struct ar_map {
     char magic[2];      /* "AM" */
     u8 ver;             /* AR_VER */
     u8 mflags;          /* AR_M_* */
-    u16 count;          /* segments that follow */
     u16 range_nm;       /* the range they were projected at */
+    u8 runways;         /* segments that follow: runways first ... */
+    u8 centres;         /* ... then extended centrelines ... */
+    u8 ticks;           /* ... then the centrelines' mile ticks */
+    u8 rsv;
 };
 
 /* One line, both ends in the scope's 208 px block (centre 104, 104; y down), clipped to the disc. */
@@ -276,7 +280,7 @@ _Static_assert(sizeof(((struct ar_notice *)0)->text) == 3 * AR_NOTICE_COLS, "ar_
 _Static_assert(sizeof(struct ar_wx) == AR_WX_SIZE, "ar_wx must be 190 bytes");
 _Static_assert(sizeof(((struct ar_wx *)0)->cells) == AR_WX_N * AR_WX_ROW, "ar_wx.cells is AR_WX_N rows");
 _Static_assert(AR_WX_ROW * 4 >= AR_WX_N, "a weather row holds AR_WX_N cells");
-_Static_assert(sizeof(struct ar_map) == AR_MAP_HDR, "ar_map must be 8 bytes");
+_Static_assert(sizeof(struct ar_map) == AR_MAP_HDR, "ar_map must be 10 bytes");
 _Static_assert(sizeof(struct ar_seg) == 4, "ar_seg must be 4 bytes");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
@@ -301,8 +305,8 @@ AR_AT(ar_notice, magic, 0); AR_AT(ar_notice, ver, 2); AR_AT(ar_notice, nflags, 3
 AR_AT(ar_notice, icao, 6); AR_AT(ar_notice, secs, 9); AR_AT(ar_notice, text, 10);
 AR_AT(ar_wx, magic, 0); AR_AT(ar_wx, ver, 2); AR_AT(ar_wx, wflags, 3); AR_AT(ar_wx, id, 4); AR_AT(ar_wx, range_nm, 6);
 AR_AT(ar_wx, cells, 8);
-AR_AT(ar_map, magic, 0); AR_AT(ar_map, ver, 2); AR_AT(ar_map, mflags, 3); AR_AT(ar_map, count, 4);
-AR_AT(ar_map, range_nm, 6);
+AR_AT(ar_map, magic, 0); AR_AT(ar_map, ver, 2); AR_AT(ar_map, mflags, 3); AR_AT(ar_map, range_nm, 4);
+AR_AT(ar_map, runways, 6); AR_AT(ar_map, centres, 7); AR_AT(ar_map, ticks, 8); AR_AT(ar_map, rsv, 9);
 AR_AT(ar_seg, x1, 0); AR_AT(ar_seg, y1, 1); AR_AT(ar_seg, x2, 2); AR_AT(ar_seg, y2, 3);
 #undef AR_AT
 

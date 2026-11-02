@@ -82,6 +82,7 @@ static volatile u32 wx_dirty;
 static u16 map_buf[(AR_MAP_HDR + AR_MAP_MAX * sizeof(struct ar_seg)) / 2];   /* the /v1/map body, fetched in place */
 #define map_segs    ((const struct ar_seg *)((const u8 *)map_buf + AR_MAP_HDR))
 static volatile u16 map_n, map_next;
+static u16 map_runways, map_centres;        /* the classes' ends in map_segs: runways, then centrelines, then ticks */
 static volatile u8 req_mapclear;
 static volatile s16 selected = -1;
 static volatile u8 req_rescale, req_theme, req_retag;
@@ -795,7 +796,8 @@ static void radar_vint(void)
     wx_rows();
     for (u16 px = 0; px < MAP_PX_PER_FRAME && map_next < map_n; map_next++) {
         const struct ar_seg *s = &map_segs[map_next];
-        px += scope_map_line(s->x1, s->y1, s->x2, s->y2);
+        enum map_style st = map_next < map_runways ? MAP_THICK : map_next < map_centres ? MAP_DASHED : MAP_PLAIN;
+        px += scope_map_line(s->x1, s->y1, s->x2, s->y2, st);
     }
     PROF(7);
 
@@ -996,10 +998,12 @@ u8 *radar_map_begin(u16 *size)
 void radar_map_end(bool ok)
 {
     const struct ar_map *m = (const struct ar_map *)map_buf;
-    u16 n = ok ? m->count : 0;
+    u16 n = ok ? m->runways + m->centres + m->ticks : 0;
 
     if (n > AR_MAP_MAX) n = AR_MAP_MAX;
     SYS_disableInts();
+    map_runways = ok ? m->runways : 0;
+    map_centres = map_runways + (ok ? m->centres : 0);
     map_next = 0;
     map_n = n;
     SYS_enableInts();

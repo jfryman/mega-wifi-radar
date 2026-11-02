@@ -34,10 +34,8 @@ clear. *WEATHER* in Setup, or *Z* on a six-button controller, turns it off.
 
 == Runways
 
-Faint lines show the runways of the airports in view, as on a controller's video map. Out to
-25 nm, your home airport's runways also get *extended centrelines*: the approach paths, 10 nm
-long, with a tick every mile (every 5 at 25 nm). Arrivals line up on them. *MAP* in Setup
-turns them off.
+Faint grey lines show the runways around you and the approach paths into your airport: see
+_The Video Map_.
 
 == Tag colours
 

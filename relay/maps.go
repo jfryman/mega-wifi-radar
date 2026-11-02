@@ -21,7 +21,7 @@ import (
 const (
 	mapPath   = "/v1/map"
 	mapMax    = 160 // AR_MAP_MAX
-	mapHdr    = 8   // AR_MAP_HDR
+	mapHdr    = 10  // AR_MAP_HDR
 	mNone     = 0x01
 	mapScope  = 104 // the scope's centre and radius in pixels
 	mapClipR  = 103 // segments are clipped to this radius
@@ -68,10 +68,18 @@ func parseRunways(s string) []runway {
 
 type seg struct{ x1, y1, x2, y2 uint8 }
 
+// Segment classes, in the order they're sent.
+const (
+	clsRunway = iota
+	clsCentre
+	clsTick
+)
+
 type vmap struct {
 	flags   uint8
 	rangeNM uint16
 	segs    []seg
+	n       [3]int // segments per class (segs holds them in class order)
 }
 
 func (m *vmap) encode() []byte {
@@ -79,8 +87,8 @@ func (m *vmap) encode() []byte {
 	copy(b, "AM")
 	b[2] = frameVer
 	b[3] = m.flags
-	binary.BigEndian.PutUint16(b[4:], uint16(len(m.segs)))
-	binary.BigEndian.PutUint16(b[6:], m.rangeNM)
+	binary.BigEndian.PutUint16(b[4:], m.rangeNM)
+	b[6], b[7], b[8] = byte(m.n[clsRunway]), byte(m.n[clsCentre]), byte(m.n[clsTick])
 	for _, s := range m.segs {
 		b = append(b, s.x1, s.y1, s.x2, s.y2)
 	}
@@ -124,16 +132,17 @@ func buildMap(lat, lon float64, rangeNM int) vmap {
 	m := vmap{rangeNM: uint16(rangeNM)}
 	scale := mapScope / float64(rangeNM)
 	toPx := func(p pt) pt { return pt{mapScope + p.x*scale, mapScope - p.y*scale} }
-	add := func(a, b pt, keepDot bool) {
+	add := func(a, b pt, cls int) { // classes must be added in order: runways, centrelines, ticks
 		a, b, ok := clipCircle(a, b)
 		if !ok || len(m.segs) >= mapMax {
 			return
 		}
 		s := seg{px8(a.x), px8(a.y), px8(b.x), px8(b.y)}
-		if s.x1 == s.x2 && s.y1 == s.y2 && !keepDot {
+		if s.x1 == s.x2 && s.y1 == s.y2 && cls != clsRunway { // a runway stays, as a dot
 			return
 		}
 		m.segs = append(m.segs, s)
+		m.n[cls]++
 	}
 
 	// The home airport: the nearest runway midpoint within mapHomeNM.
@@ -157,7 +166,7 @@ func buildMap(lat, lon float64, rangeNM int) vmap {
 	}
 	sort.SliceStable(inView, func(i, j int) bool { return inView[i].dist < inView[j].dist })
 	for _, r := range inView {
-		add(toPx(r.p1), toPx(r.p2), true)
+		add(toPx(r.p1), toPx(r.p2), clsRunway)
 	}
 	if rangeNM <= mapCentreMaxRange && home != "" {
 		tick := 1.0
@@ -177,7 +186,7 @@ func buildMap(lat, lon float64, rangeNM int) vmap {
 				}
 				u := pt{(thr.x - far.x) / l, (thr.y - far.y) / l}
 				out := pt{thr.x + u.x*mapCentreNM, thr.y + u.y*mapCentreNM}
-				add(toPx(thr), toPx(out), false)
+				add(toPx(thr), toPx(out), clsCentre)
 				for k := tick; k <= mapCentreNM; k += tick {
 					c := toPx(pt{thr.x + u.x*k, thr.y + u.y*k})
 					n := pt{u.y * mapTickPx, u.x * mapTickPx} // perpendicular in pixels (y down)
@@ -186,7 +195,7 @@ func buildMap(lat, lon float64, rangeNM int) vmap {
 			}
 		}
 		for _, t := range ticks { // after every centreline: if the cap bites, ticks go first
-			add(t[0], t[1], false)
+			add(t[0], t[1], clsTick)
 		}
 	}
 	if len(m.segs) == 0 {

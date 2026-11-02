@@ -219,7 +219,7 @@ func TestContractLayout(t *testing.T) {
 	wg := wxGrid{flags: 0x03, id: 0xC0DE, rangeNM: 0x0064}
 	wg.cells[0][0], wg.cells[1][5], wg.cells[25][25] = 3, 2, 1
 	encW := wg.encode()
-	vm := vmap{flags: 0x81, rangeNM: 0x0019, segs: []seg{{0x11, 0x22, 0x33, 0x44}}}
+	vm := vmap{flags: 0x81, rangeNM: 0x0019, segs: []seg{{0x11, 0x22, 0x33, 0x44}}, n: [3]int{1, 0, 0}}
 	encM := vm.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
@@ -322,8 +322,11 @@ func TestContractLayout(t *testing.T) {
 			"magic":    func(int) []byte { return []byte("AM") },
 			"ver":      func(n int) []byte { return be(frameVer, n) },
 			"mflags":   func(n int) []byte { return be(uint64(vm.flags), n) },
-			"count":    func(n int) []byte { return be(1, n) },
 			"range_nm": func(n int) []byte { return be(uint64(vm.rangeNM), n) },
+			"runways":  func(n int) []byte { return be(1, n) },
+			"centres":  func(n int) []byte { return be(0, n) },
+			"ticks":    func(n int) []byte { return be(0, n) },
+			"rsv":      func(n int) []byte { return be(0, n) },
 		},
 		"ar_seg": {
 			"x1": func(n int) []byte { return be(0x11, n) },
@@ -588,7 +591,7 @@ func TestContractHTTP(t *testing.T) {
 	rec = httptest.NewRecorder()
 	mapHandler().ServeHTTP(rec, httptest.NewRequest("GET", mapPath+fmt.Sprintf(cFormat(mq), "36.1245", "-86.6782", 10, ver), nil))
 	mb := rec.Body.Bytes()
-	if n := int(binary.BigEndian.Uint16(mb[4:])); rec.Code != 200 || string(mb[:2]) != "AM" || n == 0 ||
+	if n := int(mb[6]) + int(mb[7]) + int(mb[8]); rec.Code != 200 || string(mb[:2]) != "AM" || n == 0 ||
 		n > int(h.ints["AR_MAP_MAX"]) || len(mb) != int(h.ints["AR_MAP_HDR"])+4*n {
 		t.Errorf("map for the cart's query: status %d, %d bytes, % x", rec.Code, len(mb), mb[:8])
 	}
