@@ -32,7 +32,7 @@ flowchart TD
   the cart). **v0.5.0** (2026-11-02: panel tabs + the control
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
   cart). 0.5.1 is open in `CHANGELOG.md`.
-- **The cart** runs the 0.5.0 code ( contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02; the tag adds only the changelog date and lode)
+- **The cart** runs the 0.5.0 code (contract v7, built at `2b6d677`, CRC32 `4434F3F6`, flashed 2026-11-02; the tag adds only the changelog date and lode)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
