@@ -1,10 +1,12 @@
-## 0.6.1 (Unreleased)
+## 0.6.2 (Unreleased)
+
+## 0.6.1 (November 2, 2026)
 
 FEATURES:
 
   * **cockpit:** runways. Below 500 m (1,600 ft) above the ground, the view keeps one close-up scale all the way
     to the runway and through the rollout, and draws every runway of the big airports nearby: concrete grey by
-    day, lit after dusk. On final it comes up out of the horizon about a mile and a half out.
+    day, dark between rows of edge lights after dusk. On final it comes up out of the horizon about a mile and a half out.
   * **relay:** `-record` saves the live feed around a point, `-cut` trims a recording, and `-replay` (or
     `scripts/relay replay FILE`) serves one as if it were live, so the cartridge can fly a recorded arrival on
     demand. Two real KBNA arrivals ship in `relay/testdata/arrivals/`.
