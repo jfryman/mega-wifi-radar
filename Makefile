@@ -26,11 +26,13 @@ contract:
 	else echo "contract: go not found, skipping the relay <-> cartridge check (CI still runs it)" >&2; fi
 
 # Emulator feed from the recorded KBNA snapshots: frames, pop-up details, and a cockpit terrain patch
-# (real elevation: needs the network) with every aircraft's track (res/fake/, embedded by make sim).
+# (real elevation: needs the network) with every aircraft's track, and a recorded storm (KMCO, shown around
+# home) for the weather overlay (res/fake/, embedded by make sim).
 fake-feed:
 	cd relay && go run . -pack ../res/fake/kbna_seq.bin -lat 36.1245 -lon -86.6782 -range 25 testdata/kbna-seq/*.json \
 		&& go run . -pack-detail ../res/fake/kbna_detail.bin testdata/kbna-seq/*.json \
-		&& go run . -sky day -pack-cockpit ../res/fake/kbna_cockpit.bin -lat 36.1245 -lon -86.6782 -cell 750 testdata/kbna-seq/*.json
+		&& go run . -sky day -pack-cockpit ../res/fake/kbna_cockpit.bin -lat 36.1245 -lon -86.6782 -cell 750 testdata/kbna-seq/*.json \
+		&& go run . -pack-wx ../res/fake/wx.bin -wx-id 9544 -lat 28.4294 -lon -81.3090 -range 100 testdata/wx/kmco-100nm.png
 
 # After bumping AR_VER in src/arframe.h: record the new contract in relay/contract.lock.
 contract-lock:

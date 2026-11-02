@@ -18,7 +18,7 @@
   *B* to close it. *Hold C* to sort the list: nearest, A–Z, Z–A, lowest or highest altitude.]
 
 #note[Six-button controller][*X* switches to the next theme, and *Y* opens the cockpit view for the
-selected aircraft. *Z* isn't used yet. Everything works on the three-button controller; the Setup
+selected aircraft. *Z* turns the weather on and off. Everything works on the three-button controller; the Setup
 screen's *CONTROLS* page lists these buttons too.]
 
 == Range steps

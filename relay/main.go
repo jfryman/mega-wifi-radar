@@ -167,7 +167,7 @@ func writeBinary(w http.ResponseWriter, body []byte) {
 	w.Write(body)
 }
 
-func frameHandler(src *source, ns *notices) http.HandlerFunc {
+func frameHandler(src *source, ns *notices, wx *wxSource) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		if !versionOK(w, r) {
@@ -186,6 +186,9 @@ func frameHandler(src *source, ns *notices) http.HandlerFunc {
 		}
 		if ns.waiting(r) {
 			f.hflags |= hNotice
+		}
+		if wx.waiting(r) {
+			f.hflags |= hWx
 		}
 		body := f.encode()
 		writeBinary(w, body)
@@ -220,6 +223,10 @@ func main() {
 	noticeTTL := flag.Duration("notice-ttl", 30*time.Second, "how long a flyover notice waits for a cart")
 	lights := flag.String("lights", "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/2012-01-01/GoogleMapsCompatible_Level8",
 		"night-lights tile base (WMTS, /{z}/{row}/{col}.jpeg) for cockpit mode's city lights; empty: off")
+	wxURL := flag.String("wx", "https://mesonet.agron.iastate.edu", "Iowa Environmental Mesonet base URL for weather (NEXRAD n0q); empty: off")
+	recordWxOut := flag.String("record-wx", "", "save the weather picture for -lat/-lon/-range to this PNG and exit")
+	packWxOut := flag.String("pack-wx", "", "pack the weather picture given as argument (recorded at -lat/-lon/-range) into the emulator's weather file and exit")
+	wxPackID := flag.Uint("wx-id", 1, "weather id for -pack-wx")
 	sky := flag.String("sky", "real", "cockpit sky: real (the sun at the aircraft, now), day, golden, twilight or night")
 	envFlags(flag.CommandLine, serverEnv)
 	flag.Parse()
@@ -239,6 +246,21 @@ func main() {
 		return
 	}
 
+	if *recordWxOut != "" {
+		if err := recordWx(*recordWxOut, *wxURL, *lat, *lon, *rng); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *packWxOut != "" {
+		if flag.NArg() != 1 {
+			log.Fatal("-pack-wx needs one recorded PNG")
+		}
+		if err := packWx(*packWxOut, flag.Arg(0), *lat, *lon, *rng, uint16(*wxPackID)); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if *packDetail != "" {
 		if err := packDetails(*packDetail, flag.Args()); err != nil {
 			log.Fatal(err)
@@ -261,7 +283,9 @@ func main() {
 	mux := http.NewServeMux()
 	src := newSource(*upstream, *interval)
 	ns := newNotices(src, *noticeTTL)
-	mux.Handle("GET "+framePath, frameHandler(src, ns))
+	wx := newWx(*wxURL)
+	mux.Handle("GET "+framePath, frameHandler(src, ns, wx))
+	mux.Handle("GET "+wxPath, wxHandler(wx))
 	mux.Handle("GET "+noticePath, noticeHTTP(ns))
 	mux.Handle("GET "+detailPath, detailHandler(src))
 	mux.Handle("GET "+terrainPath, terrainHandler(src, el))
@@ -281,6 +305,9 @@ func main() {
 		go runMQTT(context.Background(), mq, ns.handle)
 	} else {
 		log.Printf("mqtt: off (no MQTT_BROKER_HOST): no flyover notices")
+	}
+	if wx == nil {
+		log.Printf("weather: off (no -wx)")
 	}
 	log.Printf("relay %s (contract v%d) listening on %s (upstream %s)", version, frameVer, *listen, *upstream)
 	log.Fatal(http.ListenAndServe(*listen, mux))
@@ -303,6 +330,7 @@ var serverEnv = map[string]string{
 	"notice-ttl":     "RELAY_NOTICE_TTL",
 	"sky":            "RELAY_SKY",
 	"lights":         "RELAY_LIGHTS",
+	"wx":             "RELAY_WX",
 }
 
 // envFlags sets flags from non-empty environment variables before Parse, so a command-line flag

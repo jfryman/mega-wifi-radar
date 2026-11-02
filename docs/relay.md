@@ -65,6 +65,7 @@ as the `atc-mqtt` service, so both can share one secret or config map.
 | `-dem` | `RELAY_DEM` | AWS Terrain Tiles | Terrarium elevation tile base URL, for cockpit mode |
 | `-lights` | `RELAY_LIGHTS` | NASA GIBS VIIRS City Lights 2012 | Night-lights tile base (WMTS, `/{z}/{row}/{col}.jpeg`): towns in cockpit mode, lit at night; empty turns it off |
 | `-sky` | `RELAY_SKY` | `real` | Cockpit sky: `real` follows the sun at the aircraft; `day`, `golden`, `twilight` or `night` fixes it (also for `-pack-cockpit`) |
+| `-wx` | `RELAY_WX` | `https://mesonet.agron.iastate.edu` | Weather on the scope: the Iowa Environmental Mesonet's NEXRAD composite (US only); empty turns it off |
 | `-convert FILE -o OUT -lat -lon -range` |  | | Convert a saved upstream JSON file into one frame, then exit |
 | `-pack OUT FILES...` |  | | Pack several JSON snapshots into a fake-feed file for the emulator build |
 | `-pack-detail OUT FILES...` |  | | Pack the details of every aircraft in the snapshots for the emulator build's pop-up |
@@ -187,3 +188,8 @@ this attribution ([details](https://github.com/tilezen/joerd/blob/master/docs/at
 > Kartverket; United Kingdom terrain data © Environment Agency copyright and/or database right 2015. All rights
 > reserved; United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S.
 > Geological Survey.
+
+The weather comes from NOAA's NEXRAD radars, composited by the [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/)
+(Iowa State University; free, no key). The relay checks for a new scan at most once a minute while a cart is
+polling and fetches one small picture per home point and range per scan (every 5 minutes); the cart credits
+it as `adsb.fi IEM` in the panel. It covers the contiguous US; elsewhere the scope stays clear.

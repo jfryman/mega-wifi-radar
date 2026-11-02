@@ -3,7 +3,8 @@
 
 /* The relay <-> cartridge contract (lode/architecture/contract.md): the compact traffic frame
  * (spec: lode/architecture/frame-format.md), the aircraft detail record, cockpit mode's terrain patch
- * and track (lode/ui/cockpit.md), flyover notices (lode/plans/flyover-notices.md), the HTTP requests, and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
+ * and track (lode/ui/cockpit.md), flyover notices (lode/ui/notices.md), weather (lode/ui/weather.md), the HTTP requests,
+ * and mDNS discovery. relay/contract_test.go parses this file and checks the relay against every AR_*
  * item here, so a change on either side that isn't mirrored fails CI. Keep each item on one line.
  * Any change here must bump AR_VER (relay/contract.lock enforces it; `make contract-lock` after).
  * A relay and a cart only talk at the same AR_VER: the relay answers others with
@@ -11,7 +12,7 @@
  * Big-endian, naturally aligned: read it in place from a word-aligned buffer. */
 #include <genesis.h>
 
-#define AR_VER          4
+#define AR_VER          5
 #define AR_REC_SIZE_V1  24
 #define AR_MAX_RECS     96
 #define AR_HDR_SIZE     16
@@ -26,6 +27,7 @@
 #define AR_H_TRUNCATED      0x01
 #define AR_H_UPSTREAM_ERR   0x02
 #define AR_H_NOTICE         0x04   /* a flyover notice newer than the request's n= is waiting: fetch AR_NOTICE_PATH */
+#define AR_H_WX             0x08   /* weather other than the request's w= is waiting: fetch AR_WX_PATH */
 
 /* struct ar_rec.flags */
 #define AR_F_GROUND     0x01
@@ -40,10 +42,10 @@
 #define AR_CAT_NONE     0xFF
 
 /* HTTP: GET <relay base URL> AR_FRAME_PATH AR_FRAME_QUERY (lat, lon as degrees; range nm; max records;
- * the id of the last flyover notice seen, 0 for none; AR_VER). The relay answers a request without v=AR_VER
- * with AR_HTTP_MISMATCH. */
+ * the id of the last flyover notice seen, 0 for none; the id of the weather held, 0 for none; AR_VER).
+ * The relay answers a request without v=AR_VER with AR_HTTP_MISMATCH. */
 #define AR_FRAME_PATH   "/v1/frame"
-#define AR_FRAME_QUERY  "?lat=%s&lon=%s&range=%u&max=%u&n=%u&v=%u"
+#define AR_FRAME_QUERY  "?lat=%s&lon=%s&range=%u&max=%u&n=%u&w=%u&v=%u"
 #define AR_HTTP_MISMATCH 409
 
 /* GET <relay> AR_DETAIL_PATH AR_DETAIL_QUERY (icao as 6 hex digits; AR_VER): one struct ar_detail.
@@ -109,6 +111,20 @@
 /* struct ar_notice.nflags */
 #define AR_N_ICAO        0x01   /* icao is the aircraft in the feed */
 #define AR_N_EMERG       0x02
+
+/* Weather (lode/ui/weather.md): precipitation from weather radar, sampled by the relay on the scope's cell grid.
+ * GET <relay> AR_WX_PATH AR_WX_QUERY (lat, lon as degrees; range nm; AR_VER): one struct ar_wx. Cell (col, row)
+ * is the scope's 8 x 8 px cell col + 1, row + 1 (the 208 px block at (8, 8)): its level is 0 none, 1 light
+ * (20-35 dBZ), 2 moderate (35-50), 3 heavy (50+), sampled at the request's range like the frame's positions. */
+#define AR_WX_PATH       "/v1/wx"
+#define AR_WX_QUERY      "?lat=%s&lon=%s&range=%u&v=%u"
+#define AR_WX_N          26     /* cells per side */
+#define AR_WX_ROW        7      /* bytes per row: AR_WX_N cells of 2 bits, padded */
+#define AR_WX_SIZE       190
+
+/* struct ar_wx.wflags */
+#define AR_W_NONE        0x01   /* no weather radar covers the home point: cells all 0 */
+#define AR_W_OLD         0x02   /* the newest scan the relay could get is over 15 minutes old */
 
 /* mDNS discovery (lode/net/discovery.md): legacy-unicast PTR query from AR_MDNS_SRC_PORT */
 #define AR_MDNS_SERVICE  "_mwradar._tcp.local"
@@ -209,6 +225,16 @@ struct ar_notice {
     char text[72];      /* 3 lines of AR_NOTICE_COLS, space padded, upper-case ASCII */
 };
 
+/* Weather cells for one home point and range. */
+struct ar_wx {
+    char magic[2];      /* "AW" */
+    u8 ver;             /* AR_VER */
+    u8 wflags;          /* AR_W_* */
+    u16 id;             /* the radar scan: its unix minute, low 16 bits, never 0; 0: no weather source */
+    u16 range_nm;       /* the range the cells were sampled at */
+    u8 cells[182];      /* AR_WX_N rows from the north, AR_WX_ROW bytes each; 4 cells a byte, west first, high bits first */
+};
+
 /* Layout is the wire format: any padding or reordering is a protocol break. */
 #define AR_AT(t, f, off) _Static_assert(__builtin_offsetof(struct t, f) == (off), #t "." #f)
 _Static_assert(sizeof(struct ar_hdr) == AR_HDR_SIZE, "ar_hdr must be 16 bytes");
@@ -218,6 +244,9 @@ _Static_assert(sizeof(struct ar_terrain) == AR_TERRAIN_HDR, "ar_terrain must be 
 _Static_assert(sizeof(struct ar_track) == AR_TRACK_SIZE, "ar_track must be 40 bytes");
 _Static_assert(sizeof(struct ar_notice) == AR_NOTICE_SIZE, "ar_notice must be 82 bytes");
 _Static_assert(sizeof(((struct ar_notice *)0)->text) == 3 * AR_NOTICE_COLS, "ar_notice.text is 3 lines");
+_Static_assert(sizeof(struct ar_wx) == AR_WX_SIZE, "ar_wx must be 190 bytes");
+_Static_assert(sizeof(((struct ar_wx *)0)->cells) == AR_WX_N * AR_WX_ROW, "ar_wx.cells is AR_WX_N rows");
+_Static_assert(AR_WX_ROW * 4 >= AR_WX_N, "a weather row holds AR_WX_N cells");
 _Static_assert(sizeof(((struct ar_terrain *)0)->key) == AR_KEY_LEN, "ar_terrain.key is AR_KEY_LEN");
 AR_AT(ar_hdr, magic, 0); AR_AT(ar_hdr, ver, 2); AR_AT(ar_hdr, count, 3);
 AR_AT(ar_hdr, rec_size, 4); AR_AT(ar_hdr, seq, 6); AR_AT(ar_hdr, time, 8);
@@ -239,6 +268,8 @@ AR_AT(ar_track, vz, 20); AR_AT(ar_track, heading, 22); AR_AT(ar_track, bank, 24)
 AR_AT(ar_track, alt, 26); AR_AT(ar_track, gs, 28); AR_AT(ar_track, vrate, 30); AR_AT(ar_track, cs, 32);
 AR_AT(ar_notice, magic, 0); AR_AT(ar_notice, ver, 2); AR_AT(ar_notice, nflags, 3); AR_AT(ar_notice, id, 4);
 AR_AT(ar_notice, icao, 6); AR_AT(ar_notice, secs, 9); AR_AT(ar_notice, text, 10);
+AR_AT(ar_wx, magic, 0); AR_AT(ar_wx, ver, 2); AR_AT(ar_wx, wflags, 3); AR_AT(ar_wx, id, 4); AR_AT(ar_wx, range_nm, 6);
+AR_AT(ar_wx, cells, 8);
 #undef AR_AT
 
 #endif

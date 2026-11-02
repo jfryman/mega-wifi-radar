@@ -10,6 +10,7 @@
 #define C_GLOW0     2       /* glow slots 2..11 (lode/ui/sweep.md) */
 #define GLOW_SLOTS  10
 #define C_TRAIL     12
+#define C_WX        13      /* weather stipple (lode/ui/weather.md): dim, below every text colour */
 /* PAL1: blips (1..4 = brightness levels, 5 = selection box, 6 = stale) */
 #define C_BLIP0     1
 #define C_SELECT    5

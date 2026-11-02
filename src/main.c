@@ -20,6 +20,7 @@
 #include "theme.h"
 #include "tlist.h"
 #include "traffic.h"
+#include "wx.h"
 
 #define HOLD_FRAMES     40      /* C held this long cycles the sort order */
 #define REPEAT_DELAY    16      /* up/down held: frames before auto-repeat, then one row per REPEAT_RATE */
@@ -121,6 +122,17 @@ static const char *source_name(u8 src)
     case AR_SRC_OPENSKY: return "OpenSky";
     }
     return "?";
+}
+
+/* The data credit: the traffic source, and IEM when its weather is on the scope (lode/ui/weather.md). */
+static void panel_credit(u8 src)
+{
+    char buf[PANEL_W + 1];
+    const char *s = source_name(src);
+
+    if (wx_shown() && strlen(s) + 4 <= PANEL_W) sprintf(buf, "%s IEM", s);
+    else strcpy(buf, s);
+    radar_panel(ROW_DATA2, buf);
 }
 
 /* "CLASSIC ALL": theme + tag mode */
@@ -253,6 +265,11 @@ static void handle_input(void)
         panel_modes();
         settings_changed();
     }
+    if (pressed & BUTTON_Z) {               /* weather on / off; also setup's WEATHER row */
+        settings.wx = settings.wx == WX_ON ? WX_OFF : WX_ON;
+        if (settings.wx == WX_OFF) wx_check();  /* clears it now; turned on, the next poll fetches it */
+        settings_changed();
+    }
     if (pressed & BUTTON_START) want_setup = TRUE;
 }
 
@@ -286,11 +303,12 @@ static void poll(void)
         net_ok = !(h->hflags & AR_H_UPSTREAM_ERR);
         if (net_ok) panel_net();
         else radar_panel(ROW_NET, "UPSTRM ERR");
-        radar_panel(ROW_DATA2, source_name(h->source));
         tlist_rebuild();
         popup_after_poll();
         notice_check();                     /* a flyover notice waiting? (lode/ui/notices.md) */
         alert_check();                      /* an emergency squawk: the box + a tone (alert.c) */
+        wx_check();                         /* new weather, or a zoom wiped it (lode/ui/weather.md) */
+        panel_credit(h->source);
         if (settings_save_due()) settings_save();   /* zoom, tags, theme or sort changed here */
     } else {
         net_ok = FALSE;
@@ -330,6 +348,7 @@ static void clock_tick(void)
 static void radar_up(void)
 {
     radar_init();
+    wx_reset();
     panel_static();
     radar_panel(ROW_NET, have_snap ? "NET OK" : "WAIT DATA");
     radar_start();

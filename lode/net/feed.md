@@ -62,5 +62,9 @@ Ordering, units, `GND` and stale flags match the relay's output.
   `AR_TERRAIN_SIZE`, magic `AT`, `n == AR_TN`, `ver == AR_VER`. `feed_track(icao, key, &t)`:
   `/v1/track?icao=&p=<key>&v=` into a 48-byte buffer, exactly `AR_TRACK_SIZE`, magic `AK`. Both count failures
   for the reconnect like the others. `feed_strip(key, x, y, w, h, buf)`: `/v1/strip` into `buf` (exactly `2·w·h`). The fake feed serves `res/fake/kbna_cockpit.bin`, the track played in real time.
+- **Weather** ([../ui/weather.md](../ui/weather.md)): frames carry `w=<wx_held>` and record `AR_H_WX`
+  (`feed_wx_waiting()`). `feed_wx(&w)`: `/v1/wx?lat&lon&range&v` into a 198-byte buffer, exactly `AR_WX_SIZE`, magic
+  `AW`; sets `wx_held` to its id and clears the flag. The fake feed picks the `res/fake/wx.bin` record for the current
+  range and never flags.
 
 Related: [net-layer.md](net-layer.md), [../relay/relay.md](../relay/relay.md).

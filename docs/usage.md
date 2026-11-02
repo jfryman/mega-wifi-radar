@@ -38,6 +38,7 @@ Use up/down to move between rows; each row lists its controls below.
 | THEME | left/right: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM |
 | RANGE | left/right: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | left/right: ALL / SELECTED / OFF |
+| WEATHER | left/right: ON / OFF. Rain and storms from NEXRAD radar behind the traffic, as stippled cells (light, moderate, heavy); US only, refreshed every 5 minutes and after a zoom |
 | SOUND | left/right: ON / OFF, the boot sounds and the flyover notice chime; switching it on plays the chime |
 | AMBIENT | left/right: OFF / AFTER 1, 5 or 15 MIN. Left alone that long, the radar tours flights by itself (details, then a 75 s cockpit ride, then a minute on the radar); the panel shows `NET OK AUTO`; any button takes over again |
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
@@ -70,7 +71,8 @@ ignores your network's search domain, and `.local` host names don't resolve (onl
 | hold C | sort the list: nearest, A-Z, Z-A, lowest altitude, highest altitude (remembered) |
 | left / right | tags: all, selected only, off |
 | X (6-button pad) | next theme |
-| Y (6-button pad) | cockpit view from the selected aircraft. X and Y are shortcuts: Z is unused, and everything works on a 3-button pad |
+| Y (6-button pad) | cockpit view from the selected aircraft |
+| Z (6-button pad) | weather on / off. X, Y and Z are shortcuts: everything works on a 3-button pad |
 | START | setup |
 
 **Detail pop-up:** covers the scope (which keeps running) with the selected aircraft's callsign and ICAO

@@ -89,9 +89,11 @@ void scope_init(const struct theme *t, u16 base)
     tick = 0;
     theme = NULL;
     VDP_loadTileData((const u32 *)tiles, vram_base, NTILES, DMA);
+    /* high priority: rings, sweep and trails draw over the weather, which is low-priority plane A
+     * (lode/ui/weather.md); tags (high-priority plane A) still win */
     for (u16 i = 0; i < CELLS * CELLS; i++) {
         cell_tile[i] = map[i];
-        VDP_setTileMapXY(BG_B, map[i] ? TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, vram_base + map[i] - 1) : 0,
+        VDP_setTileMapXY(BG_B, map[i] ? TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, vram_base + map[i] - 1) : 0,
                          SCOPE_X / 8 + i % CELLS, SCOPE_Y / 8 + i / CELLS);
     }
     scope_set_theme(t);

@@ -22,7 +22,15 @@
   The selected aircraft is highlighted and boxed on the scope. Emergencies are always at the top,
   in red. *v13 MORE* means there are more below: keep pressing *down*.]
 #key(7)[Theme, tags and data][The theme, the tag setting (*ALL*, *SEL*, *OFF*), and where the
-  traffic comes from.]
+  traffic comes from (*IEM* too while weather is shown).]
+
+== Weather
+
+Rain and storms from weather radar show behind the traffic as dotted cells, as on a real
+controller's scope: sparse dots for light rain, denser for moderate, nearly solid for heavy
+rain and thunderstorms. The picture is updated every five minutes and redrawn after every zoom.
+Tags and labels stay on top. It covers the United States (NEXRAD); elsewhere the scope stays
+clear. *WEATHER* in Setup, or *Z* on a six-button controller, turns it off.
 
 == Tag colours
 

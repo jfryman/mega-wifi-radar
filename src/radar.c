@@ -14,6 +14,8 @@
 #define PANEL_PER_FRAME  3
 #define POPUP_PER_FRAME  3       /* 28-cell rows: the pop-up fills in ~10 frames before it shows */
 #define C_OPAQUE         14      /* the scope's background in every palette of every theme: the pop-up's fill */
+#define WX_PER_FRAME     3       /* weather rows redrawn per frame */
+#define GAP              0x10    /* grid: a tag's gap column (empty on screen); the low nibble counts drawn cells */
 
 /* Blip tiles: 4 brightness levels (colour index 1..4) + stale; then the
  * 16x16 selection brackets (4 tiles, column-major). */
@@ -41,6 +43,19 @@ static const u32 lead_tiles[4][8] = {
     { 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000, 0x000F0000 },  /* vertical */
 };
 enum { LT_SLASH, LT_BACK, LT_DASH, LT_BAR };
+
+/* Weather stipple (lode/ui/weather.md), colour C_WX: light 25 %, moderate 50 %, heavy 75 % of the pixels. Periods
+ * of 2 and 4 pixels, so neighbouring cells join up. */
+#define WX_A 0xD000D000UL
+#define WX_B 0x00D000D0UL
+static const u32 wx_tiles[3][8] = {
+    { WX_A, WX_B, WX_A, WX_B, WX_A, WX_B, WX_A, WX_B },
+    { 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D },
+    { ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD, ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD,
+      ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD, ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD },
+};
+#undef WX_A
+#undef WX_B
 /* Directions, in the order they're tried: NE SE NW SW E W N S. The tag sits at (ltag) from the leader's last
  * cell, so the line meets its corner (diagonals) or its callsign row / first column. */
 #define L_DIRS  8
@@ -53,10 +68,14 @@ static const s8 ltag[L_DIRS][2] = {
 #define LEAD_DIR(l) ((l) & 7)
 #define LEAD_LEN(l) (((l) >> 3) & 3)
 
-static u16 t_blip, t_box, t_ofont, t_lead;
+static u16 t_blip, t_box, t_ofont, t_lead, t_wx;
 static u16 k_scale;
 static u8 grid[GRID_H][GRID_W];         /* tag/label occupancy per plane-A cell */
 static u8 label_cells[GRID_H][GRID_W];  /* permanent: ring labels + compass */
+/* Weather (lode/ui/weather.md): plane A cells without text show it, at low priority under the scope's plane B.
+ * Cells as struct ar_wx sends them; wx_dirty: rows (bit r = scope row r + 1) to redraw. */
+static u8 wx_cells[AR_WX_N * AR_WX_ROW];
+static volatile u32 wx_dirty;
 static volatile s16 selected = -1;
 static volatile u8 req_rescale, req_theme, req_retag;
 static volatile u16 rotations;
@@ -139,12 +158,60 @@ static void row_write(u16 plane_addr, u16 x, u16 y, const char *s, u16 n, u16 at
     }
 }
 
-static void row_clear(u16 plane_addr, u16 x, u16 y, u16 n)
+/* The plane A word for cell (x, y) without text: its weather tile, or blank. */
+static u16 wx_word(s16 x, s16 y)
+{
+    if (x < 1 || y < 1 || x > AR_WX_N || y > AR_WX_N) return 0;
+    u16 r = y - 1, c = x - 1;
+    u8 l = (wx_cells[(r << 3) - r + (c >> 2)] >> (6 - ((c & 3) << 1))) & 3;
+    return l ? TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, t_wx + l - 1) : 0;
+}
+
+/* Clear n plane A cells from (x, y): back to the weather under them. */
+static void row_clear(u16 x, u16 y, u16 n)
 {
     vu16 *data = (vu16 *)VDP_DATA_PORT;
 
-    *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(plane_addr + ((((y) << 6) + (x)) << 1)));
-    while (n--) *data = 0;
+    *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + ((((y) << 6) + (x)) << 1)));
+    while (n--) *data = wx_word(x++, y);
+}
+
+/* A tag row: as row_write, but spaces show the weather under them. */
+static void tag_row(u16 x, u16 y, const char *s, u16 n, u16 attr)
+{
+    vu16 *data = (vu16 *)VDP_DATA_PORT;
+    u16 base = attr + TILE_FONT_INDEX - 32;
+
+    *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + (((y << 6) + x) << 1)));
+    while (n--) {
+        u8 c = *s++;
+        *data = c > ' ' ? base + c : wx_word(x, y);
+        x++;
+    }
+}
+
+/* Redraw dirty weather rows, at most WX_PER_FRAME a frame; cells holding text (tags, leaders, labels, the notice
+ * box: the grid's low nibble) keep it. */
+static void wx_rows(void)
+{
+    vu16 *data = (vu16 *)VDP_DATA_PORT;
+    u16 done = 0;
+    u32 bit = 1;
+
+    for (u16 y = 1; y <= AR_WX_N && done < WX_PER_FRAME && wx_dirty; y++, bit <<= 1) {
+        if (!(wx_dirty & bit)) continue;
+        wx_dirty &= ~bit;
+        bool addr = TRUE;
+        for (u16 x = 1; x <= AR_WX_N; x++) {
+            if (grid[y][x] & (GAP - 1)) { addr = TRUE; continue; }
+            if (addr) {
+                *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + (((y << 6) + x) << 1)));
+                addr = FALSE;
+            }
+            *data = wx_word(x, y);
+        }
+        done++;
+    }
 }
 
 /* The notice box's cells at an animation step (0: none). */
@@ -170,6 +237,13 @@ static void grid_mark(s16 x, s16 y, s16 w, s16 dv)
 {
     for (s16 i = 0; i < w; i++)
         if (x + i >= 0 && x + i < GRID_W && y >= 0 && y < GRID_H) grid[y][x + i] += dv;
+}
+
+/* A tag's cells, and its gap column (counted as GAP: empty on screen, so weather still shows there). */
+static void tag_mark(s16 x, s16 y, s16 dv)
+{
+    grid_mark(x, y, TAG_W, dv);
+    grid_mark(x + TAG_W, y, 1, dv * GAP);
 }
 
 /* A tag's span includes a gap column on its right. A label directly left of it would
@@ -200,14 +274,14 @@ static void clear_tag(struct track *t, bool ungrid)
 {
     if (t->tag_x < 0) return;
     for (s16 r = 0; r < 2; r++) {
-        row_clear(VDP_BG_A, t->tag_x, t->tag_y + r, TAG_W);
-        if (ungrid) grid_mark(t->tag_x, t->tag_y + r, TAG_SPAN, -1);
+        row_clear(t->tag_x, t->tag_y + r, TAG_W);
+        if (ungrid) tag_mark(t->tag_x, t->tag_y + r, -1);
     }
     if (t->lead & LEAD_ON) {
         for (u16 k = 0; k < LEAD_LEN(t->lead); k++) {
             s16 x, y;
             lead_cell(t, k, &x, &y);
-            row_clear(VDP_BG_A, x, y, 1);
+            row_clear(x, y, 1);
             if (ungrid) grid_mark(x, y, 1, -1);
         }
         t->lead &= ~LEAD_ON;                /* direction and length stay: tried first next time */
@@ -261,10 +335,10 @@ static void put_tag(struct track *t, s16 x, s16 y, bool right)
     u16 attr = TILE_ATTR(t->tag_pal, TRUE, FALSE, FALSE), pad = 0;
     if (right)
         while (pad < TAG_W - 1 && t->tag[0][TAG_W - 1 - pad] == ' ' && t->tag[1][TAG_W - 1 - pad] == ' ') pad++;
-    row_write(VDP_BG_A, x + pad, y, t->tag[0], TAG_W - pad, attr);
-    row_write(VDP_BG_A, x + pad, y + 1, t->tag[1], TAG_W - pad, attr);
-    grid_mark(x, y, TAG_SPAN, 1);
-    grid_mark(x, y + 1, TAG_SPAN, 1);
+    tag_row(x + pad, y, t->tag[0], TAG_W - pad, attr);
+    tag_row(x + pad, y + 1, t->tag[1], TAG_W - pad, attr);
+    tag_mark(x, y, 1);
+    tag_mark(x, y + 1, 1);
     t->tag_x = x;
     t->tag_y = y;
 }
@@ -352,7 +426,7 @@ static void clear_labels(void)
     for (u16 y = 0; y < GRID_H; y++)
         for (u16 x = 0; x < GRID_W; x++)
             if (label_cells[y][x]) {
-                VDP_clearTextEx(BG_A, 0, x, y, 1, CPU);
+                row_clear(x, y, 1);
                 grid[y][x] -= label_cells[y][x];
                 label_cells[y][x] = 0;
             }
@@ -398,7 +472,7 @@ static void box_rows(u16 r0, u16 r1)
         s16 cy = uy + r;
         *(vu32 *)VDP_CTRL_PORT = VDP_WRITE_VRAM_ADDR((u32)(VDP_BG_A + (((cy << 6) + ux) << 1)));
         for (s16 cx = ux; cx < ux + uw; cx++) {
-            if (!w || cx < x || cx >= x + w || cy < y || cy >= y + h) { *data = 0; continue; }
+            if (!w || cx < x || cx >= x + w || cy < y || cy >= y + h) { *data = wx_word(cx, cy); continue; }
             u16 k = (cy == y ? 0 : cy == y + h - 1 ? 6 : 3) + (cx == x ? 0 : cx == x + w - 1 ? 2 : 1);
             *data = TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, t_frame + k);
         }
@@ -629,6 +703,8 @@ static void radar_vint(void)
         scope_clear_dots();
         clear_labels();
         memset(grid, 0, sizeof(grid));
+        memset(wx_cells, 0, sizeof(wx_cells));  /* sampled at the old range: wx.c fetches the new one */
+        wx_dirty = (1UL << AR_WX_N) - 1;
         draw_labels();
         if (box_cur) {                          /* the labels went over the notice box: draw it again */
             box_occupy(1);
@@ -701,6 +777,7 @@ static void radar_vint(void)
     panel();
     popup_rows();
     box_tick();
+    wx_rows();
     PROF(7);
 
     /* scanlines spent in this handler: V-Int fires at line 224; the V counter
@@ -759,12 +836,16 @@ void radar_init(void)
     VDP_loadTileData((const u32 *)frame_tiles, t_frame, 9, DMA);
     t_lead = t_frame + 9;
     VDP_loadTileData((const u32 *)lead_tiles, t_lead, 4, DMA);
+    t_wx = t_lead + 4;
+    VDP_loadTileData((const u32 *)wx_tiles, t_wx, 3, DMA);
 
     memset(tracks, 0, TR_MAX * sizeof(struct track));
     memset((void *)tr_state, 0, sizeof(tr_state));
     for (u16 i = 0; i < TR_MAX; i++) tracks[i].tag_x = tracks[i].tag_y = -1;
     memset(grid, 0, sizeof(grid));
     memset(label_cells, 0, sizeof(label_cells));
+    memset(wx_cells, 0, sizeof(wx_cells));
+    wx_dirty = 0;
     memset(panel_text, 0, sizeof(panel_text));
     memset(panel_pal, 0, sizeof(panel_pal));
     panel_dirty = 0;
@@ -870,3 +951,12 @@ void radar_box_close(bool now)
 }
 
 bool radar_box_up(void) { return box_cur || box_target; }
+
+void radar_wx(const u8 *cells)
+{
+    SYS_disableInts();
+    if (cells) memcpy(wx_cells, cells, sizeof(wx_cells));
+    else memset(wx_cells, 0, sizeof(wx_cells));
+    wx_dirty = (1UL << AR_WX_N) - 1;
+    SYS_enableInts();
+}

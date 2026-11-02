@@ -8,6 +8,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | THEME | L/R: CLASSIC, STARS, AMBER, NIGHT, MARINE, ICE, POCKET, SUNSET, ERAM ([screen-layout.md](screen-layout.md)) |
 | RANGE | L/R: 5 / 10 / 25 / 50 / 100 nm |
 | TAGS | L/R: ALL / SELECTED / OFF |
+| WEATHER | L/R: ON / OFF, the weather overlay ([weather.md](weather.md)); Z on the radar too |
 | SOUND | L/R: ON / OFF, the boot sound ([boot-sound.md](boot-sound.md)) and the flyover notice chime ([notices.md](notices.md)); switching to ON plays the chime (`ui_pad` ticks it) |
 | AMBIENT | L/R: OFF / AFTER 1, 5, 15 MIN ([ambient.md](ambient.md)) |
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
@@ -32,19 +33,21 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
   `sort`, loaded as NEAREST) and `"MWR1"` (0.3.x, `struct saved_v1`: no `sound` either, loaded ON). New fields
   start zeroed (`memset` before the copy), so **0 must be every new field's default**. `_Static_assert`s keep the
   old fields first and unchanged.
-- **Spare bytes:** the record had 7; `ambient` took the first, `rsv[6]` are left, saved as 0 and not validated.
+- **Spare bytes:** the record had 7; `ambient` took the first, `wx` the second (0 = ON), `rsv[5]` are left, saved as 0 and not validated.
   The next small setting takes one (0 = its default) without a new magic; older builds keep them as they found
   them. A field whose 0 can't be the
   default, or more than 7 bytes, still needs `MWR4` and a migration.
-- **Saving from the radar:** zoom (A/B), tags (◀▶), theme (X) and the sort order (hold C) call
+- **Saving from the radar:** zoom (A/B), tags (◀▶), theme (X), weather (Z) and the sort order (hold C) call
   `settings_changed()`; the radar's `poll()` writes the record when `settings_save_due()` (dirty, and 30 s since
   the last radar save), right after the frame and notice requests: a blocking flash write in the poll's blocking
   slot, never from the input handler. A failed write isn't retried until the next change.
 - `src/airports.c` is generated: `cd tools && go run ./airportgen -o ../src/airports.c` (OurAirports, public domain).
-- Layout: title on row 1; `row_y[]`: the settings double-spaced (THEME 3 ... AMBIENT 11, AIRPORT 13 with its name on
-  14, WI-FI 16, RELAY 18), then the four actions as a single-spaced block (CONTROLS 21, RESET 22, SAVE & EXIT 23,
-  EXIT 24); status on row 25, one hint line on row 26 (`L/R CHANGE  A EDIT  C JUMP  START SAVE`). The screen is
-  full again: another row means tightening the settings' spacing.
+- Layout: title on row 1; `row_y[]`: the settings double-spaced (THEME 3, RANGE 5, TAGS 7, WEATHER 9, SOUND 11,
+  AMBIENT 13, AIRPORT 15 with its name on 16), WI-FI 18 + RELAY 19 as a pair, then the four actions as a
+  single-spaced block (CONTROLS 21, RESET 22, SAVE & EXIT 23, EXIT 24); status on row 25, one hint line on row 26
+  (`L/R CHANGE  A EDIT  C JUMP  START SAVE`). The screen is full: another row means tightening the settings'
+  spacing. `print/shots.txt`'s `keyboard` shot counts Downs to RELAY (8) and the manual's setup callouts follow the rows.
+- CONTROLS page: the radar block includes Z (WEATHER ON/OFF); the last line sits on row 25.
 - SGDK quirks: `strncpy` doesn't zero-pad. `sprintf` left-justifies (`%-8s`, `%-*s` work: panel, pop-up); don't
   rely on `%.Ns` precision.
 
@@ -64,7 +67,8 @@ struct settings {               /* src/settings.h; saved as "MWR3" + struct + ch
     u8 sound;                   /* SOUND_ON / SOUND_OFF (was CHIME: same byte, same values) */
     u8 sort;                    /* traffic list order (enum sort_mode); MWR3 on */
     u8 ambient;                 /* enum ambient_mode: 0 OFF (ambient.md) */
-    u8 rsv[6];                  /* spare, 0 */
+    u8 wx;                      /* enum wx_mode: 0 ON (weather.md) */
+    u8 rsv[5];                  /* spare, 0 */
 };
 ```
 

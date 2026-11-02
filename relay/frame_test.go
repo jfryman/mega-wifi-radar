@@ -162,7 +162,7 @@ func TestHTTP(t *testing.T) {
 	}))
 	defer up.Close()
 	src := newSource(up.URL, 50*time.Millisecond)
-	relay := httptest.NewServer(frameHandler(src, nil))
+	relay := httptest.NewServer(frameHandler(src, nil, nil))
 	defer relay.Close()
 
 	resp, err := http.Get(relay.URL + "/v1/frame?lat=36.1245&lon=-86.6782&range=25&max=200&v=" + strconv.Itoa(frameVer))

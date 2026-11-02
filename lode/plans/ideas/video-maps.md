@@ -28,8 +28,8 @@ flowchart LR
   x east, y north), clipped to the largest range (100 nm), at most N segments (e.g. 128 × 8 B = 1 KB).
   Different layers get a class byte so the cart can colour or hide them.
 - **Cart** rasterises with Bresenham into the scope's RAM tiles at radar start and on every zoom (main loop,
-  then a full-scope upload like a theme change), in a new PAL0 colour `C_MAP` (13 if weather doesn't take it; else
-  share it).
+  then a full-scope upload like a theme change), needing a colour: PAL0 13 is weather now (`C_WX`), so share the ring colour
+  or move to a free PAL1-3 entry.
 - **The sweep problem.** Sweep pixel lists exclude ring pixels at build time, and drawing ORs glow nibbles into
   pixels known to be 0 ([../../ui/sweep.md](../../ui/sweep.md)). Map pixels change with home and range, so they can't be
   excluded at build time. Options:
@@ -41,7 +41,7 @@ flowchart LR
   3. Plane A unique tiles per map cell: conflicts with tags and labels cell by cell; no.
 - **Toggle:** MAP OFF / RWY / ALL in setup (a spare byte of the MWR3 record, [../../ui/config-screen.md](../../ui/config-screen.md)).
 
-## Contract (v5 or later)
+## Contract (v6 or later)
 ```c
 #define AR_MAP_PATH   "/v1/map"
 #define AR_MAP_QUERY  "?lat=%s&lon=%s&v=%u"
@@ -68,4 +68,4 @@ counts per class).
 - [ ] Setup toggle; manual Scope page shows a map; `make sim` shot.
 - [ ] On the cart: arrivals visibly ride the centrelines.
 
-Related: [summary.md](summary.md), [weather-overlay.md](weather-overlay.md), [../../ui/radar-renderer.md](../../ui/radar-renderer.md).
+Related: [summary.md](summary.md), [../../ui/weather.md](../../ui/weather.md), [../../ui/radar-renderer.md](../../ui/radar-renderer.md).

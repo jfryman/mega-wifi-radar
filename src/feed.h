@@ -47,6 +47,12 @@ enum feed_err feed_strip(const char *key, s16 x, s16 y, u16 w, u16 h, u8 *buf);
 bool feed_notice_waiting(void);
 enum feed_err feed_notice(const struct ar_notice **n);
 
+/* Weather (lode/ui/weather.md). Frames say when the relay's weather differs from the last one fetched (sent as
+ * w=); feed_wx() fetches the cells for the home point at the current range (blocking, one small GET). On
+ * FEED_OK, *w is valid until the next call. */
+bool feed_wx_waiting(void);
+enum feed_err feed_wx(const struct ar_wx **w);
+
 /* The relay in use (lode/net/discovery.md): settings.relay if one is typed in, else AUTO, found
  * over mDNS. feed_find_relay() picks it (blocking: up to ~3 s in AUTO): FEED_OK, FEED_ERR_CONFIG
  * (none found) or FEED_ERR_VERSION (found one at another contract version). */

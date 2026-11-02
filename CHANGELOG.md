@@ -1,5 +1,15 @@
 ## 0.4.4 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **radar:** weather. Rain and storms from NOAA's NEXRAD radars show behind the traffic as dotted cells, the
+    way a STARS scope draws them: sparse for light rain, denser for moderate, nearly solid for heavy. New every
+    five minutes and after each zoom; tags, rings and the sweep stay on top. US only (Iowa Environmental Mesonet's
+    composite); the panel credits `IEM`. WEATHER in setup or Z on a six-button pad turns it off.
+  * **setup:** the WEATHER row; WI-FI and RELAY now sit together.
+  * **relay:** serves `/v1/wx` (`-wx` / `RELAY_WX`; empty turns weather off). Contract v5: this release's cart
+    needs this release's relay.
+
 ## 0.4.3 (November 1, 2026)
 
 IMPROVEMENTS:

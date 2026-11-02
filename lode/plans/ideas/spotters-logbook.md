@@ -46,7 +46,7 @@ flowchart LR
  B BACK
 ```
 
-## Contract (v5 or later)
+## Contract (v6 or later)
 ```c
 #define AR_LOG_PATH   "/v1/log"
 #define AR_LOG_QUERY  "?lat=%s&lon=%s&v=%u"

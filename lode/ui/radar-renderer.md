@@ -13,7 +13,7 @@ flowchart LR
   subgraph vint[V-Int, every frame]
     U[V-Blank: CPU-copy dirty tiles + sprite DMA + glow palette] --> A[scope_advance]
     A --> X[apply tracks whose bearing == sweep step]
-    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows] --> Q[<= 3 pop-up rows]
+    X --> D[<= 2 tag redraws] --> S[build sprite table] --> T[<= 3 panel rows] --> Q[<= 3 pop-up rows] --> B[notice box] --> W[<= 3 weather rows]
   end
   I -. tr_state / tr_brg / track.next .-> X
 ```
@@ -31,10 +31,13 @@ flowchart LR
   it only advances the sweep and returns. Otherwise active-display DMA (~18 B/line) keeps it late forever.
 - Ground traffic is untagged in ALL mode (select to see). Tags keep a 1-cell gap (`TAG_SPAN`) on their right,
   and `grid_free` also refuses a spot with a label cell directly to its left (a compass `S` next to `017` read as `5017`).
+- **Plane A blanks are weather:** every clear of a tag, leader, label or box cell writes the cell's weather word
+  (`row_clear`, `wx_word`), and a tag's spaces show it too (`tag_row`). `grid`'s low nibble counts drawn cells; a
+  tag's gap column counts `GAP` (0x10), so it blocks placement but isn't text ([weather.md](weather.md)).
 - Ring labels + compass: `label_cells` is the only record of which plane-A cells hold label text.
   `clear_labels()` erases those cells and their `grid` counts, and must run **before** anything zeroes
   `label_cells` or `grid`. Rescale order: clear tags, `scope_clear_dots`, `clear_labels`, zero `grid`,
-  `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
+  wipe the weather (it was sampled at the old range; all rows dirty), `draw_labels`. Zeroing first left a wider old label's digits on screen (5 nm read `1 20 35 40 50`).
 - `radar_stop()` (setup screen) removes the callback; come back with `radar_init()` + `radar_start()`
   (the track table is cleared and refilled by the next poll).
 - `radar_init()` owns the whole VDP layout it needs: plane size, window, and **all four scroll values zeroed**.

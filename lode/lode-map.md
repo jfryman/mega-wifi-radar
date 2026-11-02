@@ -17,7 +17,7 @@
   - [feed.md](net/feed.md) - feed_fetch() interface, relay + fake implementations, relay URL resolution
   - [reconnect.md](net/reconnect.md) - mid-session recovery: why a vanished host desyncs the link, module reset, back-off
 - relay/
-  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles, sky, city lights), /v1/notice, version check, conversion, caching, discovery, env config, MQTT client + dev broker
+  - [relay.md](relay/relay.md) - Go relay: /v1/frame, /v1/detail, /v1/terrain + /v1/track (elevation tiles, sky, city lights), /v1/notice, /v1/wx, version check, conversion, caching, discovery, env config, MQTT client + dev broker
 - ui/
   - [screen-layout.md](ui/screen-layout.md) - regions, layers, scaling, behaviour, controls, themes
   - [sweep.md](ui/sweep.md) - thin-line sweep with palette afterglow: budget, mechanism, generated data
@@ -30,6 +30,7 @@
   - [config-screen.md](ui/config-screen.md) - setup screen, keyboard, settings persistence (MWR3, spare bytes, migration, saves from the radar), airports
   - [notices.md](ui/notices.md) - flyover notices + the emergency alert: n= flag + /v1/notice, radar box (plane A, grows open), cockpit ticker, FM chime (KBNA egg), Z80-bus lesson
   - [ambient.md](ui/ambient.md) - ambient mode: idle tours (details → cockpit ride → radar), picking, swallowed exit press, AMBIENT setting
+  - [weather.md](ui/weather.md) - weather overlay: IEM NEXRAD via /v1/wx, palette → dBZ, cell sampling, plane A low priority under the scope, w= + AR_H_WX, WEATHER/Z
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots; README images
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
@@ -38,14 +39,13 @@
 - architecture/
   - [data-path-options.md](architecture/data-path-options.md) - relay vs firmware
   - [contract.md](architecture/contract.md) - relay <-> cart contract: arframe.h source of truth, contract_test.go, contract.lock, lock-step versions
-  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v4): header, record, flags, transport, versioning
+  - [frame-format.md](architecture/frame-format.md) - compact binary frame (contract v5): header, record, flags, transport, versioning
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
   - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
   - ideas/ - goals backlog, not scheduled
     - [summary.md](plans/ideas/summary.md) - index: size, contract impact, dependencies, suggested order, shared constraints; STARS type line
-    - [weather-overlay.md](plans/ideas/weather-overlay.md) - NEXRAD cells on plane A under tags, /v1/wx
     - [video-maps.md](plans/ideas/video-maps.md) - runways + centrelines on plane B, /v1/map, sweep slow path
     - [spotters-logbook.md](plans/ideas/spotters-logbook.md) - daily stats + rare types, relay persistence, /v1/log
 - tmp/ - git-ignored scratch

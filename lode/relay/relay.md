@@ -27,22 +27,22 @@ flowchart LR
 
 ## Contract
 - **Version:** `version` (the release, `-ldflags -X main.version`; `VERSION` build arg from CI's semver tag or
-  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 4). Every route but `/healthz` needs
-  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v4: use the relay and cartridge
+  `git describe` in `scripts/relay build`) and `frameVer` (= `AR_VER`, 5). Every route but `/healthz` needs
+  `v=frameVer`; anything else → `409` (`httpMismatch`) with *"relay vX speaks v5: use the relay and cartridge
   from the same release"*, logged with both versions. The start-up log names both.
-- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&v=4`. `range` is clamped to 1–250 (the adsb.fi
+- `GET /v1/frame?lat=<deg>&lon=<deg>&range=<nm>&max=<n>&n=<notice id>&w=<weather id>&v=5`. `range` is clamped to 1–250 (the adsb.fi
   limit) and `max` to 1–96. Missing or invalid `lat`/`lon` → `400`.
 - `200`, `application/octet-stream`, **explicit `Content-Length`**. Go's `net/http` would otherwise
   switch to chunked encoding for bodies over its 2 KiB buffer, and a full frame is 2,320 B.
 - Upstream failure with a cached frame → that frame with `hflags |= UPSTREAM_ERR`. With no cached frame → `502`.
-- `GET /v1/detail?icao=<6 hex>&v=4` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
+- `GET /v1/detail?icao=<6 hex>&v=5` → one `ar_detail` (96 B, `detail.go`): from `source.last` (the newest upstream
   snapshot, any query) if it's < 30 s old and has the aircraft, else `/api/v2/hex/<icao>` through the same
   1 req/s limiter (`aircraft(ctx, hex, maxAge)`; a hex answer becomes `source.last` when there's no area snapshot). Unknown aircraft → a record without `AR_D_FOUND` (still 200). Strings are space padded ASCII;
   other bytes become `?` (`padASCII`, shared with callsigns).
-- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=4` → a 32,872 B terrain patch
+- Cockpit mode ([../ui/cockpit.md](../ui/cockpit.md)): `GET /v1/terrain?icao=&v=5` → a 32,872 B terrain patch
   centred on the aircraft (`terrain.go`, elevation from `dem.go`; flat with `AR_T_FLAT` if the tiles can't be
   fetched; 404 if the aircraft isn't in the feed; centred 3 s ahead of the aircraft), `GET /v1/track?icao=&p=<patch
-  key>&n=&v=4` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=4`
+  key>&n=&v=5` → a 40 B `ar_track` placed in that patch's grid (`track.go`), and `GET /v1/strip?p=<key>&x=&y=&w=&h=&v=5`
   → more cells of that grid (`stripHandler`; 502 without elevation). Terrain and track look the aircraft up with a
   1.5 s snapshot age; strips need no aircraft. Flag
   `-dem <url>` sets the Terrarium tile base (default AWS Terrain Tiles; the relay needs HTTPS out to it).
@@ -50,9 +50,15 @@ flowchart LR
   [../ui/cockpit.md](../ui/cockpit.md)); `-sky` fixes a phase. Cells under city lights get the urban colour
   (`lights.go`, NASA GIBS tiles); `-lights ""` turns that off.
 - Flyover notices ([../ui/notices.md](../ui/notices.md)): `n=` on frame and track → `hNotice` / `kNotice` when
-  `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=4` → one
+  `notices.waiting` (a live notice newer than n; missing n= never waits). `GET /v1/notice?after=<id>&v=5` → one
   82 B `ar_notice` (`noticeHTTP`, `notice.encode`): the oldest live one newer than id, or the zero notice (id 0).
   The ring exists even without MQTT (then always empty); the frame cache holds no flag (set per request on a copy).
+- Weather ([../ui/weather.md](../ui/weather.md), `wx.go`): `w=` on frames → `hWx` when it isn't the newest IEM
+  NEXRAD scan's id (checked ≤ 1/min in the background; missing w= never waits). `GET /v1/wx?lat=&lon=&range=&v=5` →
+  a 190 B `ar_wx`: 26×26 levels sampled from IEM's WMS picture (palette → dBZ, `wxpal.go`), cached per place, range
+  and scan; `wNone` outside CONUS, `wOld` when serving a scan > 15 min old after a failed fetch; 502 with nothing.
+  `-wx ""` turns it off. `-record-wx OUT -lat -lon -range` saves a picture; `-pack-wx OUT -wx-id N -lat -lon -range
+  PNG` writes the emulator's `res/fake/wx.bin`.
 - `GET /healthz` → `ok`.
 - `-pack-detail OUT FILES...` writes the emulator's detail pack (`"FD"`, u16 count, records; `make fake-feed`).
 - `-pack-cockpit OUT -lat -lon -cell M FILES...` writes the emulator's cockpit pack (`"FC"`, a terrain patch, then
@@ -75,6 +81,7 @@ empty variables count as unset. For containers and the planned cluster deploymen
 | `-dem` | `RELAY_DEM` | `-mqtt-clear` | `MQTT_CLEAR` |
 | `-notice-ttl` (30 s) | `RELAY_NOTICE_TTL` | `-mqtt-client-id` (`mwradar-relay-<8 hex>`) | `MQTT_CLIENT_ID` |
 | `-sky` (`real`) | `RELAY_SKY` | `-lights` (NASA GIBS) | `RELAY_LIGHTS` |
+| `-wx` (IEM, empty = off) | `RELAY_WX` | | |
 
 - The MQTT names are **atc-mqtt's own** (`MQTT_BROKER_HOST/PORT/USERNAME/PASSWORD`), so one secret serves both.
 - `MQTT_PASSWORD` is **env only**: a flag would show in `ps`. `scripts/relay` passes variables as `-e NAME` (names
@@ -186,7 +193,7 @@ resolve: discovery returns an IP. The ESP32's own DHCP hostname is fixed at `Meg
 
 ```sh
 scripts/relay start            # container (-mdns=false) + host dns-sd/avahi advertisement
-dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=4 path=/v1/frame
+dns-sd -L "MegaWiFi Radar" _mwradar._tcp local   # -> mwradar-relay.local.:8080 v=5 path=/v1/frame
 cd relay && go test ./...      # includes mdns_test.go (the cart's exact query)
 ```
 
@@ -198,6 +205,9 @@ AWS Terrain Tiles (Mapzen Terrarium, AWS Open Data): free, no key. Its attributi
 Austria, Canada, EU-DEM, ETOPO1, Mexico INEGI, LINZ, Kartverket, UK EA, USGS 3DEP/GMTED2010/SRTM), "in a place
 reasonable to the medium". Credited: the cockpit HUD (`ELEVATION DATA: AWS TERRAIN TILES`), the full list in the
 manual's credits (small print), `docs/relay.md` "Data terms", and the README.
+Iowa Environmental Mesonet (NEXRAD n0q composite, Iowa State University): free, no key; ≤ 1 metadata check a
+minute and one small WMS picture per place, range and 5-minute scan. Credited on the cart's panel (`adsb.fi IEM`),
+in the manual (WEATHER) and `docs/relay.md`.
 NASA GIBS (VIIRS City Lights 2012, NASA Earth Observatory / NOAA NGDC): free, no key; GIBS asks for an
 acknowledgement. Credited in the manual (CITY LIGHTS) and `docs/relay.md`; the HUD's credit row has no room.
 

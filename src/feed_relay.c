@@ -1,4 +1,5 @@
-/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&n&v, /v1/detail?icao&v, /v1/notice?after&v, and
+/* Feed from the relay: GET <relay>/v1/frame?lat&lon&range&max&n&w&v, /v1/detail?icao&v, /v1/notice?after&v,
+ * /v1/wx?lat&lon&range&v, and
  * cockpit mode's /v1/terrain?icao&v, /v1/track?icao&p&n&v and /v1/strip?p&x&y&w&h&v over MegaWiFi.
  * Contract: lode/relay/relay.md, format: lode/architecture/frame-format.md. */
 #include "feed.h"
@@ -41,6 +42,10 @@ static char relay_url[RELAY_LEN + 1];   /* base URL in use: typed, or found over
 /* Flyover notices: the last id seen (sent as n=; 0 = none yet) and whether the relay says a newer one waits. */
 static u16 notice_seen;
 static bool notice_flag;
+
+/* Weather: the id of the last one fetched (sent as w=; 0 = none) and whether the relay has another. */
+static u16 wx_held;
+static bool wx_flag;
 
 /* Reconnect policy (lode/net/reconnect.md) */
 #define BACKOFF_MIN     15              /* seconds between reconnect attempts, doubling */
@@ -99,9 +104,9 @@ static bool build_url(char *url, u16 size)
     }
     fmt_deg_e4(lat, settings.lat_e4);
     fmt_deg_e4(lon, settings.lon_e4);
-    /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96&n=65535&v=4" (<= 68) */
+    /* base (<= RELAY_LEN) + "/v1/frame?lat=-90.0000&lon=-180.0000&range=100&max=96&n=65535&w=65535&v=5" (<= 76) */
     sprintf(url, "%s" AR_FRAME_PATH AR_FRAME_QUERY, relay_url,
-            lat, lon, settings_range_nm(), AR_MAX_RECS, notice_seen, AR_VER);
+            lat, lon, settings_range_nm(), AR_MAX_RECS, notice_seen, wx_held, AR_VER);
     return TRUE;
 }
 
@@ -159,7 +164,7 @@ static enum feed_err counted(enum feed_err e)
 
 enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
 {
-    static char url[RELAY_LEN + 72];
+    static char url[RELAY_LEN + 80];
     struct collect_to t = { { 0, FALSE }, (u8 *)frame_buf, sizeof(frame_buf) };
     enum feed_err e;
 
@@ -169,6 +174,7 @@ enum feed_err feed_fetch(const struct ar_hdr **hdr, struct feed_stats *st)
     if ((e = counted(check((const struct ar_hdr *)frame_buf, t.c.len))) != FEED_OK) return e;
     *hdr = (const struct ar_hdr *)frame_buf;
     notice_flag = (*hdr)->hflags & AR_H_NOTICE;
+    wx_flag = (*hdr)->hflags & AR_H_WX;
     return FEED_OK;
 }
 
@@ -282,6 +288,31 @@ enum feed_err feed_notice(const struct ar_notice **n)
     if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
     if (r->id) notice_seen = r->id;
     *n = r;
+    return counted(FEED_OK);
+}
+
+bool feed_wx_waiting(void) { return wx_flag; }
+
+enum feed_err feed_wx(const struct ar_wx **w)
+{
+    static char url[RELAY_LEN + 64];
+    static u16 buf[AR_WX_SIZE / 2 + 4];             /* + room to spot an oversized body */
+    struct collect_to t = { { 0, FALSE }, (u8 *)buf, sizeof(buf) };
+    const struct ar_wx *r = (const struct ar_wx *)buf;
+    char lat[12], lon[12];
+    enum feed_err e;
+
+    if (!relay_url[0]) return FEED_ERR_CONFIG;
+    fmt_deg_e4(lat, settings.lat_e4);
+    fmt_deg_e4(lon, settings.lon_e4);
+    /* base (<= RELAY_LEN) + "/v1/wx?lat=-90.0000&lon=-180.0000&range=100&v=5" (<= 48) */
+    sprintf(url, "%s" AR_WX_PATH AR_WX_QUERY, relay_url, lat, lon, settings_range_nm(), AR_VER);
+    if ((e = get(url, &t, NULL)) != FEED_OK) return e;
+    if (t.c.len != AR_WX_SIZE || r->magic[0] != 'A' || r->magic[1] != 'W') return counted(FEED_ERR_FORMAT);
+    if (r->ver != AR_VER) return counted(FEED_ERR_VERSION);
+    wx_held = r->id;
+    wx_flag = FALSE;
+    *w = r;
     return counted(FEED_OK);
 }
 

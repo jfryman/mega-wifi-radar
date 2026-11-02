@@ -90,7 +90,8 @@ cd print/shots && montage radar.png stars.png theme-amber.png theme-night.png th
     theme-pocket.png theme-sunset.png theme-eram.png -tile 3x -geometry 320x224+3+3 -background '#202020' \
     -filter point ../../docs/img/themes.png
 ```
-When a feature changes what's on screen, refresh its README image with the manual shot, and give a new feature a
+Since the weather overlay, every radar shot shows the sim's recorded storm (`res/fake/wx.bin`); `emergency-alert`
+and `ambient` predate it. When a feature changes what's on screen, refresh its README image with the manual shot, and give a new feature a
 line in the README's "What it does" (the README fell two releases behind once).
 
 ## Typst lessons

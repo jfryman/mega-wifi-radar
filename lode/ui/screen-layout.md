@@ -31,15 +31,16 @@ row 27  ·· overscan margin ·········│···············
 - **Side panel:** cols 28–38 (x 224–311), rows 1–26, on the **window** plane. From the top: airport,
   range, UTC time (SNTP), aircraft count, network state (`NET OK` / `STALE 12s` / `ERR HTTP` / `RELAY VER?`),
   then the [traffic list](traffic-list.md) (header, 15 rows, "more" row), a rule, theme + tag mode, and
-  **`Data: adsb.fi`**, which is required and always visible. Each row has its own text palette.
+  **`Data: adsb.fi`**, which is required and always visible (`adsb.fi IEM` while weather is shown). Each row has its own text palette.
 - **Detail pop-up:** window cols 0–27 over the scope while it's open ([detail-popup.md](detail-popup.md)).
 - **Flyover notice box:** plane A, rows 11–17 × cols 1–26 over the scope's centre, grows open for 15 s when a notice arrives; tags move around it ([notices.md](notices.md)).
 
 ## Layers
 | Layer | Contents | Notes |
 |---|---|---|
-| Plane B | scope disc: rings/ticks + **thin-line sweep** with afterglow | 568 unique tiles, RAM copy, see [sweep.md](sweep.md) |
-| Plane A | data tags (tile-aligned text), ring labels, compass; the flyover notice box | trail dots are on plane B |
+| Plane A (high) | data tags (tile-aligned text), ring labels, compass; the flyover notice box | trail dots are on plane B |
+| Plane B (high) | scope disc: rings/ticks + **thin-line sweep** with afterglow | 568 unique tiles, RAM copy, see [sweep.md](sweep.md) |
+| Plane A (low) | weather stipple in the cells without text ([weather.md](weather.md)) | under the scope's lines, over its background |
 | Window | side panel; the detail pop-up over cols 0–27 while open | fixed: the scope never scrolls |
 | Sprites | one 8×8 blip per aircraft (4 brightness tiles), selection box, emergency marker | ≤ 80 total, ≤ 20 per line |
 
@@ -66,7 +67,8 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
   | A (pop-up open) | cockpit mode for that aircraft ([cockpit.md](cockpit.md)); B there goes back |
   | C hold (40 frames) | next sort order: NEAREST, A-Z, Z-A, LOW ALT, HIGH ALT |
   | X (6-button) | next theme; a shortcut only |
-  | Y (6-button) | cockpit mode for the selected aircraft (the first in the list if none); a shortcut only (Z unused) |
+  | Y (6-button) | cockpit mode for the selected aircraft (the first in the list if none); a shortcut only |
+  | Z (6-button) | weather on / off (setup's WEATHER row); a shortcut only |
   | START | setup |
 
   A 3-button pad must reach everything: 6-button buttons only duplicate setup options or pop-up actions. There is no pan:
@@ -75,8 +77,9 @@ That's one `MULS` (16×16 → 32) per axis, with no software maths. Ranges: **5 
 ```mermaid
 flowchart TB
   SP[Sprites: blips, selection box, emergency marker] --> A
-  A[Plane A: data tags + ring/compass labels] --> B
-  B[Plane B: scope disc, sweep, trail dots]
+  A[Plane A high: data tags + ring/compass labels] --> B
+  B[Plane B high: scope disc, sweep, trail dots] --> WX
+  WX[Plane A low: weather cells]
   W[Window: side panel + detail pop-up, fixed]
 ```
 
@@ -105,7 +108,7 @@ struct theme { const char *name; u16 pal[4][16]; u16 glow[GLOW_SLOTS]; bool swee
 
 Palette contract (`theme.h`), the same for every theme:
 - PAL0: 0 background (also the backdrop), 1 rings, 2-11 glow slots (written at runtime from `glow`, newest first;
-  the last step should approach the background), 12 trails, 15 white-ish text (high band + the panel).
+  the last step should approach the background), 12 trails, 13 weather (`C_WX`, dim), 15 white-ish text (high band + the panel).
 - PAL1: 1-4 blip brightness levels (all equal without `blip_fade`), 5 selection box, 6 stale; 15 low-band text.
 - PAL2: 15 mid-band text (and the selected list row). PAL3: 1-4 emergency blips, 15 emergency text.
 - **Index 14 of every palette = the scope's background**: the opaque font and box borders fill with it

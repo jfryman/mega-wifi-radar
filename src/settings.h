@@ -13,6 +13,7 @@ extern const u16 range_steps[RANGE_COUNT];      /* 5, 10, 25, 50, 100 nm */
 enum tag_mode { TAGS_ALL, TAGS_SELECTED, TAGS_OFF, TAGS_MODES };
 enum sound_mode { SOUND_ON, SOUND_OFF, SOUND_MODES };     /* boot sound + the flyover chime */
 enum ambient_mode { AMBIENT_OFF, AMBIENT_1, AMBIENT_5, AMBIENT_15, AMBIENT_MODES };   /* idle minutes (ambient.c) */
+enum wx_mode { WX_ON, WX_OFF, WX_MODES };      /* the weather overlay (wx.c) */
 
 struct settings {
     u8 theme;                   /* enum THEME_* (theme.h) */
@@ -24,7 +25,8 @@ struct settings {
     u8 sound;                   /* SOUND_ON / SOUND_OFF (was CHIME: same byte, same values) */
     u8 sort;                    /* traffic list order (enum sort_mode, tlist.h); MWR3 on */
     u8 ambient;                 /* enum ambient_mode (ambient.h); the first spare byte, 0 = OFF */
-    u8 rsv[6];                  /* spare, 0 until a later build gives one a meaning (and 0 its default) */
+    u8 wx;                      /* enum wx_mode; the second spare byte, 0 = ON */
+    u8 rsv[5];                  /* spare, 0 until a later build gives one a meaning (and 0 its default) */
 };
 
 extern struct settings settings;

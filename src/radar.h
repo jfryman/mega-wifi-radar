@@ -31,6 +31,9 @@ void radar_box_open(const char *text, const u8 pal[4]);
 void radar_box_pal(u16 row, u16 pal);   /* recolour one text row (the headline's blink) */
 void radar_box_close(bool now);
 bool radar_box_up(void);                /* drawn at all (opening, open or closing) */
+/* Weather (lode/ui/weather.md): AR_WX_N rows of AR_WX_ROW bytes as struct ar_wx sends them, or NULL for none.
+ * Drawn a few rows a frame under the tags; a zoom wipes it (it was sampled at the old range). */
+void radar_wx(const u8 *cells);
 void radar_rescale(void);       /* range changed: rescale trails, tags, labels */
 void radar_retheme(void);       /* settings.theme changed */
 void radar_retag(void);         /* tag mode or selection changed */

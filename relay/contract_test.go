@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -111,6 +112,7 @@ var relayInts = map[string]int64{
 	"AR_TRACK_SIZE": trackSize, "AR_K_FOUND": kFound, "AR_K_GROUND": kGround, "AR_K_EMERG": kEmerg,
 	"AR_K_ALT_UNK": kAltUnk, "AR_STRIP_CELLS": stripCells, "AR_K_NOTICE": kNotice,
 	"AR_NOTICE_SIZE": noticeSize, "AR_NOTICE_COLS": noticeCols, "AR_N_ICAO": nICAO, "AR_N_EMERG": nEmerg,
+	"AR_H_WX": hWx, "AR_WX_N": wxN, "AR_WX_ROW": wxRow, "AR_WX_SIZE": wxSize, "AR_W_NONE": wNone, "AR_W_OLD": wOld,
 }
 
 // Items checked by their own tests below, or reserved values the relay never emits.
@@ -131,6 +133,8 @@ var checkedElsewhere = map[string]string{
 	"AR_STRIP_QUERY":   "TestContractHTTP",
 	"AR_NOTICE_PATH":   "TestContractHTTP",
 	"AR_NOTICE_QUERY":  "TestContractHTTP",
+	"AR_WX_PATH":       "TestContractHTTP",
+	"AR_WX_QUERY":      "TestContractHTTP",
 	"AR_MDNS_SERVICE":  "TestContractDiscovery",
 	"AR_MDNS_QUERY_ID": "TestContractDiscovery",
 	"AR_MDNS_SRC_PORT": "TestContractDiscovery",
@@ -209,6 +213,9 @@ func TestContractLayout(t *testing.T) {
 		padASCII(nt.lines[i][:], l)
 	}
 	encN := nt.encode()
+	wg := wxGrid{flags: 0x03, id: 0xC0DE, rangeNM: 0x0064}
+	wg.cells[0][0], wg.cells[1][5], wg.cells[25][25] = 3, 2, 1
+	encW := wg.encode()
 
 	// What the cartridge must read at each C field (big-endian, the field's C size).
 	want := map[string]map[string]func(size int) []byte{
@@ -306,13 +313,31 @@ func TestContractLayout(t *testing.T) {
 				return append(append(append([]byte{}, nt.lines[0][:]...), nt.lines[1][:]...), nt.lines[2][:]...)
 			},
 		},
+		"ar_wx": {
+			"magic":    func(int) []byte { return []byte("AW") },
+			"ver":      func(n int) []byte { return be(frameVer, n) },
+			"wflags":   func(n int) []byte { return be(uint64(wg.flags), n) },
+			"id":       func(n int) []byte { return be(uint64(wg.id), n) },
+			"range_nm": func(n int) []byte { return be(uint64(wg.rangeNM), n) },
+			"cells": func(n int) []byte { // rows of AR_WX_ROW bytes, 4 cells a byte, high bits first
+				b := make([]byte, n)
+				row := int(h.ints["AR_WX_ROW"])
+				for r := range wg.cells {
+					for c, l := range wg.cells[r] {
+						b[r*row+c/4] |= l << (6 - 2*(c%4))
+					}
+				}
+				return b
+			},
+		},
 	}
 	encs := map[string][]byte{"ar_hdr": enc, "ar_rec": enc, "ar_detail": encD, "ar_terrain": encT, "ar_track": encK,
-		"ar_notice": encN}
-	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0}
+		"ar_notice": encN, "ar_wx": encW}
+	base := map[string]int{"ar_hdr": 0, "ar_rec": hdrSize, "ar_detail": 0, "ar_terrain": 0, "ar_track": 0, "ar_notice": 0, "ar_wx": 0}
 	size := map[string]int{"ar_hdr": int(h.ints["AR_HDR_SIZE"]), "ar_rec": int(h.ints["AR_REC_SIZE_V1"]),
 		"ar_detail": int(h.ints["AR_DETAIL_SIZE"]), "ar_terrain": int(h.ints["AR_TERRAIN_HDR"]),
-		"ar_track": int(h.ints["AR_TRACK_SIZE"]), "ar_notice": int(h.ints["AR_NOTICE_SIZE"])}
+		"ar_track": int(h.ints["AR_TRACK_SIZE"]), "ar_notice": int(h.ints["AR_NOTICE_SIZE"]),
+		"ar_wx": int(h.ints["AR_WX_SIZE"])}
 	// The maps follow the terrain header: heights, then colours.
 	if len(encT) != terrainSize || encT[terrainHdr] != p.height[0] || encT[terrainHdr+tn*tn] != p.colour[0] {
 		t.Errorf("terrain body: %d bytes, height[0] %#x, colour[0] %#x", len(encT), encT[terrainHdr], encT[terrainHdr+tn*tn])
@@ -382,10 +407,10 @@ func TestContractHTTP(t *testing.T) {
 	}
 	// Build the queries exactly as the cart does (sprintf with the AR_*_QUERY formats), then serve them.
 	format := h.strs["AR_FRAME_QUERY"]
-	if strings.Count(format, "%") != 6 {
-		t.Fatalf("AR_FRAME_QUERY %q: expected lat, lon, range, max, notice id, version", format)
+	if strings.Count(format, "%") != 7 {
+		t.Fatalf("AR_FRAME_QUERY %q: expected lat, lon, range, max, notice id, weather id, version", format)
 	}
-	q := fmt.Sprintf(cFormat(format), "36.1245", "-86.6782", 50, 40, 0, ver)
+	q := fmt.Sprintf(cFormat(format), "36.1245", "-86.6782", 50, 40, 0, 0, ver)
 	req := httptest.NewRequest("GET", framePath+q, nil)
 	got, err := parseQuery(req)
 	if err != nil {
@@ -398,7 +423,7 @@ func TestContractHTTP(t *testing.T) {
 		t.Errorf("relay refuses the cart's version in %q", q)
 	}
 	old := httptest.NewRecorder()
-	if versionOK(old, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format), "1", "1", 5, 5, 0, ver+1), nil)) ||
+	if versionOK(old, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format), "1", "1", 5, 5, 0, 0, ver+1), nil)) ||
 		old.Code != int(h.ints["AR_HTTP_MISMATCH"]) {
 		t.Errorf("a cart at another version gets %d, want AR_HTTP_MISMATCH", old.Code)
 	}
@@ -478,8 +503,8 @@ func TestContractHTTP(t *testing.T) {
 	for _, seen := range []uint16{0, nt.id - 1, nt.id} {
 		want := seen != nt.id
 		rec = httptest.NewRecorder()
-		frameHandler(src, ns).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
-			"36.2", "-86.7", 5, 5, seen, ver), nil))
+		frameHandler(src, ns, nil).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
+			"36.2", "-86.7", 5, 5, seen, 0, ver), nil))
 		if b := rec.Body.Bytes(); rec.Code != 200 || len(b) < hdrSize || (b[15]&byte(h.ints["AR_H_NOTICE"]) != 0) != want {
 			t.Errorf("frame with n=%d: status %d, hflags %#x, want notice %v", seen, rec.Code, b[15], want)
 		}
@@ -499,6 +524,36 @@ func TestContractHTTP(t *testing.T) {
 		if rec.Code != 200 || len(b) != int(h.ints["AR_NOTICE_SIZE"]) || string(b[:2]) != "AN" ||
 			binary.BigEndian.Uint16(b[4:]) != wantID {
 			t.Errorf("notice after %d: status %d, % x, want id %#x", seen, rec.Code, b, wantID)
+		}
+	}
+
+	// Weather: the cart's weather query returns AR_WX_SIZE bytes with the scan's id; its frame query with
+	// w=0 carries AR_H_WX, with w=<that id> it doesn't.
+	if h.strs["AR_WX_PATH"] != wxPath {
+		t.Errorf("AR_WX_PATH %q, relay serves %q", h.strs["AR_WX_PATH"], wxPath)
+	}
+	wq := h.strs["AR_WX_QUERY"]
+	if strings.Count(wq, "%") != 4 {
+		t.Fatalf("AR_WX_QUERY %q: expected lat, lon, range, version", wq)
+	}
+	var valid atomic.Value
+	var pics atomic.Int32
+	valid.Store("2026-11-02T16:40:00Z")
+	iem := fakeIEM(t, &valid, &pics)
+	defer iem.Close()
+	wx := newWx(iem.URL)
+	rec = httptest.NewRecorder()
+	wxHandler(wx).ServeHTTP(rec, httptest.NewRequest("GET", wxPath+fmt.Sprintf(cFormat(wq), "28.4294", "-81.3090", 100, ver), nil))
+	wb := rec.Body.Bytes()
+	if rec.Code != 200 || len(wb) != int(h.ints["AR_WX_SIZE"]) || string(wb[:2]) != "AW" || binary.BigEndian.Uint16(wb[4:]) == 0 {
+		t.Fatalf("weather for the cart's query: status %d, % x", rec.Code, wb)
+	}
+	for _, held := range []uint16{0, binary.BigEndian.Uint16(wb[4:])} {
+		rec = httptest.NewRecorder()
+		frameHandler(src, nil, wx).ServeHTTP(rec, httptest.NewRequest("GET", framePath+fmt.Sprintf(cFormat(format),
+			"36.2", "-86.7", 5, 5, 0, held, ver), nil))
+		if b := rec.Body.Bytes(); rec.Code != 200 || (b[15]&byte(h.ints["AR_H_WX"]) != 0) != (held == 0) {
+			t.Errorf("frame with w=%d: status %d, hflags %#x", held, rec.Code, b[15])
 		}
 	}
 

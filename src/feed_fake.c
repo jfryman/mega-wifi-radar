@@ -3,6 +3,7 @@
  * pop-up details (res/fake/kbna_detail.bin) and, for cockpit mode, one terrain patch around KBNA with every
  * aircraft's track in it (res/fake/kbna_cockpit.bin, `relay -pack-cockpit`). A flyover notice about the nearest
  * airborne aircraft turns up NOTICE_FIRST seconds after the first frame, then every NOTICE_EVERY.
+ * Weather comes from res/fake/wx.bin (`relay -pack-wx`): a storm recorded around KMCO, shown around home.
  * Built with FAKE_EMERG (`make sim SIM_FLAGS=-DFAKE_EMERG`), the third aircraft squawks 7700 from the second
  * frame on, for the emergency alert (alert.c). */
 #include "feed.h"
@@ -10,6 +11,7 @@
 #ifdef FAKE_FEED
 #include "fmt.h"
 #include "resources.h"
+#include "settings.h"
 
 #define NOTICE_FIRST    20
 #define NOTICE_EVERY    90
@@ -176,6 +178,23 @@ enum feed_err feed_track(const u8 icao[3], const char *key, struct ar_track *t)
             break;
         }
     return FEED_OK;
+}
+
+/* "FW", u16 count, then count x struct ar_wx, one per range (res/fake/wx.bin, `relay -pack-wx`). */
+bool feed_wx_waiting(void) { return FALSE; }
+
+enum feed_err feed_wx(const struct ar_wx **w)
+{
+    const u8 *pack = fake_wx_rom;
+    u16 count = *(const u16 *)(pack + 2);
+    const struct ar_wx *r = (const struct ar_wx *)(pack + 4);
+
+    for (u16 i = 0; i < count; i++, r++)
+        if (r->range_nm == settings_range_nm()) {
+            *w = r;
+            return FEED_OK;
+        }
+    return FEED_ERR_HTTP;
 }
 
 enum feed_err feed_find_relay(void) { return FEED_OK; }
