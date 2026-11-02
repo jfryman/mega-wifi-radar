@@ -41,4 +41,5 @@
 - plans/
   - [roadmap.md](plans/roadmap.md) - current status, hardware checks pending, open decisions
   - [cockpit-mode.md](plans/cockpit-mode.md) - 0.3.0: what's left for cockpit mode, the speed spike and its results
+  - [watch-arrivals.md](plans/watch-arrivals.md) - tabled: ARRIVALS list + cockpit through touchdown, relay on the fr24feed Pi, things to explore
 - tmp/ - git-ignored scratch

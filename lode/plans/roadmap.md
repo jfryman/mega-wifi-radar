@@ -50,6 +50,7 @@ dns-sd -B _mwradar._tcp        # is the relay advertised?
 ```
 
 ## Open decisions / ideas
+- [ ] Watch arrivals (tabled): ARRIVALS list order, cockpit through touchdown, relay on the fr24feed Pi; see [watch-arrivals.md](watch-arrivals.md).
 - [ ] Data path A vs B: relay (current) or a firmware digester ([../architecture/data-path-options.md](../architecture/data-path-options.md)).
 - [ ] Relay binaries for macOS/Linux in releases (native runs advertise mDNS themselves; easier than a container on a Mac).
 - [ ] Persist the host mDNS advertisement across reboots (launchd / systemd unit); today it's `scripts/relay advertise`.
