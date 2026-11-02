@@ -25,7 +25,8 @@ flowchart TD
   radio calls in speech bubbles with time to read, the scene re-laid out; boot sound: PSG whine/roar/radio + FM twin
   engines and bass; setup CHIME → SOUND; contract unchanged, v4), **v0.4.2** (2026-11-01: seven new themes, the
   emergency alert, settings record MWR3 with radar changes remembered, real sky in cockpit mode, the scope-scroll fix after
-  cockpit mode; contract unchanged, v4). 0.4.3 is open in `CHANGELOG.md`.
+  cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
+  cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below). 0.4.4 is open in `CHANGELOG.md`.
 - **The cart** runs the 0.4.2 code (`37dc75c`, CRC32 `0EDE6D15`, contract v4, flashed 2026-11-01; the tag adds only the changelog date) with the
   dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
