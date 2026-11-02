@@ -28,12 +28,12 @@ flowchart TD
   cockpit mode; contract unchanged, v4), **v0.4.3** (2026-11-01: ambient mode, STARS data blocks, city lights in
   cockpit mode; contract unchanged, v4; released after MAME tests only, cart checks below), **v0.4.4** (2026-11-02: the weather overlay from IEM NEXRAD, setup WEATHER + Z, contract v5;
   weather seen on the cart). 0.4.5 is open in `CHANGELOG.md`: video maps, **contract v6**
-  (MAME-tested and measured; not yet on the cart).
-- **The cart** runs the 0.4.4 code (built at `6b8059f`, CRC32 `EBA1A278`, contract v5, flashed 2026-11-02; the tag adds only the changelog date and lode)
+  (MAME-tested and measured; flashed with the matching dev relay 2026-11-02, cart checks below).
+- **The cart** runs 0.4.5 in progress (video maps, contract v6, built at `fc12250`, CRC32 `FE1CBBDE`, flashed 2026-11-02)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
-  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's `v0.4.3-2-g5cce8ac`, **contract v5** (weather on), and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
+  version, advertised by `dns-sd -P` from `scripts/relay start`. Since 2026-11-02 it's built from the 0.4.5 checkout, **contract v6** (weather + video maps), and uses the local MQTT broker `mwradar-mqtt` (`make mqtt-start`).
 - Everything ships from github.com/jfryman/mega-wifi-radar: cart + emulator ROMs, label/cover/manual PDFs, and the relay
   image `ghcr.io/jfryman/mega-wifi-radar-relay:<version>` ([../build/ci-release.md](../build/ci-release.md)).
 - **Verified on the cart:** cold-boot detect, Wi-Fi join, polling once per sweep, renderer timing, setup + flash

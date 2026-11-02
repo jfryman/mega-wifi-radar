@@ -7,7 +7,7 @@ ARG TARGETARCH
 ARG VERSION=dev
 WORKDIR /src
 COPY go.mod ./
-COPY *.go ./
+COPY *.go runways.csv ./
 COPY testdata ./testdata
 RUN go vet ./... && go test ./... \
  && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-$(go env GOARCH)} go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /relay .

@@ -150,7 +150,7 @@ Dev images are **local and versioned**: `scripts/relay` tags `mwradar-relay:<git
 checkout and its log names the real version. `RELAY_IMAGE=<published image>` runs a release instead (pulled, never built).
 A fixed `:latest` tag is avoided: it kept serving an image from an older commit.
 
-`relay/Dockerfile` is multi-stage. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
+`relay/Dockerfile` is multi-stage and copies `*.go`, `runways.csv` (embedded) and `testdata/`: a new embedded file must be added there too. `golang:1.24-bookworm` (on `$BUILDPLATFORM`) runs `go vet` and `go test` and
 cross-compiles a static binary (CGO off, `GOOS/GOARCH` from `TARGETOS/TARGETARCH`). It's copied onto `gcr.io/distroless/static-debian12:nonroot`, which has the CA certificates
 the HTTPS upstream needs, runs as non-root, and is ~15 MB. `scripts/relay` picks podman, then docker
 (override with `CTR=`), publishes `${RELAY_PORT:-8080}`, and names the detached container `mwradar-relay`
