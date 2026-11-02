@@ -15,6 +15,7 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 | AIRPORT | L/R step, C next letter, A type an ICAO code; 1,143 airports (`src/airports.c`) |
 | WI-FI | A: scan (`net_scan`), pick, keyboard password, `net_connect` (slot 0, DHCP, saved) |
 | RELAY | `AUTO <found host>` or `AUTO (MDNS)` when empty (mDNS, [../net/discovery.md](../net/discovery.md)); A: keyboard edit (empty = AUTO); C: back to AUTO |
+| GUIDE | A: four read-only pages on what's on the radar (`guide_page`): tags and blips, weather, video map + reading an approach, side panel; L/R or A page, B/START back |
 | CONTROLS | A: read-only page of the radar + setup buttons (`controls_page`; descriptions from col 14, ≤ 25 chars); A/B/START back |
 | RESET | A: page with WI-FI / SETTINGS / EVERYTHING / CANCEL; A twice confirms, then the console hard-resets |
 | SAVE & EXIT / EXIT | START = save |
@@ -46,9 +47,16 @@ can't join or no relay is found. The cursor starts on RELAY when the relay is AU
 - Layout: title on row 1; `row_y[]`: settings in single-spaced blocks: the scope (THEME 3, RANGE 4, TAGS 5, WEATHER
   6, MAP 7), SOUND 9 + AMBIENT 10, AIRPORT 12 (its name on 13), WI-FI 15 + RELAY 16; the four actions CONTROLS 21,
   RESET 22, SAVE & EXIT 23, EXIT 24; status on row 25, one hint line on row 26 (`L/R CHANGE  A EDIT  C JUMP  START
-  SAVE`). Rows 17-20 are free. `print/shots.txt`'s `keyboard` shot counts Downs to RELAY (9) and the manual's setup
+  SAVE`); GUIDE 20 heads the actions block (GUIDE 20, CONTROLS 21 ...). Rows 17-19 are free. `print/shots.txt`'s `keyboard` shot counts Downs to RELAY (9) and the manual's setup
   callouts follow the rows.
 - CONTROLS page: the radar block includes Z (WEATHER ON/OFF); the last line sits on row 25.
+- **GUIDE pages** (`setup.c`, owner's ask 2026-11-02: "this sort of detail is helpful" in game too): `g_pages[]` of rows
+  `{ pal, left, right }`: left from col 2 (≤ 12 chars), right from col 15 (≤ 24: col 38 is the last safe one; the font
+  has no `~` or `<`). `pal` is a text palette, so samples use the **theme's own** colours (LOW/MID/HIGH/EMERGENCY,
+  the weather and map colours). `G_TILE` rows draw 3 cells of a sample tile at cols 2-4 (`right[0]` = '0' + index:
+  0-2 `radar_wx_tiles`, 3 runway bar, 4 dashed centreline, loaded at `TILE_USER_INDEX`, which `radar_init` reloads),
+  label from col 6 (≤ 8), text from `right + 3`. ROM only: no RAM (the heap has 267 B to spare). Keep the text in
+  step with the manual's Scope and Video Map pages.
 - SGDK quirks: `strncpy` doesn't zero-pad. `sprintf` left-justifies (`%-8s`, `%-*s` work: panel, pop-up); don't
   rely on `%.Ns` precision.
 

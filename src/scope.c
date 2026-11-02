@@ -222,13 +222,13 @@ void scope_dot(s16 px, s16 py, bool on)
         }
 }
 
-/* One map pixel (block coordinates): fixed, in C_MAP; it takes over a trail dot's pixel, never a ring's. */
+/* One map pixel (block coordinates): fixed, in C_MAP; it takes over a trail dot's pixel, and a ring's (the line
+ * stays whole where it crosses a ring; clearing puts the ring back from the ROM tiles). */
 static void map_px(s16 x, s16 y)
 {
     u16 ct = cell_tile[(y >> 3) * CELLS + (x >> 3)];
     if (!ct) return;
     u16 t = ct - 1, p = (y & 7) * 8 + (x & 7), bit = t * 64 + p;
-    if (px_get(scope_tiles_rom + t * 32, p)) return;
     u8 m = bitmask[bit & 7];
     if (!(trail_bits[bit >> 3] & m)) { trail_bits[bit >> 3] |= m; trail_cnt[t]++; }
     px_set(t, p, C_MAP);
@@ -268,8 +268,8 @@ void scope_clear_dots(void)
         for (u16 b = 0; b < 8; b++) {
             u8 bits = trail_bits[t * 8 + b];
             if (!bits) continue;
-            for (u16 k = 0; k < 8; k++)
-                if (bits & (1 << k)) px_set(t, b * 8 + k, C_BG);
+            for (u16 k = 0; k < 8; k++)         /* back to the ROM tile: background, or a ring under a map line */
+                if (bits & (1 << k)) px_set(t, b * 8 + k, px_get(scope_tiles_rom + t * 32, b * 8 + k));
             trail_bits[t * 8 + b] = 0;
             mark(t);
         }

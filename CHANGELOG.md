@@ -9,9 +9,11 @@ IMPROVEMENTS:
 
   * **radar:** a video map. The runways of the airports in view are drawn as short solid bars, to scale, and out to
     25 nm your home airport's runways get dashed extended centrelines (10 nm, a tick every mile) that arrivals line
-    up on. The
-    sweep passes over them, and over trail dots, without wiping them. MAP in setup turns it off.
+    up on. They cross the range rings unbroken. The sweep passes over them, and over trail dots, without wiping
+    them. MAP in setup turns it off.
   * **setup:** the MAP row; the settings now sit in blocks (scope, sound, airport, network).
+  * **setup:** GUIDE: four pages on what's on the radar (tags and blips, weather, the video map and reading an
+    approach, the side panel), in the theme's own colours, with samples of the weather and map lines.
   * **radar:** the sweep's afterglow is a step shorter (9 shades instead of 10), freeing a colour for the map.
   * **relay:** serves `/v1/map` from OurAirports runway data built in (`tools/runwaygen`).
   * **manual:** a Video Map section: what the lines are, and how to read an approach (300 ft a mile).

@@ -35,6 +35,7 @@ bool radar_box_up(void);                /* drawn at all (opening, open or closin
 /* Weather (lode/ui/weather.md): AR_WX_N rows of AR_WX_ROW bytes as struct ar_wx sends them, or NULL for none.
  * Drawn a few rows a frame under the tags; a zoom wipes it (it was sampled at the old range). */
 void radar_wx(const u8 *cells);
+extern const u32 radar_wx_tiles[3][8];  /* the weather stipple, light .. heavy (setup's guide shows them too) */
 /* Video map (lode/ui/video-maps.md), main loop. radar_map_begin() removes the map (a drawn one is cleared from the
  * scope, trail dots redrawn) and lends its buffer (*size bytes) for a struct ar_map + segments to be fetched into;
  * radar_map_end(TRUE) draws it, a few lines a frame; radar_map_end(FALSE) leaves none. A zoom wipes it (it was

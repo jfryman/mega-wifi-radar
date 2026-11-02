@@ -45,6 +45,7 @@ Use up/down to move between rows; each row lists its controls below.
 | AIRPORT | left/right steps through airports; C jumps to the next letter; A types an ICAO code (1,143 large airports with scheduled service) |
 | WI-FI | A: scan, pick a network, type the password, connect. The network is saved on the module. |
 | RELAY | **AUTO** (default): found over mDNS at every boot; shows what it found. A: type a URL to pin one, for example `http://radar-pi.home.lan:8080`. C: back to AUTO |
+| GUIDE | A: four pages on what's on the radar: tags and blips, weather, the video map (and reading an approach at 300 ft a mile), the side panel; left/right turns the page, B or START goes back |
 | CONTROLS | A: list every radar and setup button; B or START goes back |
 | RESET | A: choose **Wi-Fi networks** (forget saved Wi-Fi), **Settings** (back to defaults) or **Everything**; press A again to confirm, and the console restarts into the first-boot flow |
 | SAVE & EXIT | A: write the settings to the ESP32 flash and return |

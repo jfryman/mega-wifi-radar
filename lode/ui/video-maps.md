@@ -51,7 +51,9 @@ flowchart LR
 `trail_bits` (1 bit/pixel, in the overlay) now means **"fixed pixel: the sweep leaves it alone"**, for trail dots and
 map pixels alike; `trail_cnt[tile] > 0` sends a tile to the slow path, which **skips** fixed pixels on draw and retire
 (trail dots used to be overdrawn and restored; now they stay visible under the line, like rings). Who owns a pixel is
-its colour: `map_px` sets the bit and `C_MAP` (never over a ring pixel of the ROM tiles); `scope_dot` leaves a pixel that
+its colour: `map_px` sets the bit and `C_MAP`, over ring pixels too, so a line crosses a ring unbroken (it showed a
+1-2 px gap at 5 nm, where the 1 nm ring cuts KBNA's runways: owner spotted it 2026-11-02); `scope_clear_dots` restores
+each fixed pixel from the ROM tile (background or ring); `scope_dot` leaves a pixel that
 is set and `C_MAP` alone (on and off), so a dot never erases a map line. No second bitmap: that would cost 4.5 KB.
 
 ```c

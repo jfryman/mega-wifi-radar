@@ -4,14 +4,15 @@
 #include "chime.h"
 #include "keyboard.h"
 #include "net.h"
+#include "radar.h"
 #include "settings.h"
 #include "theme.h"
 #include "ui.h"
 
-enum { R_THEME, R_RANGE, R_TAGS, R_WX, R_MAP, R_SOUND, R_AMBIENT, R_AIRPORT, R_WIFI, R_RELAY, R_CONTROLS, R_RESET, R_SAVE,
-       R_EXIT, R_COUNT };
+enum { R_THEME, R_RANGE, R_TAGS, R_WX, R_MAP, R_SOUND, R_AMBIENT, R_AIRPORT, R_WIFI, R_RELAY, R_GUIDE, R_CONTROLS, R_RESET,
+       R_SAVE, R_EXIT, R_COUNT };
 static const char *const labels[R_COUNT] = {
-    "THEME", "RANGE", "TAGS", "WEATHER", "MAP", "SOUND", "AMBIENT", "AIRPORT", "WI-FI", "RELAY", "CONTROLS", "RESET",
+    "THEME", "RANGE", "TAGS", "WEATHER", "MAP", "SOUND", "AMBIENT", "AIRPORT", "WI-FI", "RELAY", "GUIDE", "CONTROLS", "RESET",
     "SAVE & EXIT", "EXIT",
 };
 static const char *const ambient_names[AMBIENT_MODES] = { "OFF", "AFTER 1 MIN", "AFTER 5 MIN", "AFTER 15 MIN" };
@@ -21,8 +22,8 @@ static const char *const wx_names[WX_MODES] = { "ON", "OFF" };
 static const char *const map_names[MAP_MODES] = { "ON", "OFF" };
 
 /* Settings in blocks: the scope (THEME ... MAP), sound + ambient, the airport (its name takes a line), the network;
- * then the four actions; EXIT on row 24. */
-static const u8 row_y[R_COUNT] = { 3, 4, 5, 6, 7, 9, 10, 12, 15, 16, 21, 22, 23, 24 };
+ * then the five actions; EXIT on row 24. */
+static const u8 row_y[R_COUNT] = { 3, 4, 5, 6, 7, 9, 10, 12, 15, 16, 20, 21, 22, 23, 24 };
 #define ROW_Y(r)    row_y[r]
 #define HINT_ROW    26                                  /* below ui_status's row 25 */
 #define VAL_X       14
@@ -148,6 +149,138 @@ static void controls_page(void)
     ui_status(PAL1, "B OR START: BACK");
     ui_wait_release();
     while (!(ui_pad() & (BUTTON_B | BUTTON_START | BUTTON_A))) {}
+    ui_wait_release();
+}
+
+/* ------------------------------------------------------------ guide */
+
+/* GUIDE: what's on the radar, a page at a time (lode/ui/guide.md). Text from col 2, descriptions from col 15
+ * (<= 24 chars: col 38 is the last safe one). A row is { pal, left, right }; pal 0xFF: a sample tile in the
+ * left column (right: the tile, '0' + index into the samples), then its text. Colours are the theme's own. */
+#define G_TILE  0xFF
+struct grow { u8 pal; const char *l, *r; };
+static const struct grow g_tags[] = {
+    { PAL1, "SWA2011", "CALLSIGN" },
+    { PAL1, "006 156", "600 FT, 156 KNOTS" },
+    { PAL0, "", "ALTITUDE IN HUNDREDS OF" },
+    { PAL0, "", "FEET, THEN SPEED IN KT" },
+    { PAL0, NULL, NULL },
+    { PAL1, "LOW", "BELOW 10,000 FT, GROUND" },
+    { PAL2, "MID", "10,000 TO 17,999 FT" },
+    { PAL0, "HIGH", "18,000 FT AND ABOVE" },
+    { PAL3, "EMERGENCY", "SQUAWK 7500/7600/7700" },
+    { PAL0, NULL, NULL },
+    { PAL0, "BRIGHT BLIP", "FRESH: JUST SWEPT" },
+    { PAL0, "DOTS BEHIND", "LAST 5 POSITIONS: 20 S" },
+    { PAL0, "HOLLOW BLIP", "NO REPORT FOR 15 S" },
+    { PAL0, NULL, NULL },
+    { PAL1, "STARS, ERAM", "THE TAG SITS AT THE END" },
+    { PAL1, "", "OF A SHORT LEADER LINE" },
+};
+static const struct grow g_wx[] = {
+    { PAL1, "", "RAIN FROM NEXRAD WEATHER" },
+    { PAL1, "", "RADAR, UNDER THE TRAFFIC" },
+    { PAL0, NULL, NULL },
+    { G_TILE, "LIGHT", "0  20-35 DBZ: RAIN" },
+    { G_TILE, "MODERATE", "1  35-50 DBZ: HEAVY RAIN" },
+    { G_TILE, "HEAVY", "2  50+ DBZ: STORMS, HAIL" },
+    { PAL0, NULL, NULL },
+    { PAL0, "", "NEW EVERY 5 MINUTES AND" },
+    { PAL0, "", "AFTER EVERY ZOOM. A TAG" },
+    { PAL0, "", "HIDES THE RAIN UNDER IT." },
+    { PAL0, NULL, NULL },
+    { PAL1, "US ONLY", "ELSEWHERE: A CLEAR SCOPE" },
+    { PAL1, "TURN OFF", "WEATHER IN SETUP, OR Z" },
+};
+static const struct grow g_map[] = {
+    { G_TILE, "RUNWAY", "3  SOLID BAR, TO SCALE" },
+    { G_TILE, "APPROACH", "4  DASHES: THE RUNWAY'S" },
+    { PAL0, "", "CENTRELINE, OUT 10 NM" },
+    { PAL0, "TICKS", "ONE EVERY MILE (EVERY" },
+    { PAL0, "", "5 NM ON THE 25 NM SCOPE)" },
+    { PAL0, NULL, NULL },
+    { PAL2, "", "AIRLINERS DESCEND ABOUT" },
+    { PAL2, "", "300 FT A MILE ON FINAL:" },
+    { PAL0, "10 NM OUT", "ABOUT 3,000 FT (TAG 030)" },
+    { PAL0, "5 NM OUT", "ABOUT 1,600 FT (TAG 016)" },
+    { PAL0, "1 NM OUT", "ABOUT 300 FT" },
+    { PAL0, NULL, NULL },
+    { PAL1, "", "A TAG ON THE DASHES, ITS" },
+    { PAL1, "", "ALTITUDE COUNTING DOWN:" },
+    { PAL1, "", "LANDING ON THAT RUNWAY." },
+    { PAL1, "", "(YOUR AIRPORT, TO 25 NM)" },
+};
+static const struct grow g_panel[] = {
+    { PAL0, "KBNA", "YOUR HOME AIRPORT" },
+    { PAL0, "RNG  25NM", "RANGE: THE OUTER RING" },
+    { PAL0, "17:16:00Z", "TIME, UTC" },
+    { PAL0, "28 AC", "AIRCRAFT ON THE SCOPE" },
+    { PAL0, "NET OK", "LIVE (AUTO: TOURING)" },
+    { PAL0, "STALE 20S", "NO NEW DATA FOR 20 S" },
+    { PAL0, "UPSTRM ERR", "THE RELAY'S FEED FAILED" },
+    { PAL0, "RELAY VER?", "RELAY: ANOTHER RELEASE" },
+    { PAL0, NULL, NULL },
+    { PAL0, "- NEAREST -", "LIST ORDER: HOLD C" },
+    { PAL0, "v13 MORE", "MORE BELOW: PRESS DOWN" },
+    { PAL0, "CLASSIC ALL", "THEME; TAGS (LEFT/RIGHT)" },
+    { PAL0, "adsb.fi IEM", "DATA: TRAFFIC, WEATHER" },
+};
+static const struct { const char *title; const struct grow *rows; u16 n; } g_pages[] = {
+    { "TAGS AND BLIPS", g_tags, sizeof(g_tags) / sizeof(g_tags[0]) },
+    { "WEATHER", g_wx, sizeof(g_wx) / sizeof(g_wx[0]) },
+    { "VIDEO MAP", g_map, sizeof(g_map) / sizeof(g_map[0]) },
+    { "SIDE PANEL", g_panel, sizeof(g_panel) / sizeof(g_panel[0]) },
+};
+#define G_PAGES (sizeof(g_pages) / sizeof(g_pages[0]))
+
+/* Sample tiles: the weather stipple (C_WX), a runway bar and a dashed centreline (C_MAP), 3 cells wide each. */
+#define MAP_BAR     0x00000000UL, 0x00000000UL, 0x00000000UL, 0xBBBBBBBBUL, 0xBBBBBBBBUL, 0, 0, 0
+static const u32 g_map_tiles[2][8] = {
+    { MAP_BAR },
+    { 0, 0, 0, 0xBBB000BBUL, 0, 0, 0, 0 },
+};
+#undef MAP_BAR
+
+static void guide_draw(u16 page)
+{
+    char buf[40];
+
+    ui_clear();
+    VDP_loadTileData((const u32 *)radar_wx_tiles, TILE_USER_INDEX, 3, CPU);
+    VDP_loadTileData((const u32 *)g_map_tiles, TILE_USER_INDEX + 3, 2, CPU);
+    sprintf(buf, "GUIDE %u/%u: %s", page + 1, (u16)G_PAGES, g_pages[page].title);
+    ui_text(PAL0, 2, 1, buf);
+    for (u16 i = 0, y = 4; i < g_pages[page].n; i++, y++) {
+        const struct grow *r = &g_pages[page].rows[i];
+        if (!r->l) continue;
+        if (r->pal == G_TILE) {
+            u16 t = TILE_USER_INDEX + r->r[0] - '0';
+            for (u16 x = 0; x < 3; x++)
+                VDP_setTileMapXY(BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, t), 2 + x, y);
+            ui_text(PAL0, 6, y, r->l);
+            ui_text(PAL1, 15, y, r->r + 3);
+            continue;
+        }
+        ui_text(r->pal, 2, y, r->l);
+        ui_text(r->pal == PAL0 ? PAL1 : r->pal, 15, y, r->r);
+    }
+    ui_status(PAL1, "LEFT/RIGHT: PAGE   B OR START: BACK");
+}
+
+static void guide_page(void)
+{
+    u16 page = 0;
+
+    guide_draw(page);
+    ui_wait_release();
+    for (;;) {
+        u16 p = ui_pad();
+        if (p & (BUTTON_B | BUTTON_START)) break;
+        if (p & (BUTTON_RIGHT | BUTTON_A | BUTTON_LEFT)) {
+            page = (p & BUTTON_LEFT) ? (page + G_PAGES - 1) % G_PAGES : (page + 1) % G_PAGES;
+            guide_draw(page);
+        }
+    }
     ui_wait_release();
 }
 
@@ -358,6 +491,10 @@ bool setup_run(bool wifi_first)
                 strcpy(buf, settings.relay);
                 kb_edit("RELAY URL (EMPTY = AUTO)", buf, RELAY_LEN);
                 strcpy(settings.relay, buf);
+                draw_all(cur);
+                break;
+            case R_GUIDE:
+                guide_page();
                 draw_all(cur);
                 break;
             case R_CONTROLS:

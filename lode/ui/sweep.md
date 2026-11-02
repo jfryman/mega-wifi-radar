@@ -48,7 +48,8 @@ CPU-copies dirty tiles to VRAM at the start of V-Blank (≤ 48 per frame).
 - Trail dots and video-map lines **are** plane-B pixels (dots 2×2 `C_TRAIL`, lines `C_MAP`), tracked as *fixed
   pixels* in a 1-bit-per-pixel map plus `trail_cnt[tile]`. The sweep skips fixed pixels on draw and retire, so it
   never erases them (they stay visible under the line, like rings). A map pixel's colour marks it as the map's: a
-  dot never draws over or erases it ([video-maps.md](video-maps.md)). Tags are on plane A.
+  dot never draws over or erases it ([video-maps.md](video-maps.md)). Map pixels may cover ring pixels (dots may
+  not); clearing fixed pixels restores the ROM tile's pixel, so rings come back. Tags are on plane A.
 - The STARS theme sets `sweep = false`: no drawing, and plane B shows only rings.
 - RAM: 18 KB of the ~47 KB the heap has free after SGDK (measured `.data+.bss` = 5.4 KB, stack 2.5 KB).
 

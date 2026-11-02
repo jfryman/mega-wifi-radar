@@ -49,7 +49,7 @@ enum { LT_SLASH, LT_BACK, LT_DASH, LT_BAR };
  * of 2 and 4 pixels, so neighbouring cells join up. */
 #define WX_A 0xD000D000UL
 #define WX_B 0x00D000D0UL
-static const u32 wx_tiles[3][8] = {
+const u32 radar_wx_tiles[3][8] = {
     { WX_A, WX_B, WX_A, WX_B, WX_A, WX_B, WX_A, WX_B },
     { 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D, 0xD0D0D0D0, 0x0D0D0D0D },
     { ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD, ~WX_A & 0xDDDDDDDD, ~WX_B & 0xDDDDDDDD,
@@ -858,7 +858,7 @@ void radar_init(void)
     t_lead = t_frame + 9;
     VDP_loadTileData((const u32 *)lead_tiles, t_lead, 4, DMA);
     t_wx = t_lead + 4;
-    VDP_loadTileData((const u32 *)wx_tiles, t_wx, 3, DMA);
+    VDP_loadTileData((const u32 *)radar_wx_tiles, t_wx, 3, DMA);
 
     memset(tracks, 0, TR_MAX * sizeof(struct track));
     memset((void *)tr_state, 0, sizeof(tr_state));
