@@ -33,7 +33,7 @@ flowchart TD
   remap, the relay's SQLite logbook with rare notices, contract v7; controls, tabs and the logbook checked on the
   cart). **v0.6.0** (2026-11-02: the STARS type line,
   ~2.7 KB of RAM freed, contract v8; seen on the cart). 0.6.1 is open in `CHANGELOG.md`.
-- **The cart** runs the 0.6.0 code (contract v8, built at `45b0b1a`, CRC32 `1EF9FDCF`, flashed 2026-11-02; the tag adds only the changelog date and lode)
+- **The cart** runs the v0.6.0 tag (contract v8, built at `4fcd820`, CRC32 `65D7E71A`, flashed 2026-11-02)
   with the dev relay from the same checkout (a build needs the relay from the same contract version). The dev file (`src/dev_config.h`) is gone, so dev builds are
   release-style; settings and Wi-Fi live on the module.
 - **The dev relay** is the `mwradar-relay` container on the dev Mac (:8080), a local build tagged with the checkout's
