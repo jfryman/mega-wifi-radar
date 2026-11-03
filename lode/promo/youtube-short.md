@@ -1,7 +1,7 @@
 # YouTube Short (`promo/short/`)
 
 A 49 s vertical (1080×1920, 60 fps) ad in a loud 90s-TV style, published at
-https://www.youtube.com/shorts/zIt93wNQCUw. Real ROM footage from the emulator build, a shouting announcer,
+https://www.youtube.com/shorts/zIt93wNQCUw and linked as "Watch the trailer" under the README's top images. Real ROM footage from the emulator build, a shouting announcer,
 wipes and pop-up stickers, original 16-bit action music and an infomercial fine-print read. The pipeline is
 committed. **Media never is:** everything renders into `out/promo/work/` (git-ignored, under `out/`).
 

@@ -7,6 +7,8 @@ Pick any aircraft to ride along in a **cockpit view** over the real terrain bene
 
 <p align="center"><img src="docs/img/boot-departure.png" width="320" alt="Boot: the 787 climbs out behind the MEGA WIFI RADAR wordmark"> <img src="docs/img/radar-classic.png" width="320" alt="Classic theme: KBNA at 25 nm, 28 aircraft, the traffic list with SWA692 selected"></p>
 
+<p align="center">▶️ <strong><a href="https://www.youtube.com/shorts/zIt93wNQCUw">Watch the trailer</a></strong> (49 s, YouTube)</p>
+
 ## What it does
 
 - **Radar scope:** range rings at 5 to 100 nm, a sweep that updates each target as it passes, five-dot trails,
