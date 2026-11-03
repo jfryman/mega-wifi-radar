@@ -87,3 +87,6 @@
 - Approach / edge lights, dark field - at approach scale, palette-14 cells (lit at night, ground by day) along a runway's sides and 900 m of its extended centreline, dotted; no city lights within 5 cells of them.
 - Brake (rollout) - on the ground a fix behind the cockpit camera (< 150 m) stops it instead of gliding it back: nothing on a rollout reverses.
 - `make replay` / `make record` - the standard cart test against recorded traffic (relay `-replay` in place of the dev relay) and capturing new flights.
+- Short - the 49 s vertical YouTube ad (`promo/short/`); media renders into `out/promo/work/`, never into git.
+- Take - one ElevenLabs generation (a voice line, SFX or music track); not reproducible, so kept files are never overwritten.
+- Bed - the low second pass of the music under the Short's fast fine print.

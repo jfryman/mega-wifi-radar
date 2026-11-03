@@ -32,7 +32,8 @@ held together by `src/arframe.h`, its contract test and lock, and a runtime vers
 The project is public at github.com/jfryman/mega-wifi-radar (MIT). CI builds the cart and emulator ROMs and a multi-arch
 relay image, and publishes releases on `v*` tags ([build/ci-release.md](build/ci-release.md)).
 Printed extras (cartridge label, clamshell cover, manual) are generated with Typst from shared art and copy
-([print/print-assets.md](print/print-assets.md)).
+([print/print-assets.md](print/print-assets.md)). A 90s-TV-style YouTube Short (youtube.com/shorts/zIt93wNQCUw) is rebuilt by
+`promo/short/short.sh` from emulator footage and ElevenLabs takes kept outside git ([promo/youtube-short.md](promo/youtube-short.md)).
 
 ```mermaid
 flowchart LR

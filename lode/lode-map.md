@@ -38,6 +38,8 @@
 - print/
   - [print-assets.md](print/print-assets.md) - label, clamshell cover, manual: Typst pipeline, sizes, key art, booklet, shots; README images
   - [manual.md](print/manual.md) - manual structure, page budget, building blocks, adding a feature section
+- promo/
+  - [youtube-short.md](promo/youtube-short.md) - the published YouTube Short: promo/short/ pipeline (MAME capture, captions, fx overlay, ElevenLabs voice/SFX/music, mix), timeline, takes kept off git
 - data/
   - [adsb-sources.md](data/adsb-sources.md) - APIs, terms, measured payload size
 - architecture/

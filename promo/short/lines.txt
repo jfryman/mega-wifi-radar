@@ -1,0 +1,9 @@
+# Announcer lines (ElevenLabs v3, Adam): id|text. Timing and effects per line: cues.txt.
+01|[excited] Your Sega Genesis... just got [shouting] WI-FI!
+02|[fast, hyped] Real planes! Real time! LIVE radar, in YOUR living room!
+03|And when one flies over your house... [shouting] LOOK UP!
+04|Pick ANY plane... and ride along... in 3-D!
+05|[hyped] Real terrain! Totally radical!
+06|Nine radar themes! [whispers] Pick your scope.
+07|It even keeps a LOGBOOK!
+08|[shouting] Mega... WiFi... RADAR! [excited] Free and open source!

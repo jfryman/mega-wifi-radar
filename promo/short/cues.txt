@@ -1,0 +1,13 @@
+# Voice timeline: at (s)|file in $W/vo|trim from|trim to|chain (echo, big, fine or empty).
+# 01 splits before "WI-FI!" for its echo; 03 splits round the LOOK UP chime (11.9-14.0).
+0.2|tl01.wav|0|2.40|
+2.6|tl01.wav|2.40||echo
+5.3|tl02.wav|0||
+9.9|tl03.wav|0|1.95|
+13.7|tl03.wav|2.20||big
+15.3|tl04.wav|0||
+20.3|tl05.wav|0||
+23.4|tl06.wav|0||
+29.4|tl07.wav|0||
+32.0|tl08.wav|0||big
+38.2|fine.wav|0||fine
