@@ -94,8 +94,10 @@ curl -s -H "xi-api-key: $K" -F model_id=scribe_v1 -F file=@clip.m4a https://api.
 
 ## Reproducibility
 - MAME runs are deterministic: two `record base` runs give a bit-identical `base.mp4`.
-- The themes run waits until 20 s for its first press. Presses at 18 s raced the end of the boot, and a
-  swallowed START shifted every theme (the published cut has that run: 10/5 nm ranges, three theme stills).
+- The themes run waits until 20 s for its first press. With presses at 18 s, the same ROM and presses gave
+  different results in separate sessions: once START was swallowed and every theme shifted (the published cut
+  has that run: 10/5 nm ranges, three theme stills). The cause isn't proven. The suspect is START landing on
+  the end of the boot (~17 s); 20 s leaves room. Back-to-back runs at 20 s are bit-identical.
   The committed cut uses 25 nm and video for all seven themes. Rebuilt from the kept takes, it matches the
   published Short everywhere else (inf dB to 29 s, ~50 dB after: x264 rate control only).
 - `make sim` from a clean HEAD first. A stale `out/sim.bin` once carried a one-aircraft arrival feed.

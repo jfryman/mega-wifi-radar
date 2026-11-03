@@ -24,6 +24,8 @@
 - The relay is part of the cartridge: extend it whenever a cart feature needs it. Relay vX requires cart vX; both
   ship from the same tag. Any contract change bumps `AR_VER`, and mismatches are caught at build time and on screen.
 - Printed pieces copy Sega's 1989 *style*, never its marks: no SEGA logo, Genesis wordmark or seal.
+- Promo media (video, voice, music, thumbnails) never goes in git: `promo/short/` renders into `out/promo/work/`.
+  ElevenLabs takes aren't reproducible, so the pipeline never overwrites one ([promo/youtube-short.md](promo/youtube-short.md)).
 
 ## Hard rules for 68k code
 - No floats. Use `fix16`/`fix32` and lookup tables. Do geographic projection off-console.
