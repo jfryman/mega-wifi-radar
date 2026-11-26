@@ -1,5 +1,11 @@
 ## 0.6.2 (Unreleased)
 
+IMPROVEMENTS:
+
+  * **relay:** every release now carries its own relay: its notes give the `docker run` command for that
+    release's image, plus a `compose.yaml` and single-file relay binaries for Linux (amd64, arm64) and macOS
+    (Apple silicon) to download, so the relay runs without Docker or a clone.
+
 ## 0.6.1 (November 2, 2026)
 
 FEATURES:

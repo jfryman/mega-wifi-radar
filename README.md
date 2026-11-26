@@ -81,9 +81,10 @@ the aircraft's track placed in them; the 68000 draws the view itself (Voxel Spac
      docker run -d --name mwradar-relay --restart unless-stopped --network host \
          ghcr.io/jfryman/mega-wifi-radar-relay:latest
      ```
-   - **macOS:** from a clone, `make relay-start`. Docker Desktop's VM can't announce on your LAN, so your
-     Mac announces the container for it. Or run it natively: `cd relay && go run .`
-     (allow "Local Network" access when macOS asks).
+     Each release's notes give this command pinned to that release, and a `compose.yaml` to download.
+   - **macOS, or no Docker:** download `mega-wifi-radar-<version>-relay-<os>-<arch>.tar.gz` from the
+     release, unpack it and run `./relay -db relay.db` (allow "Local Network" access when macOS asks).
+     From a clone, `make relay-start` also works: Docker Desktop's VM can't announce on your LAN, so your Mac announces the container for it.
 3. **Flash the ROM.** Download `mega-wifi-radar-<version>.bin` from
    [Releases](https://github.com/jfryman/mega-wifi-radar/releases) and write it with your
    flasher (`flashkit-md write-rom mega-wifi-radar-<version>.bin`).
@@ -115,6 +116,9 @@ Each [release](https://github.com/jfryman/mega-wifi-radar/releases) contains:
   it needs no MegaWiFi hardware. It runs in MAME, BlastEm and others.
 - `mega-wifi-radar-<version>-label.pdf`, `-cover.pdf` (with `-cover-a4.pdf` for home printing), `-manual.pdf` and
   `-manual-booklet-letter.pdf` / `-a4.pdf` are the printable cartridge label, clamshell wrap (back, spine, front) and manual (see [docs/print.md](docs/print.md)).
+- `mega-wifi-radar-<version>-relay-compose.yaml` runs that release's relay image (`docker compose -f … up -d`, Linux).
+- `mega-wifi-radar-<version>-relay-linux-amd64.tar.gz`, `-linux-arm64.tar.gz` and `-darwin-arm64.tar.gz` are the
+  relay as a single binary, for running it without Docker.
 - `SHA256SUMS`
 
 The relay image is published as `ghcr.io/jfryman/mega-wifi-radar-relay` (linux/amd64 and linux/arm64),

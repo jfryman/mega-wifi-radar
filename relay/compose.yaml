@@ -1,0 +1,22 @@
+# mega_wifi_radar relay: docker compose up -d
+# Each release ships this file with the image pinned to that release (relay vX serves only cart vX).
+# Linux only: host networking lets the relay announce itself over mDNS, so the cart's RELAY can stay on AUTO.
+# On macOS, run the release's darwin binary instead (Docker Desktop can't announce on your LAN).
+services:
+  relay:
+    image: ghcr.io/jfryman/mega-wifi-radar-relay:latest
+    container_name: mwradar-relay
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      RELAY_DB: /data/relay.db      # the logbook, kept across restarts and upgrades
+      # Flyover notices from an atc-mqtt feed (docs/flyover.md):
+      # MQTT_BROKER_HOST: broker.example.lan
+      # MQTT_USERNAME: mwradar
+      # MQTT_PASSWORD: secret
+    volumes:
+      - mwradar-data:/data
+
+volumes:
+  mwradar-data:
+    name: mwradar-data              # the same volume make relay-start uses

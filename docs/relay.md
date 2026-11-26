@@ -25,6 +25,8 @@ sequenceDiagram
 | How | Command |
 |---|---|
 | Published image (Linux) | `docker run -d --name mwradar-relay --restart unless-stopped --network host -v mwradar-data:/data -e RELAY_DB=/data/relay.db ghcr.io/jfryman/mega-wifi-radar-relay:latest` |
+| Published compose file (Linux) | `docker compose -f mega-wifi-radar-<version>-relay-compose.yaml up -d`, with the file from the release (the same as `relay/compose.yaml`, pinned to that release) |
+| Release binary (Linux, macOS) | Unpack `mega-wifi-radar-<version>-relay-<os>-<arch>.tar.gz` from the release, then `./relay -db relay.db`. On macOS, a browser download needs `xattr -d com.apple.quarantine relay` first |
 | From this repo, container | `make relay-start` (detached; also registers the mDNS advertisement on the host), `make relay-run` (foreground), `make relay-stop`, `scripts/relay logs` |
 
 From the repo, the container is built from your checkout and tagged with its version (`mwradar-relay:v0.2.0-3-gabc1234`; a dirty tree adds a hash of `relay/`), so it's rebuilt whenever the code changes. To run a published release that way instead: `RELAY_IMAGE=ghcr.io/jfryman/mega-wifi-radar-relay:0.2.0 make relay-start`.

@@ -151,6 +151,7 @@ Verified 2026-11-01: notices logged, a live adsb.fi aircraft matched by callsign
 | native | `cd relay && go run . -listen :8080` |
 | container, foreground | `make relay-run` (= `scripts/relay run [relay args]`) |
 | published image | `docker run -d --network host ghcr.io/jfryman/mega-wifi-radar-relay:latest` (amd64 + arm64, built by CI; host network so its mDNS reaches the LAN) |
+| release assets | `-relay-compose.yaml` (`relay/compose.yaml` pinned to the release's image) and `-relay-<os>-<arch>.tar.gz` static binaries (linux amd64/arm64, darwin arm64); see [../build/ci-release.md](../build/ci-release.md) |
 | container, background | `make relay-start` / `scripts/relay logs` / `make relay-stop` |
 
 Dev images are **local and versioned**: `scripts/relay` tags `mwradar-relay:<git describe>` (dirty trees add the first

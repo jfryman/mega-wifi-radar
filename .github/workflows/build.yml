@@ -1,4 +1,4 @@
-# Builds the cart + emulator ROMs and the relay image; publishes a release on v* tags.
+# Builds the cart + emulator ROMs, the relay image and relay binaries; publishes a release on v* tags.
 # The SGDK build image is cached in GHCR under the same content hash scripts/md uses.
 name: build
 
@@ -75,6 +75,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # git describe names the binaries
 
       - uses: actions/setup-go@v5
         with:
@@ -114,6 +116,27 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: VERSION=${{ steps.meta.outputs.version }}
+
+      - name: Build relay binaries
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          V=$(git describe --tags --always)
+          mkdir dist
+          for t in linux/amd64 linux/arm64 darwin/arm64; do
+            os=${t%/*} arch=${t#*/} dir="out/relay-$os-$arch"
+            mkdir -p "$dir" && cp LICENSE "$dir/"
+            (cd relay && CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
+              -ldflags="-s -w -X main.version=$VERSION" -o "../$dir/relay" .)
+            tar -czf "dist/mega-wifi-radar-$V-relay-$os-$arch.tar.gz" -C "$dir" relay LICENSE
+          done
+          ls -l dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relay
+          path: dist/
+          if-no-files-found: error
 
   print:
     runs-on: ubuntu-latest
@@ -159,17 +182,57 @@ jobs:
           name: print
           path: dist
 
-      - name: Release notes from CHANGELOG.md
+      - uses: actions/download-artifact@v4
+        with:
+          name: relay
+          path: dist
+
+      - name: Relay compose file, pinned to this release
+        run: |
+          V=${GITHUB_REF_NAME#v}
+          sed "s|mega-wifi-radar-relay:latest|mega-wifi-radar-relay:$V|" relay/compose.yaml \
+            > "dist/mega-wifi-radar-$GITHUB_REF_NAME-relay-compose.yaml"
+          grep -q "mega-wifi-radar-relay:$V\$" "dist/mega-wifi-radar-$GITHUB_REF_NAME-relay-compose.yaml"
+
+      - name: Release notes from CHANGELOG.md, plus how to run this release's relay
         run: |
           V=${GITHUB_REF_NAME#v}
           awk -v v="$V" '$0 ~ "^## " v " " {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
           test -s notes.md || { echo "CHANGELOG.md has no '## $V (...)' section" >&2; exit 1; }
+          DL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME"
+          P="mega-wifi-radar-$GITHUB_REF_NAME"
+          cat >> notes.md <<EOF
+
+          ## Relay
+
+          Run the relay from this release: it serves only $GITHUB_REF_NAME cartridges. It announces itself
+          over mDNS, so leave the cart's RELAY on AUTO. More in [docs/relay.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/docs/relay.md).
+
+          **Linux / Raspberry Pi, Docker:**
+          \`\`\`sh
+          docker run -d --name mwradar-relay --restart unless-stopped --network host \\
+              -v mwradar-data:/data -e RELAY_DB=/data/relay.db $RELAY_IMAGE:$V
+          \`\`\`
+          or with compose:
+          \`\`\`sh
+          curl -LO $DL/$P-relay-compose.yaml
+          docker compose -f $P-relay-compose.yaml up -d
+          \`\`\`
+
+          **No Docker (Linux amd64/arm64, macOS Apple silicon):** download \`$P-relay-<os>-<arch>.tar.gz\`, then
+          \`\`\`sh
+          tar -xzf $P-relay-darwin-arm64.tar.gz
+          ./relay -db relay.db
+          \`\`\`
+          On macOS, a file downloaded with a browser needs \`xattr -d com.apple.quarantine relay\` first, and allow
+          "Local Network" access when asked.
+          EOF
           cat notes.md
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          (cd dist && sha256sum *.bin *.pdf > SHA256SUMS)
+          (cd dist && sha256sum *.bin *.pdf *.tar.gz *.yaml > SHA256SUMS)
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --notes-file notes.md

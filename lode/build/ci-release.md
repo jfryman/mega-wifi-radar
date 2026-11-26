@@ -14,9 +14,11 @@ flowchart LR
   end
   subgraph relay[job relay]
     T[go vet/test relay + tools] --> X[buildx amd64+arm64<br/>ghcr .../mega-wifi-radar-relay]
+    T --> G[go build linux amd64/arm64, darwin arm64<br/>dist/: -VER-relay-OS-ARCH.tar.gz]
   end
-  D --> R[job release on v*: gh release create]
+  D --> R[job release on v*: compose.yaml pinned,<br/>relay notes appended, gh release create]
   X --> R
+  G --> R
   PR[job print: scripts/print<br/>label, cover, manual, booklets] --> R
 ```
 
@@ -32,8 +34,17 @@ flowchart LR
 - **Version:** `make` writes `#define APP_VERSION "<git describe --tags --always --dirty>"` to the git-ignored
   `src/version.h` (only rewritten when it changes). It's included only by `devcfg.c` (always rebuilt), and the
   boot splash status line shows `app_version` (cart builds only; the emulator build omits it). `VERSION=` overrides it; the checkout needs `fetch-depth: 0`.
-- **Release assets:** `mega-wifi-radar-<v>.bin`, `-emu.bin`, `-label.pdf`, `-cover.pdf`, `-manual.pdf`,
-  `-manual-booklet-letter.pdf`, `-manual-booklet-a4.pdf`, and `SHA256SUMS` covering all of them.
+- **Release assets:** `mega-wifi-radar-<v>.bin`, `-emu.bin`, `-label.pdf`, `-cover.pdf`, `-cover-a4.pdf`, `-manual.pdf`,
+  `-manual-booklet-letter.pdf`, `-manual-booklet-a4.pdf`, the relay (`-relay-compose.yaml`,
+  `-relay-linux-amd64.tar.gz`, `-relay-linux-arm64.tar.gz`, `-relay-darwin-arm64.tar.gz`), and `SHA256SUMS` covering all of them.
+- **Every release carries its own relay** (lock-step: relay vX serves only cart vX, so a release never points at `:latest`):
+  - `relay/compose.yaml` names `:latest`; the release job seds it to `:<semver>` as `-relay-compose.yaml`.
+    Host networking (the relay's own mDNS), the `mwradar-data` volume `make relay-start` also uses, `RELAY_DB`.
+  - Binaries: `CGO_ENABLED=0` (modernc SQLite, pure Go), every data file is `go:embed`ed, so the
+    tarball is just `relay` + `LICENSE`. `-X main.version` gets the same value as the image's `VERSION` (metadata-action).
+    Tarballs, not bare files, so the exec bit survives the download.
+  - The release notes are the CHANGELOG section plus a generated `## Relay` block: `docker run` and
+    compose against `:<semver>`, and the binary download (macOS: `xattr -d com.apple.quarantine` for browser downloads).
 - Order matters: `make sim` wipes `out/release` and `out/rom.bin`, so CI runs it **before** `make release`.
 - **GHCR visibility:** both packages are public; anonymous pulls work (checked with a token-less
   `ghcr.io/token` request). The first CI run took ~11 min (it built gcc); runs that hit the cache skip that build.
